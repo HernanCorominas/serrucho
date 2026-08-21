@@ -195,7 +195,6 @@ function DashboardContent() {
       <CreateSerruchoDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onCreated={() => fetchSerruchos()}
       />
     </div>
   );

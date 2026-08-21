@@ -38,6 +38,16 @@ export const expenseParticipantSplitSchema = z.object({
   percentage: z.number().min(0).max(100).optional(),
 });
 
+export const expenseCategorySchema = z.enum([
+  "LODGING",
+  "FOOD_GROCERIES",
+  "DRINKS_ALCOHOL",
+  "FUEL_TRANSPORT",
+  "RESTAURANT",
+  "ENTERTAINMENT",
+  "OTHER",
+]);
+
 export const expenseSchema = z
   .object({
     description: z
@@ -50,6 +60,7 @@ export const expenseSchema = z
     paid_by_participant_id: z.string().min(1, "Selecciona quién pagó este gasto"),
     expense_date: z.string().min(1, "Fecha de gasto requerida"),
     split_method: z.enum(["EQUAL", "PERCENTAGE"]).default("EQUAL"),
+    category: expenseCategorySchema.default("OTHER"),
     splits: z
       .array(expenseParticipantSplitSchema)
       .min(1, "Debe incluir al menos un participante en el reparto"),
@@ -58,7 +69,6 @@ export const expenseSchema = z
     (data) => {
       if (data.split_method === "PERCENTAGE") {
         const sum = data.splits.reduce((acc, s) => acc + (s.percentage || 0), 0);
-        // Round to 2 decimal places to prevent float precision issues
         return Math.abs(sum - 100) < 0.01;
       }
       return true;
@@ -83,3 +93,9 @@ export const closeSerruchoSchema = z.object({
 });
 
 export type CloseSerruchoInput = z.infer<typeof closeSerruchoSchema>;
+
+export const togglePaymentSchema = z.object({
+  is_paid: z.boolean(),
+});
+
+export type TogglePaymentInput = z.infer<typeof togglePaymentSchema>;

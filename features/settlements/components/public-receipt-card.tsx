@@ -5,15 +5,15 @@ import {
   Printer,
   Share2,
   CheckCircle2,
-  AlertCircle,
   Clock,
   CreditCard,
   Receipt,
-  ArrowDownRight,
-  ArrowUpRight,
   ShieldCheck,
+  Check,
+  Copy,
+  MessageCircle,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
@@ -27,6 +27,7 @@ interface PublicReceiptCardProps {
 export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
   const { toast } = useToast();
   const { snapshot, participant, serrucho, items } = receipt;
+  const [copiedBank, setCopiedBank] = React.useState(false);
 
   const isDebtor = snapshot.balance_cents < 0;
   const isCreditor = snapshot.balance_cents > 0;
@@ -56,6 +57,26 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
       });
     }
   };
+
+  const handleCopyBank = () => {
+    if (!snapshot.payment_instructions) return;
+    navigator.clipboard.writeText(snapshot.payment_instructions);
+    setCopiedBank(true);
+    toast({
+      type: "success",
+      title: "Datos bancarios copiados",
+      message: "Listo para pegar en la app de tu banco.",
+    });
+    setTimeout(() => setCopiedBank(false), 2500);
+  };
+
+  const waNotifyMsg = encodeURIComponent(
+    `¡Hola! 🌴 Te confirmo que ya realicé la transferencia de *${formatDOP(
+      Math.abs(snapshot.balance_cents)
+    )}* del serrucho *${serrucho.name}* a nombre de *${participant.name}*.\n\nComprobante: ${
+      typeof window !== "undefined" ? window.location.href : ""
+    }`
+  );
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -120,23 +141,44 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
             </Badge>
           </div>
 
+          {/* Payment Verification Stamp if Paid */}
+          {isDebtor && snapshot.is_paid && (
+            <div className="rounded-2xl border-2 border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 p-4 text-center space-y-1 shadow-sm">
+              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-emerald-600 text-white mx-auto shadow-md">
+                <Check className="h-6 w-6" />
+              </div>
+              <h4 className="text-base font-extrabold text-emerald-800 dark:text-emerald-200">
+                ¡Transferencia Confirmada por el Organizador!
+              </h4>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                Tu pago ha sido recibido y registrado en el serrucho. ¡Gracias por cumplir con el coro! 🎉
+              </p>
+            </div>
+          )}
+
           {/* Primary Balance Result Box */}
           <div
             className={`rounded-2xl p-6 text-center border-2 transition-all ${
-              isDebtor
+              isDebtor && !snapshot.is_paid
                 ? "bg-red-50/80 border-red-300 dark:bg-red-950/40 dark:border-red-800"
-                : isCreditor
+                : isCreditor || (isDebtor && snapshot.is_paid)
                 ? "bg-emerald-50/80 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800"
                 : "bg-muted border-border"
             }`}
           >
             <span
               className={`text-xs uppercase font-extrabold tracking-wider block mb-1 ${
-                isDebtor ? "text-red-700 dark:text-red-300" : isCreditor ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"
+                isDebtor && !snapshot.is_paid
+                  ? "text-red-700 dark:text-red-300"
+                  : isCreditor || (isDebtor && snapshot.is_paid)
+                  ? "text-emerald-700 dark:text-emerald-300"
+                  : "text-muted-foreground"
               }`}
             >
-              {isDebtor
+              {isDebtor && !snapshot.is_paid
                 ? "Monto Pendiente de Pago"
+                : isDebtor && snapshot.is_paid
+                ? "Monto Saldado"
                 : isCreditor
                 ? "Monto a tu Favor (Debes Recibir)"
                 : "Estado de Cuenta"}
@@ -144,15 +186,21 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
 
             <div
               className={`text-4xl sm:text-5xl font-black tracking-tight my-2 ${
-                isDebtor ? "text-red-600 dark:text-red-400" : isCreditor ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+                isDebtor && !snapshot.is_paid
+                  ? "text-red-600 dark:text-red-400"
+                  : isCreditor || (isDebtor && snapshot.is_paid)
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-foreground"
               }`}
             >
               {formatDOP(Math.abs(snapshot.balance_cents))}
             </div>
 
             <p className="text-xs font-semibold text-muted-foreground max-w-md mx-auto">
-              {isDebtor
+              {isDebtor && !snapshot.is_paid
                 ? "Por favor realiza la transferencia antes de la fecha límite indicada por el organizador."
+                : isDebtor && snapshot.is_paid
+                ? "Cuenta completamente al día."
                 : isCreditor
                 ? "El organizador o los participantes te transferirán este saldo."
                 : "¡No tienes saldo pendiente en este serrucho!"}
@@ -186,22 +234,54 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
             </div>
           </div>
 
-          {/* Payment Instructions (If Debtor) */}
-          {snapshot.payment_instructions && (
-            <div className="rounded-2xl border border-amber-300/80 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800 p-5 space-y-2">
-              <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm">
-                <CreditCard className="h-4 w-4 text-amber-600" />
-                <span>¿Cómo y dónde pagar?</span>
+          {/* Payment Instructions (If Debtor & Unpaid) */}
+          {snapshot.payment_instructions && isDebtor && !snapshot.is_paid && (
+            <div className="rounded-2xl border border-amber-300/80 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm">
+                  <CreditCard className="h-4 w-4 text-amber-600" />
+                  <span>¿Cómo y dónde pagar?</span>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyBank}
+                  className="h-7 px-2 text-xs font-semibold gap-1 bg-white/80 dark:bg-card"
+                >
+                  {copiedBank ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                  <span>{copiedBank ? "¡Copiado!" : "Copiar Cuentas"}</span>
+                </Button>
               </div>
+
               <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-100 whitespace-pre-wrap font-medium">
                 {snapshot.payment_instructions}
               </p>
+
               {snapshot.payment_deadline && (
                 <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 pt-2 border-t border-amber-200/80 dark:border-amber-900">
                   <Clock className="h-3.5 w-3.5" />
                   <span>Fecha Límite: {snapshot.payment_deadline}</span>
                 </div>
               )}
+
+              <div className="pt-2">
+                <a
+                  href={`https://wa.me/?text=${waNotifyMsg}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>Avisar al organizador que ya transferí</span>
+                  </Button>
+                </a>
+              </div>
             </div>
           )}
 

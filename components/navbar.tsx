@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusCircle, LayoutDashboard } from "lucide-react";
+import { PlusCircle, LayoutDashboard, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
@@ -20,15 +20,23 @@ export function Navbar() {
           </div>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link href="/calculadora" aria-label="Calculadora de Cuenta">
+            <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm">
+              <Calculator className="h-4 w-4 text-primary" />
+              <span className="hidden sm:inline">Calculadora</span>
+            </Button>
+          </Link>
+
           <Link href="/dashboard" aria-label="Mis Serruchos">
-            <Button variant="ghost" size="sm" className="gap-2 font-semibold" aria-label="Mis Serruchos">
+            <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm" aria-label="Mis Serruchos">
               <LayoutDashboard className="h-4 w-4" />
               <span className="inline">Mis Serruchos</span>
             </Button>
           </Link>
+
           <Link href="/dashboard?new=true">
-            <Button size="sm" className="gap-1.5 shadow-sm font-bold bg-primary hover:bg-primary/90 text-white">
+            <Button size="sm" className="gap-1.5 shadow-sm font-bold bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm">
               <PlusCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Nuevo Serrucho</span>
               <span className="sm:hidden">Nuevo</span>

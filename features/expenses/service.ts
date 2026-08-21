@@ -91,6 +91,7 @@ export class ExpenseService {
         paid_by_participant_id: validated.paid_by_participant_id,
         expense_date: validated.expense_date,
         split_method: validated.split_method,
+        category: validated.category || "OTHER",
       },
       calculatedSplits
     );
@@ -169,6 +170,7 @@ export class ExpenseService {
           : {}),
         ...(input.expense_date ? { expense_date: input.expense_date } : {}),
         ...(input.split_method ? { split_method: input.split_method } : {}),
+        ...(input.category ? { category: input.category } : {}),
       },
       calculatedSplits
     );

@@ -3,6 +3,8 @@
  * All monetary calculations are performed in integer cents to prevent floating point inaccuracies.
  */
 
+import { ExpenseCategory, SimplifiedTransfer, CategoryTotal, CATEGORY_INFO } from "@/lib/types/domain";
+
 export interface SplitParticipantInput {
   participantId: string;
   basisPoints?: number; // 10000 = 100.00%
@@ -200,4 +202,194 @@ export function calculateNetBalances(
   }
 
   return summaryMap;
+}
+
+/**
+ * Min-Cash-Flow Debt Simplification Algorithm
+ * Transforms N complex cross-payments into the minimum possible number of peer-to-peer transfers.
+ */
+export function simplifyDebts(
+  participants: { id: string; name: string }[],
+  netBalances: Map<string, number> | { id: string; net_balance_cents: number; name: string }[]
+): SimplifiedTransfer[] {
+  const nameMap = new Map<string, string>();
+  participants.forEach((p) => nameMap.set(p.id, p.name));
+
+  // Extract positive and negative balance lists
+  const debtors: { id: string; name: string; amount: number }[] = [];
+  const creditors: { id: string; name: string; amount: number }[] = [];
+
+  if (Array.isArray(netBalances)) {
+    netBalances.forEach((p) => {
+      nameMap.set(p.id, p.name);
+      if (p.net_balance_cents < 0) {
+        debtors.push({ id: p.id, name: p.name, amount: Math.abs(p.net_balance_cents) });
+      } else if (p.net_balance_cents > 0) {
+        creditors.push({ id: p.id, name: p.name, amount: p.net_balance_cents });
+      }
+    });
+  } else {
+    netBalances.forEach((balance, id) => {
+      const name = nameMap.get(id) || "Participante";
+      if (balance < 0) {
+        debtors.push({ id, name, amount: Math.abs(balance) });
+      } else if (balance > 0) {
+        creditors.push({ id, name, amount: balance });
+      }
+    });
+  }
+
+  const transfers: SimplifiedTransfer[] = [];
+
+  // Sort debtors and creditors descending by amount
+  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount);
+
+  let dIdx = 0;
+  let cIdx = 0;
+
+  while (dIdx < debtors.length && cIdx < creditors.length) {
+    const debtor = debtors[dIdx];
+    const creditor = creditors[cIdx];
+
+    const transferAmount = Math.min(debtor.amount, creditor.amount);
+
+    if (transferAmount > 0) {
+      transfers.push({
+        from_participant_id: debtor.id,
+        from_name: debtor.name,
+        to_participant_id: creditor.id,
+        to_name: creditor.name,
+        amount_cents: transferAmount,
+      });
+
+      debtor.amount -= transferAmount;
+      creditor.amount -= transferAmount;
+    }
+
+    if (debtor.amount === 0) dIdx++;
+    if (creditor.amount === 0) cIdx++;
+  }
+
+  return transfers;
+}
+
+/**
+ * Calculates category breakdown statistics for a set of expenses.
+ */
+export function calculateCategoryTotals(
+  expenses: { amount_cents: number; category?: ExpenseCategory }[]
+): CategoryTotal[] {
+  const totalSpend = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
+  const map = new Map<ExpenseCategory, { total_cents: number; count: number }>();
+
+  // Initialize with all known categories
+  (Object.keys(CATEGORY_INFO) as ExpenseCategory[]).forEach((cat) => {
+    map.set(cat, { total_cents: 0, count: 0 });
+  });
+
+  expenses.forEach((e) => {
+    const cat = e.category || "OTHER";
+    const current = map.get(cat) || { total_cents: 0, count: 0 };
+    current.total_cents += e.amount_cents;
+    current.count += 1;
+    map.set(cat, current);
+  });
+
+  const results: CategoryTotal[] = [];
+  map.forEach((val, key) => {
+    if (val.count > 0 || val.total_cents > 0) {
+      results.push({
+        category: key,
+        total_cents: val.total_cents,
+        expense_count: val.count,
+        percentage: totalSpend > 0 ? Number(((val.total_cents / totalSpend) * 100).toFixed(1)) : 0,
+      });
+    }
+  });
+
+  return results.sort((a, b) => b.total_cents - a.total_cents);
+}
+
+/**
+ * Generates an authentic Dominican WhatsApp direct share text for debt collection.
+ */
+export function generateWhatsAppDirectLink(params: {
+  phone?: string | null;
+  serruchoName: string;
+  participantName: string;
+  balanceCents: number;
+  publicUrl: string;
+  paymentInstructions?: string | null;
+}): string {
+  const isDebtor = params.balanceCents < 0;
+  const isCreditor = params.balanceCents > 0;
+  const amountStr = formatDOP(Math.abs(params.balanceCents));
+
+  let message = "";
+  if (isDebtor) {
+    message =
+      `¡Dímelo ${params.participantName}! 🌴\n\n` +
+      `Te comparto el estado de cuenta final del serrucho *${params.serruchoName}*.\n\n` +
+      `💰 *Tu balance pendiente es:* ${amountStr}\n\n` +
+      (params.paymentInstructions
+        ? `🏦 *Datos para transferir:*\n${params.paymentInstructions}\n\n`
+        : "") +
+      `📄 *Revisa tu estado de cuenta detallado aquí:*\n${params.publicUrl}\n\n` +
+      `¡Gracias por ser parte del coro! 🪚🇩🇴`;
+  } else if (isCreditor) {
+    message =
+      `¡Dímelo ${params.participantName}! 🌴\n\n` +
+      `Ya cerramos el serrucho *${params.serruchoName}*.\n\n` +
+      `✅ *Tienes un saldo a tu favor de:* ${amountStr}\n\n` +
+      `📄 *Revisa el comprobante aquí:*\n${params.publicUrl}\n\n` +
+      `¡Gracias por armar la logística! 🪚🇩🇴`;
+  } else {
+    message =
+      `¡Hola ${params.participantName}! 🌴\n\n` +
+      `El serrucho *${params.serruchoName}* ha sido cerrado y estás completamente al día (RD$ 0.00).\n\n` +
+      `📄 *Revisa el resumen aquí:*\n${params.publicUrl}`;
+  }
+
+  const encodedMessage = encodeURIComponent(message);
+  let cleanPhone = (params.phone || "").replace(/[^0-9]/g, "");
+
+  // Default Dominican area code if only 10 digits
+  if (cleanPhone.length === 10 && (cleanPhone.startsWith("809") || cleanPhone.startsWith("829") || cleanPhone.startsWith("849"))) {
+    cleanPhone = `1${cleanPhone}`;
+  }
+
+  if (cleanPhone) {
+    return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+  }
+
+  return `https://wa.me/?text=${encodedMessage}`;
+}
+
+/**
+ * Generates an all-in-one group summary text ready to paste into WhatsApp group chat.
+ */
+export function generateGroupWhatsAppSummary(params: {
+  serruchoName: string;
+  totalExpensesCents: number;
+  transfers: SimplifiedTransfer[];
+  closedAt?: string | null;
+}): string {
+  let text =
+    `🌴 *SERRUCHO: ${params.serruchoName}* 🪚\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `💰 *Gasto Total del Coro:* ${formatDOP(params.totalExpensesCents)}\n` +
+    (params.closedAt ? `🔒 *Cerrado el:* ${new Date(params.closedAt).toLocaleDateString("es-DO")}\n\n` : "\n") +
+    `📊 *TRANSFERENCIAS SUGERIDAS (Menos Transferencias):*\n`;
+
+  if (params.transfers.length === 0) {
+    text += `✅ ¡No hay transferencias pendientes! Todos están al día.\n`;
+  } else {
+    params.transfers.forEach((t) => {
+      text += `• *${t.from_name}* le transfiere a *${t.to_name}*: ${formatDOP(t.amount_cents)}\n`;
+    });
+  }
+
+  text += `━━━━━━━━━━━━━━━━━━━━━━\n` + `🇩🇴 _Cuentas claras conservan amistades con Serrucho_`;
+  return text;
 }

@@ -177,6 +177,8 @@ export class SettlementService {
           payment_instructions: validated.payment_instructions,
           payment_deadline: validated.payment_deadline,
           public_token_hash: tokenHash,
+          is_paid: false,
+          paid_at: null,
         },
         items,
         rawToken,

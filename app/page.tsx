@@ -7,12 +7,13 @@ import {
   ArrowRight,
   Zap,
   Lock,
-  Send,
   PieChart,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreateSerruchoDialog } from "@/features/serruchos/components/create-serrucho-dialog";
+import { QuickSplitCalculator } from "@/features/calculator/components/quick-split-calculator";
 
 export default function HomePage() {
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -20,7 +21,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-28 border-b border-border/60 bg-gradient-to-b from-orange-500/5 via-background to-background">
+      <section className="relative overflow-hidden pt-12 pb-16 md:pt-20 md:pb-24 border-b border-border/60 bg-gradient-to-b from-orange-500/5 via-background to-background">
         <div className="container px-4 sm:px-6 relative z-10 max-w-5xl mx-auto text-center">
           <Badge
             variant="outline"
@@ -35,7 +36,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-5 text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
-            Anota quién pagó la villa, las compras o la gasolina. Divide equitativamente o por porcentaje, congela la cuenta y envía el estado de cuenta a cada persona.
+            Anota quién pagó la villa, las compras o la gasolina. Optimiza con <strong>Menos Transferencias</strong>, cobra por <strong>WhatsApp en 1-click</strong> y dale a cada amigo su estado de cuenta inmutable.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -63,14 +64,14 @@ export default function HomePage() {
           <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 text-left max-w-3xl mx-auto">
             <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs">
               <Zap className="h-5 w-5 text-orange-500 mb-1" />
-              <div className="font-bold text-sm text-foreground">En 2 Minutos</div>
-              <div className="text-xs text-muted-foreground">Listo para usar sin crear cuenta</div>
+              <div className="font-bold text-sm text-foreground">Menos Transferencias</div>
+              <div className="text-xs text-muted-foreground">Algoritmo que reduce deudas cruzadas</div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs">
               <PieChart className="h-5 w-5 text-emerald-600 mb-1" />
-              <div className="font-bold text-sm text-foreground">Reparto Flexible</div>
-              <div className="text-xs text-muted-foreground">Parejo o porcentajes por persona</div>
+              <div className="font-bold text-sm text-foreground">Categorías & Stats</div>
+              <div className="text-xs text-muted-foreground">Villa, Comida, Bebidas y Gasolina</div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs">
@@ -80,16 +81,35 @@ export default function HomePage() {
             </div>
 
             <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs">
-              <Send className="h-5 w-5 text-blue-600 mb-1" />
-              <div className="font-bold text-sm text-foreground">Links Seguros</div>
-              <div className="text-xs text-muted-foreground">Resend Email y WhatsApp ready</div>
+              <MessageCircle className="h-5 w-5 text-emerald-500 mb-1" />
+              <div className="font-bold text-sm text-foreground">Cobro por WhatsApp</div>
+              <div className="text-xs text-muted-foreground">1-click con link y monto personalizado</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
+      {/* Interactive Quick Calculator Showcase */}
       <section className="py-16 bg-muted/20 border-b border-border/60">
+        <div className="container px-4 sm:px-6 max-w-4xl mx-auto space-y-6">
+          <div className="text-center space-y-1.5">
+            <Badge variant="outline" className="text-xs font-bold border-primary/30 text-primary">
+              Herramienta Rápida
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+              ¿Saliste a cenar? Prueba la Calculadora de Cuenta
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
+              Calcula 18% ITBIS + 10% Ley y copia el desglose a tu grupo de WhatsApp en segundos.
+            </p>
+          </div>
+
+          <QuickSplitCalculator />
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-16 border-b border-border/60">
         <div className="container px-4 sm:px-6 max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">

@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import { Participant } from "@/lib/types/domain";
+import { Participant, ExpenseCategory, CATEGORY_INFO } from "@/lib/types/domain";
 
 interface AddExpenseDialogProps {
   serruchoId: string;
@@ -32,6 +31,7 @@ export function AddExpenseDialog({
   const [amount, setAmount] = React.useState<string>("");
   const [paidById, setPaidById] = React.useState<string>("");
   const [expenseDate, setExpenseDate] = React.useState(new Date().toISOString().split("T")[0]);
+  const [category, setCategory] = React.useState<ExpenseCategory>("OTHER");
   const [splitMethod, setSplitMethod] = React.useState<"EQUAL" | "PERCENTAGE">("EQUAL");
 
   // Selected participants for split
@@ -145,6 +145,7 @@ export function AddExpenseDialog({
           amount: parsedAmount,
           paid_by_participant_id: paidById,
           expense_date: expenseDate,
+          category,
           split_method: splitMethod,
           splits: splitsPayload,
         }),
@@ -196,6 +197,32 @@ export function AddExpenseDialog({
               required
               autoFocus
             />
+          </div>
+
+          {/* Category Selector Pills */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Categoría del gasto</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(CATEGORY_INFO) as ExpenseCategory[]).map((catKey) => {
+                const info = CATEGORY_INFO[catKey];
+                const isCatSelected = category === catKey;
+                return (
+                  <button
+                    key={catKey}
+                    type="button"
+                    onClick={() => setCategory(catKey)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                      isCatSelected
+                        ? "bg-primary text-white border-primary shadow-xs"
+                        : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+                    }`}
+                  >
+                    <span>{info.emoji}</span>
+                    <span>{info.label.split("/")[0].trim()}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

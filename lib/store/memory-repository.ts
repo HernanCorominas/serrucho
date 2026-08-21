@@ -93,7 +93,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
 
     [p1, p2, p3, p4].forEach((p) => this.participants.set(p.id, p));
 
-    // Demo Expense 1: Villa (RD$ 24,000) paid by Carlos
+    // Demo Expense 1: Villa (RD$ 24,000) paid by Carlos (LODGING)
     const exp1: Expense = {
       id: "exp-1",
       serrucho_id: demoSerrucho.id,
@@ -102,6 +102,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       paid_by_participant_id: p1.id,
       expense_date: "2026-08-20",
       split_method: "EQUAL",
+      category: "LODGING",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -115,7 +116,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       });
     });
 
-    // Demo Expense 2: Supermercado (RD$ 8,500) paid by Juan
+    // Demo Expense 2: Supermercado (RD$ 8,500) paid by Juan (FOOD_GROCERIES)
     const exp2: Expense = {
       id: "exp-2",
       serrucho_id: demoSerrucho.id,
@@ -124,6 +125,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       paid_by_participant_id: p2.id,
       expense_date: "2026-08-21",
       split_method: "EQUAL",
+      category: "FOOD_GROCERIES",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -137,7 +139,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       });
     });
 
-    // Demo Expense 3: Gasolina (RD$ 3,000) paid by Pedro, split only Carlos, Juan, Pedro
+    // Demo Expense 3: Gasolina (RD$ 3,000) paid by Pedro, split only Carlos, Juan, Pedro (FUEL_TRANSPORT)
     const exp3: Expense = {
       id: "exp-3",
       serrucho_id: demoSerrucho.id,
@@ -146,6 +148,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       paid_by_participant_id: p3.id,
       expense_date: "2026-08-21",
       split_method: "EQUAL",
+      category: "FUEL_TRANSPORT",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -277,6 +280,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     const expense: Expense = {
       ...expenseData,
       id,
+      category: expenseData.category || "OTHER",
       created_at: now,
       updated_at: now,
     };
@@ -365,7 +369,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
 
   async createSettlementSnapshots(
     entries: {
-      snapshot: Omit<SettlementSnapshot, "id" | "created_at">;
+      snapshot: Omit<SettlementSnapshot, "id" | "created_at" | "is_paid" | "paid_at">;
       items: Omit<SettlementItem, "id" | "snapshot_id">[];
     }[]
   ): Promise<SettlementSnapshot[]> {
@@ -377,6 +381,8 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       const snapshot: SettlementSnapshot & { raw_token?: string } = {
         ...entry.snapshot,
         id: snapshotId,
+        is_paid: false,
+        paid_at: null,
         created_at: now,
         raw_token: (entry as any).rawToken,
       };
@@ -395,6 +401,20 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     }
 
     return createdSnapshots;
+  }
+
+  async markSnapshotPaid(snapshotId: string, isPaid: boolean): Promise<SettlementSnapshot> {
+    const existing = this.settlementSnapshots.get(snapshotId);
+    if (!existing) throw new Error("Estado de cuenta no encontrado");
+
+    const updated: SettlementSnapshot = {
+      ...existing,
+      is_paid: isPaid,
+      paid_at: isPaid ? new Date().toISOString() : null,
+    };
+
+    this.settlementSnapshots.set(snapshotId, updated);
+    return updated;
   }
 
   // Notification Logs

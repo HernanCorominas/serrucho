@@ -57,6 +57,7 @@ export interface ISerruchoRepository {
       items: Omit<SettlementItem, "id" | "snapshot_id">[];
     }[]
   ): Promise<SettlementSnapshot[]>;
+  markSnapshotPaid(snapshotId: string, isPaid: boolean): Promise<SettlementSnapshot>;
 
   // Notification Logs
   createNotificationLog(log: Omit<NotificationLog, "id" | "created_at">): Promise<NotificationLog>;

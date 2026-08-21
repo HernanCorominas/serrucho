@@ -147,6 +147,7 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     if (error) throw error;
     return (data || []).map((e) => ({
       ...e,
+      category: e.category || "OTHER",
       amount_cents: Number(e.amount_cents),
     })) as Expense[];
   }
@@ -158,7 +159,7 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       .eq("id", id)
       .single();
     if (error || !data) return null;
-    return { ...data, amount_cents: Number(data.amount_cents) } as Expense;
+    return { ...data, category: data.category || "OTHER", amount_cents: Number(data.amount_cents) } as Expense;
   }
 
   async getExpenseSplits(expenseId: string): Promise<ExpenseParticipant[]> {
@@ -179,7 +180,7 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
   ): Promise<Expense> {
     const { data: expData, error: expError } = await this.client
       .from("expenses")
-      .insert(expense)
+      .insert({ ...expense, category: expense.category || "OTHER" })
       .select()
       .single();
     if (expError) throw expError;
@@ -245,6 +246,8 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       owed_cents: Number(s.owed_cents),
       paid_cents: Number(s.paid_cents),
       balance_cents: Number(s.balance_cents),
+      is_paid: Boolean(s.is_paid),
+      paid_at: s.paid_at || null,
     })) as SettlementSnapshot[];
   }
 
@@ -267,6 +270,8 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       owed_cents: Number(snapshotData.owed_cents),
       paid_cents: Number(snapshotData.paid_cents),
       balance_cents: Number(snapshotData.balance_cents),
+      is_paid: Boolean(snapshotData.is_paid),
+      paid_at: snapshotData.paid_at || null,
     };
 
     const [partRes, serruchoRes, itemsRes] = await Promise.all([
@@ -293,7 +298,7 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
 
   async createSettlementSnapshots(
     entries: {
-      snapshot: Omit<SettlementSnapshot, "id" | "created_at">;
+      snapshot: Omit<SettlementSnapshot, "id" | "created_at" | "is_paid" | "paid_at">;
       items: Omit<SettlementItem, "id" | "snapshot_id">[];
     }[]
   ): Promise<SettlementSnapshot[]> {
@@ -302,7 +307,7 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     for (const entry of entries) {
       const { data: snapData, error: snapError } = await this.client
         .from("settlement_snapshots")
-        .insert(entry.snapshot)
+        .insert({ ...entry.snapshot, is_paid: false, paid_at: null })
         .select()
         .single();
       if (snapError) throw snapError;
@@ -313,6 +318,8 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
         owed_cents: Number(snapData.owed_cents),
         paid_cents: Number(snapData.paid_cents),
         balance_cents: Number(snapData.balance_cents),
+        is_paid: false,
+        paid_at: null,
       };
       createdSnapshots.push(snap);
 
@@ -329,6 +336,26 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     }
 
     return createdSnapshots;
+  }
+
+  async markSnapshotPaid(snapshotId: string, isPaid: boolean): Promise<SettlementSnapshot> {
+    const paidAt = isPaid ? new Date().toISOString() : null;
+    const { data, error } = await this.client
+      .from("settlement_snapshots")
+      .update({ is_paid: isPaid, paid_at: paidAt })
+      .eq("id", snapshotId)
+      .select()
+      .single();
+    if (error) throw error;
+    return {
+      ...data,
+      total_expenses_cents: Number(data.total_expenses_cents),
+      owed_cents: Number(data.owed_cents),
+      paid_cents: Number(data.paid_cents),
+      balance_cents: Number(data.balance_cents),
+      is_paid: Boolean(data.is_paid),
+      paid_at: data.paid_at || null,
+    } as SettlementSnapshot;
   }
 
   // Notification Logs

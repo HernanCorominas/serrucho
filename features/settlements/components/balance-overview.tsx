@@ -1,26 +1,43 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDownRight, ArrowUpRight, CheckCircle2, TrendingUp, Users, DollarSign } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CheckCircle2,
+  TrendingUp,
+  Users,
+  Share2,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatDOP } from "@/lib/finance/math";
-import { ParticipantFinancials } from "@/lib/types/domain";
+import { ParticipantFinancials, Expense } from "@/lib/types/domain";
+import { DebtSimplificationCard } from "./debt-simplification-card";
+import { CategoryBreakdownCard } from "./category-breakdown-card";
+import { GroupSummaryDialog } from "./group-summary-dialog";
 
 interface BalanceOverviewProps {
   participants: ParticipantFinancials[];
+  expenses?: Expense[];
   totalExpensesCents: number;
+  serruchoName?: string;
+  paymentInstructions?: string | null;
   currency?: string;
 }
 
 export function BalanceOverview({
   participants,
+  expenses = [],
   totalExpensesCents,
-  currency = "DOP",
+  serruchoName = "Serrucho",
+  paymentInstructions,
 }: BalanceOverviewProps) {
+  const [summaryOpen, setSummaryOpen] = React.useState(false);
+
   const creditors = participants.filter((p) => p.net_balance_cents > 0);
   const debtors = participants.filter((p) => p.net_balance_cents < 0);
-  const settled = participants.filter((p) => p.net_balance_cents === 0);
 
   return (
     <div className="space-y-6">
@@ -78,10 +95,22 @@ export function BalanceOverview({
         </Card>
       </div>
 
+      {/* Suggested Simplified Transfers Card */}
+      {participants.length > 0 && (
+        <DebtSimplificationCard
+          participants={participants}
+          serruchoName={serruchoName}
+          paymentInstructions={paymentInstructions}
+        />
+      )}
+
+      {/* Category Breakdown Card */}
+      {expenses.length > 0 && <CategoryBreakdownCard expenses={expenses} />}
+
       {/* Detailed Participant Balances Grid */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
@@ -91,9 +120,21 @@ export function BalanceOverview({
                 Resumen instantáneo de quién pagó, cuánto le toca y saldo neto
               </CardDescription>
             </div>
-            <Badge variant="outline" className="font-bold">
-              {participants.length} participantes
-            </Badge>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSummaryOpen(true)}
+                className="gap-1.5 text-xs font-bold"
+              >
+                <Share2 className="h-3.5 w-3.5 text-primary" />
+                <span>Compartir / Exportar</span>
+              </Button>
+              <Badge variant="outline" className="font-bold">
+                {participants.length} participantes
+              </Badge>
+            </div>
           </div>
         </CardHeader>
 
@@ -185,6 +226,16 @@ export function BalanceOverview({
           )}
         </CardContent>
       </Card>
+
+      {/* Group Summary & Export Dialog */}
+      <GroupSummaryDialog
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        serruchoName={serruchoName}
+        totalExpensesCents={totalExpensesCents}
+        participants={participants}
+        expenses={expenses}
+      />
     </div>
   );
 }

@@ -213,7 +213,10 @@ export default function SerruchoWorkspacePage() {
           {settlement && (
             <BalanceOverview
               participants={settlement.participants}
+              expenses={expenses}
               totalExpensesCents={totalCents}
+              serruchoName={serrucho.name}
+              paymentInstructions={serrucho.payment_instructions}
               currency={serrucho.currency}
             />
           )}
@@ -245,12 +248,15 @@ export default function SerruchoWorkspacePage() {
         <TabsContent value="closure">
           {isClosed ? (
             <ClosedSettlementView
+              serruchoId={serrucho.id}
               serruchoName={serrucho.name}
               paymentInstructions={serrucho.payment_instructions}
               paymentDeadline={serrucho.payment_deadline}
               closedAt={serrucho.closed_at}
               snapshots={snapshots}
+              expenses={expenses}
               logs={logs}
+              onSnapshotUpdated={loadData}
             />
           ) : (
             <Card className="border-amber-200/80 bg-gradient-to-br from-amber-50/40 to-card dark:from-amber-950/20">

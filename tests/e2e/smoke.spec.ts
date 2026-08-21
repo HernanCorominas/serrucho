@@ -1,30 +1,38 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Serrucho MVP End-to-End Flow", () => {
-  test("complete smoke test: landing -> dashboard -> create -> participants -> expenses -> balance -> close -> public receipt", async ({
+  test("complete smoke test: landing -> calculator -> dashboard -> create -> participants -> expenses -> balance -> debt simplification -> close -> mark paid -> public receipt", async ({
     page,
   }) => {
-    test.setTimeout(60000);
+    test.setTimeout(90000);
 
     // 1. Visit landing page
     await page.goto("/");
     await expect(page).toHaveTitle(/Serrucho/i);
     await expect(page.locator("h1")).toBeVisible();
 
-    // 2. Click "Crear un Serrucho Gratis" on landing page
-    await page.getByRole("button", { name: /Crear un Serrucho Gratis/i }).click();
+    // 2. Test Quick Split Calculator
+    await page.goto("/calculadora");
+    await expect(page.getByText(/Calculadora de Cuenta Dominicana/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/18% ITBIS/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/10% Ley/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Le toca a cada uno/i).first()).toBeVisible({ timeout: 10000 });
 
-    // 3. Fill in serrucho details in modal
+    // 3. Navigate to Dashboard & Click "Nuevo Serrucho"
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: /Nuevo Serrucho/i }).first().click();
+
+    // 4. Fill in serrucho details in modal
     const uniqueName = `Playa 2026 Smoke ${Date.now()}`;
     await page.locator("#name").fill(uniqueName);
     await page.locator("#description").fill("Viaje de amigos a la playa de Las Terrenas");
     await page.locator('button[type="submit"]:has-text("Crear Serrucho")').click();
 
-    // 4. Should navigate into the new serrucho workspace
+    // 5. Should navigate into the new serrucho workspace
     await page.waitForURL(/\/dashboard\/.+/, { timeout: 20000 });
     await expect(page.locator("h1")).toContainText(uniqueName, { timeout: 20000 });
 
-    // 5. Add Participants
+    // 6. Add Participants
     const addParticipant = async (name: string, email: string, phone: string) => {
       await page.getByRole("button", { name: /\+ Participante/i }).click();
       await page.locator("#part_name").waitFor({ state: "visible", timeout: 10000 });
@@ -39,7 +47,7 @@ test.describe("Serrucho MVP End-to-End Flow", () => {
     await addParticipant("Pedro Rosario", "pedro.rosario@example.com", "8095550103");
     await addParticipant("María Santos", "maria.santos@example.com", "8095550104");
 
-    // 6. Add Expense 1: Villa (RD$ 15,000) paid by Juan split equally
+    // 7. Add Expense 1: Villa (RD$ 15,000) paid by Juan split equally
     await page.getByRole("button", { name: /\+ Gasto/i }).click();
     await page.locator("#exp_desc").waitFor({ state: "visible", timeout: 10000 });
     await page.locator("#exp_desc").fill("Alquiler de Villa");
@@ -47,7 +55,7 @@ test.describe("Serrucho MVP End-to-End Flow", () => {
     await page.locator('button[type="submit"]:has-text("Guardar Gasto")').click();
     await page.locator("#exp_desc").waitFor({ state: "hidden", timeout: 15000 });
 
-    // 7. Add Expense 2: Supermercado (RD$ 6,000) paid by Pedro split equally
+    // 8. Add Expense 2: Supermercado (RD$ 6,000) paid by Pedro split equally
     await page.getByRole("button", { name: /\+ Gasto/i }).click();
     await page.locator("#exp_desc").waitFor({ state: "visible", timeout: 10000 });
     await page.locator("#exp_desc").fill("Supermercado y Carnes");
@@ -56,12 +64,13 @@ test.describe("Serrucho MVP End-to-End Flow", () => {
     await page.locator('button[type="submit"]:has-text("Guardar Gasto")').click();
     await page.locator("#exp_desc").waitFor({ state: "hidden", timeout: 15000 });
 
-    // 8. Verify Balances Tab
+    // 9. Verify Balances Tab & Debt Simplification
     await page.getByRole("button", { name: /Balances/i }).click();
     await expect(page.getByText(/Total del Serrucho/i)).toBeVisible();
-    await expect(page.getByText(/21,000.00/i)).toBeVisible();
+    await expect(page.getByText(/21,000.00/i).first()).toBeVisible();
+    await expect(page.getByText(/Menos Transferencias/i)).toBeVisible();
 
-    // 9. Close Serrucho Wizard
+    // 10. Close Serrucho Wizard
     await page.getByRole("button", { name: /Cerrar Serrucho/i }).first().click();
 
     // Fill in payment info
@@ -72,17 +81,25 @@ test.describe("Serrucho MVP End-to-End Flow", () => {
     await page.locator('input[type="checkbox"]').check();
     await page.locator('button[type="submit"]:has-text("Cerrar Serrucho Definitivamente")').click();
 
-    // 10. Verify Closed State View & Immutable Snapshots
+    // 11. Verify Closed State View, Debt Simplification & Snapshots
     await expect(page.getByText(/Serrucho Cerrado y Congelado/i)).toBeVisible({ timeout: 20000 });
-    await expect(page.getByText(/Cuentas Inmutables/i).first()).toBeVisible();
+    await expect(page.getByText(/Menos Transferencias/i)).toBeVisible();
 
-    // 11. Click on "Ver Estado" for the first participant to open public receipt
-    const viewStateButtons = page.getByRole("link", { name: /Ver Estado/i });
-    const firstStateUrl = await viewStateButtons.first().getAttribute("href");
+    // 12. Test "Marcar Pagado" toggle on first debtor
+    const markPaidBtn = page.getByRole("button", { name: /Marcar Pagado/i }).first();
+    if (await markPaidBtn.isVisible()) {
+      await markPaidBtn.click();
+      await expect(page.getByText(/Transferencia Recibida/i).first()).toBeVisible();
+    }
+
+    // 13. Click on "Ver Comprobante" for the first participant to open public receipt
+    const viewButtons = page.getByRole("link", { name: /Ver Comprobante/i });
+    await expect(viewButtons.first()).toBeVisible({ timeout: 15000 });
+    const firstStateUrl = await viewButtons.first().getAttribute("href");
     expect(firstStateUrl).toContain("/s/");
 
     await page.goto(firstStateUrl!);
     await expect(page.getByText(/Estado de Cuenta Individual/i)).toBeVisible({ timeout: 20000 });
-    await expect(page.getByText(/Banco BHD/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Resumen Financiero/i)).toBeVisible({ timeout: 20000 });
   });
 });

@@ -6,6 +6,10 @@ import {
   splitEqually,
   splitByPercentage,
   calculateNetBalances,
+  simplifyDebts,
+  calculateCategoryTotals,
+  generateWhatsAppDirectLink,
+  generateGroupWhatsAppSummary,
 } from "@/lib/finance/math";
 
 describe("Financial Math Module", () => {
@@ -43,8 +47,6 @@ describe("Financial Math Module", () => {
       const totalOwed = splits.reduce((sum, s) => sum + s.owedCents, 0);
       expect(totalOwed).toBe(10000);
 
-      // 10000 / 3 = 3333 with remainder 1
-      // The sorted first participant gets 3334, others get 3333
       expect(splits[0].owedCents).toBe(3334);
       expect(splits[1].owedCents).toBe(3333);
       expect(splits[2].owedCents).toBe(3333);
@@ -67,7 +69,6 @@ describe("Financial Math Module", () => {
 
       const totalOwed = splits.reduce((sum, s) => sum + s.owedCents, 0);
       expect(totalOwed).toBe(10000);
-      // 10000 / 7 = 1428 with remainder 4. First 4 get 1429, last 3 get 1428
       expect(splits.filter((s) => s.owedCents === 1429).length).toBe(4);
       expect(splits.filter((s) => s.owedCents === 1428).length).toBe(3);
     });
@@ -109,7 +110,6 @@ describe("Financial Math Module", () => {
     });
 
     it("distributes leftover cents to highest decimal remainders", () => {
-      // Split 100 cents (RD$ 1.00) 33.33%, 33.33%, 33.34%
       const input = [
         { participantId: "p1", basisPoints: 3333 },
         { participantId: "p2", basisPoints: 3333 },
@@ -126,8 +126,6 @@ describe("Financial Math Module", () => {
     it("calculates accurate net balances and guarantees zero-sum conservation", () => {
       const participants = ["juan", "pedro", "maria"];
 
-      // Expense 1: Juan paid RD$ 3,000 split equally among all 3 (1000 each)
-      // Expense 2: Pedro paid RD$ 1,500 split equally between Pedro & Maria (750 each)
       const expenses = [
         {
           paidByParticipantId: "juan",
@@ -154,24 +152,133 @@ describe("Financial Math Module", () => {
       const pedro = balances.get("pedro")!;
       const maria = balances.get("maria")!;
 
-      // Juan: Paid 3,000, Owed 1,000 -> Net +2,000 (must receive)
       expect(juan.totalPaidCents).toBe(300000);
       expect(juan.totalOwedCents).toBe(100000);
       expect(juan.netBalanceCents).toBe(200000);
 
-      // Pedro: Paid 1,500, Owed 1,750 (1000 + 750) -> Net -250 (must pay)
       expect(pedro.totalPaidCents).toBe(150000);
       expect(pedro.totalOwedCents).toBe(175000);
       expect(pedro.netBalanceCents).toBe(-25000);
 
-      // Maria: Paid 0, Owed 1,750 (1000 + 750) -> Net -1,750 (must pay)
       expect(maria.totalPaidCents).toBe(0);
       expect(maria.totalOwedCents).toBe(175000);
       expect(maria.netBalanceCents).toBe(-175000);
 
-      // Sum of all net balances must be exactly 0
       const totalNet = juan.netBalanceCents + pedro.netBalanceCents + maria.netBalanceCents;
       expect(totalNet).toBe(0);
+    });
+  });
+
+  describe("simplifyDebts (Min-Cash-Flow)", () => {
+    it("simplifies 3-person balances to minimum optimal transfers", () => {
+      const participants = [
+        { id: "carlos", name: "Carlos" },
+        { id: "juan", name: "Juan" },
+        { id: "pedro", name: "Pedro" },
+      ];
+
+      // Carlos is owed +2,000; Juan owes -1,500; Pedro owes -500
+      const balances = new Map([
+        ["carlos", 200000],
+        ["juan", -150000],
+        ["pedro", -50000],
+      ]);
+
+      const transfers = simplifyDebts(participants, balances);
+
+      expect(transfers.length).toBe(2);
+      expect(transfers[0]).toEqual({
+        from_participant_id: "juan",
+        from_name: "Juan",
+        to_participant_id: "carlos",
+        to_name: "Carlos",
+        amount_cents: 150000,
+      });
+      expect(transfers[1]).toEqual({
+        from_participant_id: "pedro",
+        from_name: "Pedro",
+        to_participant_id: "carlos",
+        to_name: "Carlos",
+        amount_cents: 50000,
+      });
+    });
+
+    it("handles complex multi-party settlements with fewer transactions than people", () => {
+      const participants = [
+        { id: "p1", name: "P1" },
+        { id: "p2", name: "P2" },
+        { id: "p3", name: "P3" },
+        { id: "p4", name: "P4" },
+      ];
+
+      // P1: +3,000, P2: +1,000, P3: -2,000, P4: -2,000
+      const balances = [
+        { id: "p1", name: "P1", net_balance_cents: 300000 },
+        { id: "p2", name: "P2", net_balance_cents: 100000 },
+        { id: "p3", name: "P3", net_balance_cents: -200000 },
+        { id: "p4", name: "P4", net_balance_cents: -200000 },
+      ];
+
+      const transfers = simplifyDebts(participants, balances);
+
+      const totalTransferred = transfers.reduce((sum, t) => sum + t.amount_cents, 0);
+      expect(totalTransferred).toBe(400000);
+      expect(transfers.length).toBeLessThanOrEqual(3);
+    });
+  });
+
+  describe("calculateCategoryTotals", () => {
+    it("groups and calculates percentage per category", () => {
+      const expenses = [
+        { amount_cents: 2400000, category: "LODGING" as const },
+        { amount_cents: 850000, category: "FOOD_GROCERIES" as const },
+        { amount_cents: 300000, category: "FUEL_TRANSPORT" as const },
+      ];
+
+      const breakdown = calculateCategoryTotals(expenses);
+
+      expect(breakdown.length).toBe(3);
+      expect(breakdown[0].category).toBe("LODGING");
+      expect(breakdown[0].total_cents).toBe(2400000);
+      expect(breakdown[0].percentage).toBeGreaterThan(60);
+    });
+  });
+
+  describe("WhatsApp Link and Group Summary Generators", () => {
+    it("generates correct wa.me link for Dominican phone numbers", () => {
+      const link = generateWhatsAppDirectLink({
+        phone: "809-555-0199",
+        serruchoName: "Las Terrenas",
+        participantName: "Juan",
+        balanceCents: -250000,
+        publicUrl: "https://serrucho.vercel.app/s/abc123token",
+        paymentInstructions: "Banco BHD 1234567890",
+      });
+
+      expect(link).toContain("https://wa.me/18095550199");
+      expect(link).toContain("Las%20Terrenas");
+      expect(link).toContain("2%2C500.00");
+    });
+
+    it("generates clean group summary text with emojis", () => {
+      const summary = generateGroupWhatsAppSummary({
+        serruchoName: "Las Terrenas 🌴",
+        totalExpensesCents: 3550000,
+        transfers: [
+          {
+            from_participant_id: "p2",
+            from_name: "Juan Pérez",
+            to_participant_id: "p1",
+            to_name: "Carlos Gómez",
+            amount_cents: 212500,
+          },
+        ],
+      });
+
+      expect(summary).toContain("SERRUCHO: Las Terrenas 🌴");
+      expect(summary).toContain("Juan Pérez");
+      expect(summary).toContain("Carlos Gómez");
+      expect(summary).toContain("RD$");
     });
   });
 });

@@ -4,6 +4,28 @@ export type PreferredChannel = "EMAIL" | "WHATSAPP";
 export type NotificationChannel = "EMAIL" | "WHATSAPP";
 export type NotificationStatus = "PENDING" | "SENT" | "FAILED" | "SKIPPED";
 
+export type ExpenseCategory =
+  | "LODGING"
+  | "FOOD_GROCERIES"
+  | "DRINKS_ALCOHOL"
+  | "FUEL_TRANSPORT"
+  | "RESTAURANT"
+  | "ENTERTAINMENT"
+  | "OTHER";
+
+export const CATEGORY_INFO: Record<
+  ExpenseCategory,
+  { label: string; emoji: string; color: string }
+> = {
+  LODGING: { label: "Villa / Alojamiento", emoji: "🏡", color: "bg-purple-500/10 text-purple-600 border-purple-200 dark:border-purple-800" },
+  FOOD_GROCERIES: { label: "Supermercado & Compras", emoji: "🛒", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800" },
+  DRINKS_ALCOHOL: { label: "Bebidas & Alcohol", emoji: "🍻", color: "bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800" },
+  FUEL_TRANSPORT: { label: "Combustible & Peajes", emoji: "⛽", color: "bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-800" },
+  RESTAURANT: { label: "Restaurante & Cenas", emoji: "🍽️", color: "bg-rose-500/10 text-rose-600 border-rose-200 dark:border-rose-800" },
+  ENTERTAINMENT: { label: "Entretenimiento & Paseos", emoji: "🎉", color: "bg-indigo-500/10 text-indigo-600 border-indigo-200 dark:border-indigo-800" },
+  OTHER: { label: "Otros Gastos", emoji: "📦", color: "bg-slate-500/10 text-slate-600 border-slate-200 dark:border-slate-800" },
+};
+
 export interface Profile {
   id: string;
   email: string;
@@ -45,6 +67,7 @@ export interface Expense {
   paid_by_participant_id: string;
   expense_date: string;
   split_method: SplitMethod;
+  category: ExpenseCategory;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +90,8 @@ export interface SettlementSnapshot {
   payment_instructions: string | null;
   payment_deadline: string | null;
   public_token_hash: string;
+  is_paid: boolean;
+  paid_at: string | null;
   created_at: string;
 }
 
@@ -92,6 +117,22 @@ export interface NotificationLog {
   error_message: string | null;
   sent_at: string | null;
   created_at: string;
+}
+
+// Optimization & Calculation Types
+export interface SimplifiedTransfer {
+  from_participant_id: string;
+  from_name: string;
+  to_participant_id: string;
+  to_name: string;
+  amount_cents: number;
+}
+
+export interface CategoryTotal {
+  category: ExpenseCategory;
+  total_cents: number;
+  percentage: number;
+  expense_count: number;
 }
 
 // Composite types for UI and Services

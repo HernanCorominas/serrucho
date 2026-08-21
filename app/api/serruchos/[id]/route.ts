@@ -23,10 +23,15 @@ export async function GET(
 
     const participantMap = new Map(participants.map((p) => [p.id, p]));
 
-    const enrichedSnapshots = snapshots.map((s) => ({
-      ...s,
-      participant: participantMap.get(s.participant_id),
-    }));
+    const enrichedSnapshots = snapshots.map((s) => {
+      const rawToken = (s as any).raw_token;
+      return {
+        ...s,
+        raw_token: rawToken,
+        public_url: rawToken ? `/s/${rawToken}` : (s as any).public_url || "",
+        participant: participantMap.get(s.participant_id),
+      };
+    });
 
     return NextResponse.json({
       serrucho,

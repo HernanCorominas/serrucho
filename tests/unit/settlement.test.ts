@@ -101,6 +101,7 @@ describe("Settlement Service & Lifecycle", () => {
         paid_by_participant_id: "part-1",
         expense_date: "2026-08-22",
         split_method: "EQUAL",
+        category: "OTHER",
         splits: [{ participant_id: "part-1" }],
       })
     ).rejects.toThrow("No se pueden agregar gastos a un serrucho cerrado");

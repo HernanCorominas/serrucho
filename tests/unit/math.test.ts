@@ -11,7 +11,9 @@ import {
   generateWhatsAppDirectLink,
   generateGroupWhatsAppSummary,
   calculateCoroAwards,
+  calculateItemizedSplits,
 } from "@/lib/finance/math";
+import { convertToDOPCents } from "@/lib/finance/currency";
 
 describe("Financial Math Module", () => {
   describe("toCents and fromCents", () => {
@@ -313,6 +315,53 @@ describe("Financial Math Module", () => {
 
       const topDebtor = awards.find((a) => a.id === "top-debtor");
       expect(topDebtor?.winner_name).toBe("Juan Pérez");
+    });
+  });
+
+  describe("calculateItemizedSplits", () => {
+    it("prorates ITBIS, service and tips accurately across individual items", () => {
+      const lines = [
+        { id: "1", name: "Mofongo de Chicharrón", amountCents: 60000, assignedParticipantIds: ["juan"] },
+        { id: "2", name: "3 Cervezas Presidente", amountCents: 60000, assignedParticipantIds: ["juan", "pedro"] },
+        { id: "3", name: "Ensalada César", amountCents: 40000, assignedParticipantIds: ["maria"] },
+      ];
+
+      const result = calculateItemizedSplits({
+        lines,
+        participantIds: ["juan", "pedro", "maria"],
+        itbisPercent: 18,
+        servicePercent: 10,
+        customTipCents: 0,
+      });
+
+      expect(result.totalSubtotalCents).toBe(160000); // 600 + 600 + 400 = 1,600
+      expect(result.itbisCents).toBe(28800); // 18% of 1,600 = 288
+      expect(result.serviceCents).toBe(16000); // 10% of 1,600 = 160
+      expect(result.totalFinalCents).toBe(204800); // 1,600 + 288 + 160 = 2,048
+
+      const juan = result.participantTotals.find((p) => p.participantId === "juan");
+      const pedro = result.participantTotals.find((p) => p.participantId === "pedro");
+      const maria = result.participantTotals.find((p) => p.participantId === "maria");
+
+      expect(juan?.subtotalCents).toBe(90000); // 600 + 300
+      expect(pedro?.subtotalCents).toBe(30000); // 300
+      expect(maria?.subtotalCents).toBe(40000); // 400
+
+      const sumBasisPoints = result.participantTotals.reduce((sum, p) => sum + p.basisPoints, 0);
+      expect(sumBasisPoints).toBe(10000);
+    });
+  });
+
+  describe("convertToDOPCents", () => {
+    it("converts USD and EUR to DOP cents with exchange rates", () => {
+      const dop = convertToDOPCents(100, "DOP");
+      expect(dop).toBe(10000);
+
+      const usd = convertToDOPCents(50, "USD", 60.5);
+      expect(usd).toBe(302500); // 50 * 60.5 = 3,025.00 RD$
+
+      const eur = convertToDOPCents(20, "EUR", 65.0);
+      expect(eur).toBe(130000); // 20 * 65 = 1,300.00 RD$
     });
   });
 });

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PlusCircle, LayoutDashboard, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Navbar() {
   return (
@@ -20,7 +21,7 @@ export function Navbar() {
           </div>
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Link href="/calculadora" aria-label="Calculadora de Cuenta">
             <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm">
               <Calculator className="h-4 w-4 text-primary" />
@@ -31,9 +32,11 @@ export function Navbar() {
           <Link href="/dashboard" aria-label="Mis Serruchos">
             <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm" aria-label="Mis Serruchos">
               <LayoutDashboard className="h-4 w-4" />
-              <span className="inline">Mis Serruchos</span>
+              <span className="hidden md:inline">Mis Serruchos</span>
             </Button>
           </Link>
+
+          <ThemeToggle />
 
           <Link href="/dashboard?new=true">
             <Button size="sm" className="gap-1.5 shadow-sm font-bold bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm">

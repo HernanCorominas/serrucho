@@ -170,3 +170,26 @@ export interface CoroAward {
   color: string;
 }
 
+export interface ItemizedExpenseLine {
+  id: string;
+  name: string;
+  amountCents: number;
+  assignedParticipantIds: string[];
+}
+
+export interface ItemizedSplitResult {
+  totalSubtotalCents: number;
+  itbisCents: number;
+  serviceCents: number;
+  tipCents: number;
+  totalFinalCents: number;
+  participantTotals: {
+    participantId: string;
+    subtotalCents: number;
+    taxesAndTipCents: number;
+    totalOwedCents: number;
+    basisPoints: number;
+  }[];
+}
+
+

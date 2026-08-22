@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { ToastProvider } from "@/components/ui/toast";
 import { FeedbackWidget } from "@/components/feedback-modal";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -42,18 +43,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={inter.variable}>
+    <html lang="es" className={inter.variable} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <meta name="apple-mobile-web-app-title" content="Serrucho" />
       </head>
-      <body className="flex min-h-screen flex-col bg-background font-sans text-foreground antialiased selection:bg-orange-100 selection:text-orange-900">
-        <ToastProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <FeedbackWidget />
-        </ToastProvider>
+      <body className="flex min-h-screen flex-col bg-background font-sans text-foreground antialiased selection:bg-orange-100 selection:text-orange-900 transition-colors duration-200">
+        <ThemeProvider>
+          <ToastProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <FeedbackWidget />
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

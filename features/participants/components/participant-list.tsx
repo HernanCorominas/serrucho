@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { User, Trash2, Mail, Phone, PlusCircle, Users } from "lucide-react";
+import { User, Trash2, Mail, Phone, PlusCircle, Users, Search } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { Participant } from "@/lib/types/domain";
+import { hapticLight, hapticImpact } from "@/lib/utils/haptics";
 
 interface ParticipantListProps {
   serruchoId: string;
@@ -24,7 +26,19 @@ export function ParticipantList({
   onParticipantDeleted,
 }: ParticipantListProps) {
   const { toast } = useToast();
+  const [search, setSearch] = React.useState("");
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
+  const filteredParticipants = React.useMemo(() => {
+    if (!search.trim()) return participants;
+    const q = search.toLowerCase().trim();
+    return participants.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.email && p.email.toLowerCase().includes(q)) ||
+        (p.phone && p.phone.includes(q))
+    );
+  }, [participants, search]);
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`¿Estás seguro de eliminar a ${name} del serrucho?`)) {
@@ -32,6 +46,7 @@ export function ParticipantList({
     }
 
     try {
+      hapticImpact();
       setDeletingId(id);
       const res = await fetch(`/api/serruchos/${serruchoId}/participants/${id}`, {
         method: "DELETE",
@@ -57,7 +72,7 @@ export function ParticipantList({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
         <div>
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
@@ -69,14 +84,35 @@ export function ParticipantList({
         </div>
 
         {!isClosed && (
-          <Button size="sm" onClick={onAddClick} className="gap-1.5 font-bold">
+          <Button
+            size="sm"
+            onClick={() => {
+              hapticLight();
+              onAddClick();
+            }}
+            className="gap-1.5 font-bold self-start sm:self-auto"
+          >
             <PlusCircle className="h-4 w-4" />
             <span>Agregar</span>
           </Button>
         )}
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="space-y-3">
+        {/* Search Bar when more than 3 participants */}
+        {participants.length > 3 && (
+          <div className="relative">
+            <Search className="h-3.5 w-3.5 absolute left-3 top-3 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar participante por nombre, email o teléfono..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 text-xs"
+            />
+          </div>
+        )}
+
         {participants.length === 0 ? (
           <div className="text-center py-10 border border-dashed rounded-2xl p-6 bg-muted/20">
             <User className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
@@ -91,9 +127,13 @@ export function ParticipantList({
               </Button>
             )}
           </div>
+        ) : filteredParticipants.length === 0 ? (
+          <div className="text-center py-6 text-xs text-muted-foreground">
+            No se encontró ningún participante que coincida con &quot;{search}&quot;.
+          </div>
         ) : (
           <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-            {participants.map((p) => (
+            {filteredParticipants.map((p) => (
               <div
                 key={p.id}
                 className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-colors"
@@ -120,23 +160,18 @@ export function ParticipantList({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] uppercase font-bold">
-                    {p.preferred_channel === "WHATSAPP" ? "WhatsApp" : "Email"}
-                  </Badge>
-
-                  {!isClosed && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                      onClick={() => handleDelete(p.id, p.name)}
-                      disabled={deletingId === p.id}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                {!isClosed && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(p.id, p.name)}
+                    disabled={deletingId === p.id}
+                    className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 p-2 h-8 w-8"
+                    title={`Eliminar a ${p.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

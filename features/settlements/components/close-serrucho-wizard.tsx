@@ -6,10 +6,10 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDOP } from "@/lib/finance/math";
 import { ParticipantFinancials } from "@/lib/types/domain";
+import { hapticImpact } from "@/lib/utils/haptics";
 
 interface CloseSerruchoWizardProps {
   serruchoId: string;
@@ -82,6 +82,7 @@ export function CloseSerruchoWizard({
       }
 
       const result = await res.json();
+      hapticImpact();
       toast({
         type: "success",
         title: "¡Serrucho cerrado con éxito! 🔒",

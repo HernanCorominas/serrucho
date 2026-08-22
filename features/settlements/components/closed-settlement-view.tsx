@@ -13,15 +13,21 @@ import {
   MessageCircle,
   Share2,
   Check,
+  QrCode,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import { formatDOP, generateWhatsAppDirectLink } from "@/lib/finance/math";
-import { SettlementSnapshot, Participant, NotificationLog, Expense } from "@/lib/types/domain";
+import { formatDOP, generateWhatsAppDirectLink, calculateCategoryTotals } from "@/lib/finance/math";
+import { SettlementSnapshot, Participant, NotificationLog, Expense, CATEGORY_INFO } from "@/lib/types/domain";
 import { DebtSimplificationCard } from "./debt-simplification-card";
 import { GroupSummaryDialog } from "./group-summary-dialog";
+import { CoroAwardsCard } from "./coro-awards-card";
+import { PaymentQRDialog } from "./payment-qr-dialog";
+import { ShareableStoryDialog } from "./shareable-story-dialog";
+import { hapticLight, hapticSuccess, hapticImpact } from "@/lib/utils/haptics";
 
 interface ClosedSettlementViewProps {
   serruchoId?: string;
@@ -53,6 +59,14 @@ export function ClosedSettlementView({
   const { toast } = useToast();
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const [summaryOpen, setSummaryOpen] = React.useState(false);
+  const [storyOpen, setStoryOpen] = React.useState(false);
+  const [qrOpen, setQrOpen] = React.useState(false);
+  const [selectedQrSnap, setSelectedQrSnap] = React.useState<{
+    url: string;
+    name: string;
+    amount: string;
+  } | null>(null);
+
   const [localSnapshots, setLocalSnapshots] = React.useState(snapshots);
   const [updatingId, setUpdatingId] = React.useState<string | null>(null);
 
@@ -61,6 +75,7 @@ export function ClosedSettlementView({
   }, [snapshots]);
 
   const copyToClipboard = (url: string, id: string) => {
+    hapticLight();
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     toast({
@@ -75,6 +90,7 @@ export function ClosedSettlementView({
     if (!serruchoId) return;
 
     try {
+      hapticImpact();
       setUpdatingId(snapId);
       const nextStatus = !currentStatus;
 
@@ -111,6 +127,12 @@ export function ClosedSettlementView({
     }
   };
 
+  const openQrForParticipant = (url: string, name: string, amount: string) => {
+    hapticLight();
+    setSelectedQrSnap({ url, name, amount });
+    setQrOpen(true);
+  };
+
   // Calculate Debt Collection Progress
   const debtors = localSnapshots.filter((s) => s.balance_cents < 0);
   const totalDebtCents = debtors.reduce((sum, s) => sum + Math.abs(s.balance_cents), 0);
@@ -121,7 +143,7 @@ export function ClosedSettlementView({
   const collectionPercent =
     totalDebtCents > 0 ? Math.round((collectedCents / totalDebtCents) * 100) : 100;
 
-  // Convert snapshots to ParticipantFinancials format for DebtSimplificationCard
+  // Convert snapshots to ParticipantFinancials format for calculation and components
   const participantFinancials = React.useMemo(() => {
     return localSnapshots.map((s) => ({
       id: s.participant_id,
@@ -139,6 +161,15 @@ export function ClosedSettlementView({
   }, [localSnapshots]);
 
   const totalExpensesCents = localSnapshots.length > 0 ? localSnapshots[0].total_expenses_cents : 0;
+
+  const categoryBreakdown = React.useMemo(() => {
+    const totals = calculateCategoryTotals(expenses);
+    return totals.map((t) => ({
+      label: CATEGORY_INFO[t.category]?.label || "Otro",
+      emoji: CATEGORY_INFO[t.category]?.emoji || "📦",
+      amount_cents: t.total_cents,
+    }));
+  }, [expenses]);
 
   return (
     <div className="space-y-6">
@@ -166,15 +197,33 @@ export function ClosedSettlementView({
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSummaryOpen(true)}
-            className="gap-1.5 font-bold self-start sm:self-auto bg-background/80"
-          >
-            <Share2 className="h-4 w-4 text-primary" />
-            <span>Compartir Resumen</span>
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                hapticLight();
+                setStoryOpen(true);
+              }}
+              className="gap-1.5 font-bold bg-background/80 hover:border-orange-400"
+            >
+              <Sparkles className="h-4 w-4 text-orange-500" />
+              <span>Crear Story 📱</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                hapticLight();
+                setSummaryOpen(true);
+              }}
+              className="gap-1.5 font-bold bg-background/80"
+            >
+              <Share2 className="h-4 w-4 text-primary" />
+              <span>Compartir Resumen</span>
+            </Button>
+          </div>
         </div>
 
         {/* Collection Progress Bar */}
@@ -227,6 +276,12 @@ export function ClosedSettlementView({
           </div>
         </div>
       </div>
+
+      {/* Coro Gamification Awards */}
+      <CoroAwardsCard
+        participants={participantFinancials}
+        expenses={expenses}
+      />
 
       {/* Suggested Min-Cash-Flow Transfers */}
       <DebtSimplificationCard
@@ -348,6 +403,22 @@ export function ClosedSettlementView({
                     </Button>
                   )}
 
+                  {/* QR Code button */}
+                  {url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        openQrForParticipant(url, name, formatDOP(Math.abs(snap.balance_cents)))
+                      }
+                      className="gap-1 text-xs font-semibold"
+                      title="Ver Código QR para escanear"
+                    >
+                      <QrCode className="h-3.5 w-3.5 text-foreground" />
+                      <span className="hidden xs:inline">QR</span>
+                    </Button>
+                  )}
+
                   {/* 1-Click WhatsApp Debt Collection */}
                   {url && (
                     <a href={waDirectUrl} target="_blank" rel="noopener noreferrer">
@@ -409,6 +480,30 @@ export function ClosedSettlementView({
         expenses={expenses}
         closedAt={closedAt}
       />
+
+      {/* Shareable Story Generator Dialog */}
+      <ShareableStoryDialog
+        open={storyOpen}
+        onOpenChange={setStoryOpen}
+        serruchoName={serruchoName}
+        totalExpensesCents={totalExpensesCents}
+        participantsCount={participantFinancials.length}
+        expensesCount={expenses.length}
+        categoriesBreakdown={categoryBreakdown}
+      />
+
+      {/* QR Code Dialog */}
+      {selectedQrSnap && (
+        <PaymentQRDialog
+          open={qrOpen}
+          onOpenChange={setQrOpen}
+          title={serruchoName}
+          publicUrl={selectedQrSnap.url}
+          participantName={selectedQrSnap.name}
+          amountFormatted={selectedQrSnap.amount}
+          paymentInstructions={paymentInstructions}
+        />
+      )}
     </div>
   );
 }

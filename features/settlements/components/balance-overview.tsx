@@ -17,6 +17,7 @@ import { ParticipantFinancials, Expense } from "@/lib/types/domain";
 import { DebtSimplificationCard } from "./debt-simplification-card";
 import { CategoryBreakdownCard } from "./category-breakdown-card";
 import { GroupSummaryDialog } from "./group-summary-dialog";
+import { CoroAwardsCard } from "./coro-awards-card";
 
 interface BalanceOverviewProps {
   participants: ParticipantFinancials[];
@@ -101,6 +102,14 @@ export function BalanceOverview({
           participants={participants}
           serruchoName={serruchoName}
           paymentInstructions={paymentInstructions}
+        />
+      )}
+
+      {/* Coro Awards Real-time Badges */}
+      {expenses.length > 0 && (
+        <CoroAwardsCard
+          participants={participants}
+          expenses={expenses}
         />
       )}
 

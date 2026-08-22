@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Participant, ExpenseCategory, CATEGORY_INFO } from "@/lib/types/domain";
+import { hapticSuccess } from "@/lib/utils/haptics";
 
 interface AddExpenseDialogProps {
   serruchoId: string;
@@ -156,6 +157,7 @@ export function AddExpenseDialog({
         throw new Error(errData.error || "Error al registrar gasto");
       }
 
+      hapticSuccess();
       toast({
         type: "success",
         title: "¡Gasto registrado!",

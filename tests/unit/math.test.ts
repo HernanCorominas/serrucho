@@ -10,6 +10,7 @@ import {
   calculateCategoryTotals,
   generateWhatsAppDirectLink,
   generateGroupWhatsAppSummary,
+  calculateCoroAwards,
 } from "@/lib/finance/math";
 
 describe("Financial Math Module", () => {
@@ -279,6 +280,39 @@ describe("Financial Math Module", () => {
       expect(summary).toContain("Juan Pérez");
       expect(summary).toContain("Carlos Gómez");
       expect(summary).toContain("RD$");
+    });
+  });
+
+  describe("calculateCoroAwards", () => {
+    it("assigns appropriate badges to participants based on financial contributions", () => {
+      const participants = [
+        { id: "carlos", name: "Carlos Gómez", total_paid_cents: 2400000, total_owed_cents: 887500, net_balance_cents: 1512500 },
+        { id: "juan", name: "Juan Pérez", total_paid_cents: 0, total_owed_cents: 887500, net_balance_cents: -887500 },
+        { id: "pedro", name: "Pedro Rosario", total_paid_cents: 850000, total_owed_cents: 887500, net_balance_cents: -37500 },
+        { id: "maria", name: "María Santos", total_paid_cents: 300000, total_owed_cents: 887500, net_balance_cents: -587500 },
+      ];
+
+      const expenses = [
+        { id: "e1", description: "Villa Las Terrenas", amount_cents: 2400000, paid_by_participant_id: "carlos", category: "LODGING" },
+        { id: "e2", description: "Supermercado Nacional", amount_cents: 850000, paid_by_participant_id: "pedro", category: "FOOD_GROCERIES" },
+        { id: "e3", description: "Bebidas y Ron", amount_cents: 300000, paid_by_participant_id: "maria", category: "DRINKS_ALCOHOL" },
+      ];
+
+      const awards = calculateCoroAwards({ participants, expenses });
+
+      expect(awards.length).toBeGreaterThanOrEqual(3);
+
+      const topPayer = awards.find((a) => a.id === "top-payer");
+      expect(topPayer?.winner_name).toBe("Carlos Gómez");
+
+      const barman = awards.find((a) => a.id === "barman");
+      expect(barman?.winner_name).toBe("María Santos");
+
+      const supplier = awards.find((a) => a.id === "supplier");
+      expect(supplier?.winner_name).toBe("Carlos Gómez"); // 24,000 > 8,500
+
+      const topDebtor = awards.find((a) => a.id === "top-debtor");
+      expect(topDebtor?.winner_name).toBe("Juan Pérez");
     });
   });
 });

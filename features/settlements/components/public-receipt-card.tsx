@@ -12,6 +12,7 @@ import {
   Check,
   Copy,
   MessageCircle,
+  QrCode,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDOP } from "@/lib/finance/math";
 import { PublicSettlementReceipt } from "@/lib/types/domain";
+import { PaymentQRDialog } from "./payment-qr-dialog";
+import { hapticLight, hapticSuccess } from "@/lib/utils/haptics";
 
 interface PublicReceiptCardProps {
   receipt: PublicSettlementReceipt;
@@ -28,16 +31,19 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
   const { toast } = useToast();
   const { snapshot, participant, serrucho, items } = receipt;
   const [copiedBank, setCopiedBank] = React.useState(false);
+  const [qrOpen, setQrOpen] = React.useState(false);
 
   const isDebtor = snapshot.balance_cents < 0;
   const isCreditor = snapshot.balance_cents > 0;
   const isSettled = snapshot.balance_cents === 0;
 
   const handlePrint = () => {
+    hapticLight();
     window.print();
   };
 
   const handleShare = async () => {
+    hapticLight();
     if (navigator.share) {
       try {
         await navigator.share({
@@ -60,6 +66,7 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
 
   const handleCopyBank = () => {
     if (!snapshot.payment_instructions) return;
+    hapticSuccess();
     navigator.clipboard.writeText(snapshot.payment_instructions);
     setCopiedBank(true);
     toast({
@@ -87,10 +94,24 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
           <span>Comprobante Oficial Seguro</span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              hapticLight();
+              setQrOpen(true);
+            }}
+            className="gap-1.5 text-xs font-bold"
+          >
+            <QrCode className="h-3.5 w-3.5" />
+            <span>Código QR</span>
+          </Button>
+
           <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 text-xs font-bold">
             <Printer className="h-3.5 w-3.5" />
             <span>Imprimir / PDF</span>
           </Button>
+
           <Button size="sm" onClick={handleShare} className="gap-1.5 text-xs font-bold bg-primary text-white">
             <Share2 className="h-3.5 w-3.5" />
             <span>Compartir</span>
@@ -98,83 +119,78 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
         </div>
       </div>
 
-      {/* Main Printable Card */}
-      <Card className="border-2 border-border shadow-xl overflow-hidden rounded-3xl bg-card">
-        {/* Top Brand Banner */}
-        <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white p-6 sm:p-8 text-center">
-          <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-white/20 backdrop-blur mb-2 font-black text-2xl">
-            🪚
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight">SERRUCHO</h1>
-          <p className="text-xs sm:text-sm text-orange-100 font-semibold uppercase tracking-wider mt-0.5">
-            Estado de Cuenta Individual
-          </p>
-        </div>
+      {/* Main Receipt Card */}
+      <Card className="border-border shadow-xl overflow-hidden bg-card">
+        {/* Decorative Top Bar */}
+        <div className="h-3 bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500" />
 
         <CardContent className="p-6 sm:p-8 space-y-6">
-          {/* Header Info */}
-          <div className="border-b border-border pb-5 space-y-1">
-            <span className="text-xs font-bold text-primary uppercase tracking-wider">Actividad / Viaje</span>
-            <h2 className="text-2xl font-extrabold text-foreground tracking-tight">{serrucho.name}</h2>
-            {serrucho.description && (
-              <p className="text-xs sm:text-sm text-muted-foreground">{serrucho.description}</p>
-            )}
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2">
-              {serrucho.event_date && <span>📅 <strong>Fecha:</strong> {serrucho.event_date}</span>}
-              {serrucho.closed_at && (
-                <span>🔒 <strong>Cerrado:</strong> {new Date(serrucho.closed_at).toLocaleDateString("es-DO")}</span>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 pb-6 border-b border-border">
+            <div className="space-y-1">
+              <span className="text-xs uppercase font-extrabold tracking-wider text-primary">
+                Comprobante de Liquidación
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black text-foreground">{serrucho.name}</h1>
+              {serrucho.description && (
+                <p className="text-xs text-muted-foreground">{serrucho.description}</p>
               )}
             </div>
-          </div>
 
-          {/* Participant Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-muted/40 border border-border gap-2">
-            <div>
-              <span className="text-xs font-bold text-muted-foreground uppercase">Participante</span>
-              <h3 className="text-lg font-black text-foreground">{participant.name}</h3>
-              {participant.email && (
-                <span className="text-xs text-muted-foreground">{participant.email}</span>
-              )}
-            </div>
-            <Badge variant="outline" className="self-start sm:self-center font-bold text-xs py-1">
-              Moneda: {serrucho.currency} (RD$)
-            </Badge>
-          </div>
-
-          {/* Payment Verification Stamp if Paid */}
-          {isDebtor && snapshot.is_paid && (
-            <div className="rounded-2xl border-2 border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 p-4 text-center space-y-1 shadow-sm">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-emerald-600 text-white mx-auto shadow-md">
-                <Check className="h-6 w-6" />
+            <div className="text-left sm:text-right space-y-1">
+              <Badge variant="outline" className="text-xs font-mono font-semibold">
+                Token: {snapshot.public_token_hash ? snapshot.public_token_hash.slice(0, 8) : "seguro"}...
+              </Badge>
+              <div className="text-xs text-muted-foreground">
+                Cerrado el {serrucho.closed_at ? new Date(serrucho.closed_at).toLocaleDateString("es-DO") : "N/A"}
               </div>
-              <h4 className="text-base font-extrabold text-emerald-800 dark:text-emerald-200">
-                ¡Transferencia Confirmada por el Organizador!
-              </h4>
-              <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                Tu pago ha sido recibido y registrado en el serrucho. ¡Gracias por cumplir con el coro! 🎉
-              </p>
             </div>
-          )}
+          </div>
 
-          {/* Primary Balance Result Box */}
-          <div
-            className={`rounded-2xl p-6 text-center border-2 transition-all ${
-              isDebtor && !snapshot.is_paid
-                ? "bg-red-50/80 border-red-300 dark:bg-red-950/40 dark:border-red-800"
-                : isCreditor || (isDebtor && snapshot.is_paid)
-                ? "bg-emerald-50/80 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800"
-                : "bg-muted border-border"
-            }`}
-          >
-            <span
-              className={`text-xs uppercase font-extrabold tracking-wider block mb-1 ${
-                isDebtor && !snapshot.is_paid
-                  ? "text-red-700 dark:text-red-300"
-                  : isCreditor || (isDebtor && snapshot.is_paid)
-                  ? "text-emerald-700 dark:text-emerald-300"
-                  : "text-muted-foreground"
-              }`}
-            >
+          {/* Participant Info & Status Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-muted/40 border border-border">
+            <div>
+              <span className="text-xs text-muted-foreground font-semibold">Estado de Cuenta para:</span>
+              <h3 className="text-lg font-black text-foreground">{participant.name}</h3>
+              {participant.phone && (
+                <span className="text-xs text-muted-foreground">📱 {participant.phone}</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {isCreditor && (
+                <Badge variant="success" className="text-xs font-bold py-1 px-3 gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Saldo a Favor
+                </Badge>
+              )}
+
+              {isDebtor && !snapshot.is_paid && (
+                <Badge variant="destructive" className="text-xs font-bold py-1 px-3 gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Pendiente de Transferir
+                </Badge>
+              )}
+
+              {isDebtor && snapshot.is_paid && (
+                <Badge variant="success" className="text-xs font-bold py-1 px-3 gap-1.5 bg-emerald-600 text-white">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  ¡Transferencia Confirmada!
+                </Badge>
+              )}
+
+              {isSettled && (
+                <Badge variant="secondary" className="text-xs font-bold py-1 px-3 gap-1.5">
+                  <Check className="h-3.5 w-3.5" />
+                  Al Día (RD$ 0.00)
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Amount Hero */}
+          <div className="text-center py-6 px-4 rounded-2xl bg-muted/20 border border-border/80 space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {isDebtor && !snapshot.is_paid
                 ? "Monto Pendiente de Pago"
                 : isDebtor && snapshot.is_paid
@@ -243,15 +259,30 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
                   <span>¿Cómo y dónde pagar?</span>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCopyBank}
-                  className="h-7 px-2 text-xs font-semibold gap-1 bg-white/80 dark:bg-card"
-                >
-                  {copiedBank ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                  <span>{copiedBank ? "¡Copiado!" : "Copiar Cuentas"}</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      hapticLight();
+                      setQrOpen(true);
+                    }}
+                    className="h-7 px-2 text-xs font-semibold gap-1 bg-white/80 dark:bg-card"
+                  >
+                    <QrCode className="h-3 w-3" />
+                    <span>Ver QR</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyBank}
+                    className="h-7 px-2 text-xs font-semibold gap-1 bg-white/80 dark:bg-card"
+                  >
+                    {copiedBank ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                    <span>{copiedBank ? "¡Copiado!" : "Copiar Cuentas"}</span>
+                  </Button>
+                </div>
               </div>
 
               <p className="text-xs sm:text-sm text-amber-950 dark:text-amber-100 whitespace-pre-wrap font-medium">
@@ -259,12 +290,12 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
               </p>
 
               {snapshot.payment_deadline && (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 pt-2 border-t border-amber-200/80 dark:border-amber-900">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>Fecha Límite: {snapshot.payment_deadline}</span>
+                <div className="text-xs text-amber-800 dark:text-amber-300 font-semibold pt-1 border-t border-amber-200 dark:border-amber-800/80">
+                  ⏰ Fecha límite: <strong>{snapshot.payment_deadline}</strong>
                 </div>
               )}
 
+              {/* 1-Click WhatsApp Transfer Notification */}
               <div className="pt-2">
                 <a
                   href={`https://wa.me/?text=${waNotifyMsg}`}
@@ -273,40 +304,41 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
                   className="block"
                 >
                   <Button
-                    variant="default"
                     size="sm"
-                    className="w-full gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm"
                   >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Avisar al organizador que ya transferí</span>
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    <span>Notificar Pago por WhatsApp</span>
                   </Button>
                 </a>
               </div>
             </div>
           )}
 
-          {/* Itemized Expenses List */}
+          {/* Itemized Expenses Breakdown */}
           {items.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <h4 className="text-xs uppercase font-extrabold text-muted-foreground tracking-wider flex items-center gap-1.5">
-                <Receipt className="h-3.5 w-3.5 text-primary" />
-                <span>Detalle de Gastos en que Participaste ({items.length})</span>
-              </h4>
+            <div className="space-y-3 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs uppercase font-extrabold text-muted-foreground tracking-wider flex items-center gap-1.5">
+                  <Receipt className="h-3.5 w-3.5" />
+                  <span>Desglose Detallado de Gastos ({items.length})</span>
+                </h4>
+              </div>
 
-              <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border text-xs">
+              <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
                 {items.map((item) => (
-                  <div key={item.id} className="p-3.5 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                  <div key={item.id} className="p-3.5 flex items-center justify-between text-xs sm:text-sm hover:bg-muted/20">
                     <div>
-                      <span className="font-bold text-foreground block text-sm">{item.description}</span>
-                      <span className="text-muted-foreground text-[11px]">
-                        Pagado por <strong>{item.paid_by_name}</strong> (Total gasto: {formatDOP(item.amount_cents)})
-                      </span>
+                      <div className="font-bold text-foreground">{item.description}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        Gasto total: {formatDOP(item.amount_cents)}
+                        {item.paid_by_name && (
+                          <span> (Pagó: {item.paid_by_name})</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-muted-foreground block text-[10px] uppercase font-bold">Tu Parte</span>
-                      <span className="font-extrabold text-sm text-foreground">
-                        {formatDOP(item.participant_owed_cents)}
-                      </span>
+                    <div className="text-right font-black text-foreground">
+                      {formatDOP(item.participant_owed_cents)}
                     </div>
                   </div>
                 ))}
@@ -314,11 +346,24 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
             </div>
           )}
 
-          <div className="text-center pt-4 text-[11px] text-muted-foreground border-t border-border">
-            🪚 Serrucho · Cuentas claras conservan amistades 🇩🇴
+          {/* Footer Note */}
+          <div className="text-center pt-4 border-t border-border text-xs text-muted-foreground">
+            <p>Este comprobante es inmutable y fue generado de manera criptográficamente segura por Serrucho 🪚🇩🇴</p>
+            <p className="mt-1 font-semibold text-[11px]">Cuentas claras conservan amistades.</p>
           </div>
         </CardContent>
       </Card>
+
+      {/* QR Code Dialog */}
+      <PaymentQRDialog
+        open={qrOpen}
+        onOpenChange={setQrOpen}
+        title={serrucho.name}
+        publicUrl={typeof window !== "undefined" ? window.location.href : ""}
+        participantName={participant.name}
+        amountFormatted={formatDOP(Math.abs(snapshot.balance_cents))}
+        paymentInstructions={snapshot.payment_instructions}
+      />
     </div>
   );
 }

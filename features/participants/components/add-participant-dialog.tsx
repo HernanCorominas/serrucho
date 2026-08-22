@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { hapticSuccess } from "@/lib/utils/haptics";
 
 interface AddParticipantDialogProps {
   serruchoId: string;
@@ -51,6 +52,7 @@ export function AddParticipantDialog({
         throw new Error(errData.error || "Error al agregar participante");
       }
 
+      hapticSuccess();
       toast({
         type: "success",
         title: "¡Participante agregado!",

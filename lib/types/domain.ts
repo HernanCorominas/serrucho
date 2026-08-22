@@ -159,3 +159,14 @@ export interface PublicSettlementReceipt {
   };
   items: SettlementItem[];
 }
+
+export interface CoroAward {
+  id: string;
+  title: string;
+  emoji: string;
+  subtitle: string;
+  winner_name: string;
+  metric: string;
+  color: string;
+}
+

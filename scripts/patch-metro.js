@@ -11,8 +11,9 @@ function patchDir(nodeModulesDir) {
     if (fs.existsSync(pkgPath)) {
       try {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+        const mainEntry = pkg.main ? (pkg.main.startsWith("./") ? pkg.main : "./" + pkg.main) : "./src/index.js";
         pkg.exports = {
-          ".": "./src/index.js",
+          ".": mainEntry,
           "./package.json": "./package.json",
           "./private/*": "./src/*.js",
           "./src/*": "./src/*.js",
@@ -30,4 +31,4 @@ function patchDir(nodeModulesDir) {
 // Patch in root node_modules and apps/mobile/node_modules if present
 patchDir(path.resolve(__dirname, "../node_modules"));
 patchDir(path.resolve(__dirname, "../apps/mobile/node_modules"));
-console.log("[patch-metro] All Metro packages patched with full universal exports mapping.");
+console.log("[patch-metro] All Metro packages patched with preserved main entry and universal exports.");

@@ -13,6 +13,7 @@ import { colors } from "../../src/theme/colors";
 import { Button } from "../../src/components/ui/Button";
 import { Card } from "../../src/components/ui/Card";
 import { Badge } from "../../src/components/ui/Badge";
+import { Input } from "../../src/components/ui/Input";
 import { mobileStorage } from "../../src/services/storage";
 import { triggerHaptic } from "../../src/utils/haptics";
 import type { Serrucho } from "@serrucho/core";

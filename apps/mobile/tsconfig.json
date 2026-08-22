@@ -5,17 +5,33 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@serrucho/core": ["../../packages/core/src/index.ts"],
-      "@serrucho/core/*": ["../../packages/core/src/*"],
-      "@serrucho/supabase": ["../../packages/supabase/src/index.ts"],
-      "@serrucho/supabase/*": ["../../packages/supabase/src/*"],
-      "@serrucho/ui": ["../../packages/ui/src/index.ts"],
-      "@serrucho/ui/*": ["../../packages/ui/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@serrucho/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@serrucho/core/*": [
+        "../../packages/core/src/*"
+      ],
+      "@serrucho/supabase": [
+        "../../packages/supabase/src/index.ts"
+      ],
+      "@serrucho/supabase/*": [
+        "../../packages/supabase/src/*"
+      ],
+      "@serrucho/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@serrucho/ui/*": [
+        "../../packages/ui/src/*"
+      ]
     }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ]
 }

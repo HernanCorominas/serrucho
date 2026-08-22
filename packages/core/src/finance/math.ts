@@ -61,6 +61,14 @@ export function formatDOP(cents: number, includeSign: boolean = false): string {
 }
 
 /**
+ * Calculates voluntary tip amount in integer cents from base cents and percentage.
+ */
+export function calculateTip(amountCents: number, tipPercentage: number): number {
+  if (amountCents <= 0 || tipPercentage <= 0) return 0;
+  return Math.round(amountCents * (tipPercentage / 100));
+}
+
+/**
  * Splits an expense equitably among specified participants.
  * Deterministically distributes leftover cents (total % count) to the first N participants.
  */

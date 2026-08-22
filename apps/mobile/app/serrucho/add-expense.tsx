@@ -60,20 +60,28 @@ export default function AddExpenseModal() {
           ? Math.round(amountCents / detail.participants.length)
           : amountCents;
 
+        const payer = detail.participants[0];
+        const expId = `exp-${Date.now()}`;
         const newExpense: ExpenseWithSplits = {
-          id: `exp-${Date.now()}`,
+          id: expId,
           serrucho_id: serruchoId,
-          paid_by_participant_id: detail.participants[0]?.id || "p1",
+          paid_by_participant_id: payer?.id || "p1",
+          paid_by_name: payer?.name || "Organizador",
           description: description.trim(),
           amount_cents: amountCents,
           split_method: "EQUAL",
           category,
           expense_date: new Date().toISOString().split("T")[0],
           created_at: new Date().toISOString(),
-          splits: detail.participants.map((p) => ({
+          updated_at: new Date().toISOString(),
+          splits: detail.participants.map((p: typeof detail.participants[0]) => ({
+            expense_id: expId,
             participant_id: p.id,
+            participant_name: p.name,
             owed_cents: splitPerPerson,
-            percentage: null,
+            percentage_basis_points: detail.participants.length > 0
+              ? Math.round(10000 / detail.participants.length)
+              : 10000,
           })),
         };
 

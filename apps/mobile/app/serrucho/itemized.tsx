@@ -91,32 +91,44 @@ export default function ItemizedExpenseScreen() {
         assignedParticipantIds:
           item.participantIds.length > 0
             ? item.participantIds
-            : detail.participants.map((p) => p.id),
+            : detail.participants.map((p: typeof detail.participants[0]) => p.id),
       }));
 
+      const rawSubtotalCents = lineItems.reduce((sum, item) => sum + item.amountCents, 0);
+      const tipCents = tipPct > 0 ? Math.round(rawSubtotalCents * (tipPct / 100)) : 0;
+
       const splitResult = calculateItemizedSplits({
-        allParticipantIds: detail.participants.map((p) => p.id),
         lines: lineItems,
-        includeITBIS,
-        includeLegalService: includeLey,
-        customTipPercentage: tipPct,
+        participantIds: detail.participants.map((p: typeof detail.participants[0]) => p.id),
+        itbisPercent: includeITBIS ? 18 : 0,
+        servicePercent: includeLey ? 10 : 0,
+        customTipCents: tipCents,
       });
 
+      const expId = `exp-itemized-${Date.now()}`;
+      const payer = detail.participants[0];
       const newExpense: ExpenseWithSplits = {
-        id: `exp-itemized-${Date.now()}`,
+        id: expId,
         serrucho_id: serruchoId,
-        paid_by_participant_id: detail.participants[0]?.id || "p1",
+        paid_by_participant_id: payer?.id || "p1",
+        paid_by_name: payer?.name || "Organizador",
         description: description.trim(),
         amount_cents: splitResult.totalFinalCents,
         split_method: "EQUAL",
         category: "RESTAURANT",
         expense_date: new Date().toISOString().split("T")[0],
         created_at: new Date().toISOString(),
-        splits: splitResult.participantTotals.map((pt) => ({
-          participant_id: pt.participantId,
-          owed_cents: pt.totalOwedCents,
-          percentage: null,
-        })),
+        updated_at: new Date().toISOString(),
+        splits: splitResult.participantTotals.map((pt) => {
+          const participantObj = detail.participants.find((p: typeof detail.participants[0]) => p.id === pt.participantId);
+          return {
+            expense_id: expId,
+            participant_id: pt.participantId,
+            participant_name: participantObj?.name || "Amigo",
+            owed_cents: pt.totalOwedCents,
+            percentage_basis_points: pt.basisPoints,
+          };
+        }),
       };
 
       const updatedExpenses = [newExpense, ...detail.expenses];

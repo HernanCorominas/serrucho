@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:web": "npm run dev --workspace=@serrucho/web",
-    "dev:mobile": "npm run start --workspace=@serrucho/mobile",
-    "dev:mobile-web": "npm run web --workspace=@serrucho/mobile",
+    "dev:mobile": "node scripts/patch-metro.js && npm run start --workspace=@serrucho/mobile",
+    "dev:mobile-web": "node scripts/patch-metro.js && npm run web --workspace=@serrucho/mobile",
     "build": "turbo run build",
     "build:web": "npm run build --workspace=@serrucho/web",
     "start": "npm run start --workspace=@serrucho/web",
@@ -19,7 +19,7 @@
     "test": "npm run test --workspace=@serrucho/web",
     "test:watch": "npm run test:watch --workspace=@serrucho/web",
     "test:e2e": "npm run test:e2e --workspace=@serrucho/web",
-    "postinstall": "node -e \"const fs=require('fs');const p='node_modules/metro-cache/package.json';if(fs.existsSync(p)){const j=JSON.parse(fs.readFileSync(p));j.exports={'.':'./src/index.js','./package.json':'./package.json','./src/stores/*':'./src/stores/*.js','./src/stores/*.js':'./src/stores/*.js','./src/*':'./src/*.js','./src/*.js':'./src/*.js','./private/*':'./src/*.js'};fs.writeFileSync(p,JSON.stringify(j,null,2));}\""
+    "postinstall": "node scripts/patch-metro.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -81,7 +81,16 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const filtered = serruchos.filter((s) => s.status === activeTab);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filtered = serruchos.filter((s) => {
+    const matchesStatus = s.status === activeTab;
+    const matchesQuery =
+      searchQuery.trim() === "" ||
+      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesStatus && matchesQuery;
+  });
   const openCount = serruchos.filter((s) => s.status === "OPEN").length;
   const closedCount = serruchos.filter((s) => s.status === "CLOSED").length;
 
@@ -114,8 +123,17 @@ export default function DashboardScreen() {
         />
       </View>
 
+      {/* Search Bar */}
+      <Input
+        placeholder="Buscar serrucho por nombre o lugar..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        leftIcon={<Ionicons name="search" size={16} color={theme.textMuted} />}
+        style={{ height: 40 }}
+      />
+
       {/* Tabs */}
-      <View style={[styles.tabBar, { backgroundColor: theme.inputBg }]}>
+      <View style={[styles.tabBar, { backgroundColor: theme.inputBg, marginTop: 8 }]}>
         <Button
           title={`En Curso (${openCount})`}
           variant={activeTab === "OPEN" ? "primary" : "ghost"}

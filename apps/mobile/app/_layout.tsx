@@ -50,6 +50,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="serrucho/itemized"
+          options={{
+            title: "Desglose por Plato 🍽️",
+            presentation: "modal",
+          }}
+        />
+        <Stack.Screen
           name="serrucho/close"
           options={{
             title: "Cerrar Serrucho 🔒",

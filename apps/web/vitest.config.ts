@@ -11,6 +11,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./"),
+      "@serrucho/core": path.resolve(__dirname, "../../packages/core/src/index.ts"),
+      "@serrucho/core/": path.resolve(__dirname, "../../packages/core/src/"),
+      "@serrucho/supabase": path.resolve(__dirname, "../../packages/supabase/src/index.ts"),
+      "@serrucho/ui": path.resolve(__dirname, "../../packages/ui/src/index.ts"),
     },
   },
 });

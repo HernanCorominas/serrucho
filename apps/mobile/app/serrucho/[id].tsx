@@ -432,18 +432,29 @@ export default function SerruchoDetailScreen() {
               router.push(`/serrucho/add-expense?serruchoId=${id}`);
             }}
             variant="primary"
+            size="sm"
             style={{ flex: 1 }}
-            icon={<Ionicons name="add-circle" size={18} color="#ffffff" />}
+            icon={<Ionicons name="add-circle" size={16} color="#ffffff" />}
           />
           <Button
-            title="Cerrar Serrucho"
+            title="Por Platos 🍽️"
+            onPress={() => {
+              triggerHaptic("medium");
+              router.push(`/serrucho/itemized?serruchoId=${id}`);
+            }}
+            variant="secondary"
+            size="sm"
+            style={{ flex: 1 }}
+          />
+          <Button
+            title="Cerrar 🔒"
             onPress={() => {
               triggerHaptic("warning");
               router.push(`/serrucho/close?serruchoId=${id}`);
             }}
             variant="outline"
+            size="sm"
             style={{ flex: 1 }}
-            icon={<Ionicons name="lock-closed" size={16} color={colors.primary} />}
           />
         </View>
       )}

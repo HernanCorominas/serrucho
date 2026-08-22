@@ -8,15 +8,19 @@ import {
   Calendar,
   Lock,
   ArrowRight,
+  History,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreateSerruchoDialog } from "@/features/serruchos/components/create-serrucho-dialog";
+import { useRecentSerruchos } from "@/lib/hooks/use-recent-serruchos";
 import { Serrucho } from "@/lib/types/domain";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
+  const { recents, removeRecent } = useRecentSerruchos();
   const [serruchos, setSerruchos] = React.useState<Serrucho[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -49,6 +53,10 @@ function DashboardContent() {
   const openSerruchos = serruchos.filter((s) => s.status === "OPEN");
   const closedSerruchos = serruchos.filter((s) => s.status === "CLOSED");
 
+  // Filter recents that might not be in openSerruchos (e.g. accessed on another server or session)
+  const knownIds = new Set(serruchos.map((s) => s.id));
+  const otherRecents = recents.filter((r) => !knownIds.has(r.id));
+
   return (
     <div className="container px-4 sm:px-6 py-8 max-w-5xl mx-auto space-y-8">
       {/* Header */}
@@ -70,6 +78,35 @@ function DashboardContent() {
           <span>Nuevo Serrucho</span>
         </Button>
       </div>
+
+      {/* Recents on this device banner if any */}
+      {otherRecents.length > 0 && (
+        <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            <History className="h-3.5 w-3.5 text-primary" />
+            <span>Visitados recientemente en este dispositivo</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {otherRecents.map((item) => (
+              <div
+                key={item.id}
+                className="inline-flex items-center gap-1.5 bg-background border border-border rounded-full py-1 px-3 text-xs font-medium text-foreground hover:border-primary transition-colors"
+              >
+                <Link href={`/dashboard/${item.id}`} className="hover:text-primary font-bold">
+                  {item.name}
+                </Link>
+                <button
+                  onClick={() => removeRecent(item.id)}
+                  className="text-muted-foreground hover:text-red-500 ml-1"
+                  title="Quitar de recientes"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-8">

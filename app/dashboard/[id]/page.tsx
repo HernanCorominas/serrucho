@@ -9,6 +9,8 @@ import {
   Users,
   Receipt,
   TrendingUp,
+  Share2,
+  Check,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,10 +32,12 @@ import {
   NotificationLog,
 } from "@/lib/types/domain";
 import { LiveSettlementData } from "@/features/settlements/service";
+import { useRecentSerruchos } from "@/lib/hooks/use-recent-serruchos";
 
 export default function SerruchoWorkspacePage() {
   const params = useParams();
   const { toast } = useToast();
+  const { saveRecent } = useRecentSerruchos();
   const serruchoId = params?.id as string;
 
   const [loading, setLoading] = React.useState(true);
@@ -49,6 +53,7 @@ export default function SerruchoWorkspacePage() {
   const [addExpOpen, setAddExpOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
+  const [copiedLink, setCopiedLink] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     if (!serruchoId) return;
@@ -68,6 +73,15 @@ export default function SerruchoWorkspacePage() {
       setSnapshots(detailData.snapshots || []);
       setLogs(detailData.logs || []);
 
+      if (detailData.serrucho) {
+        saveRecent({
+          id: detailData.serrucho.id,
+          name: detailData.serrucho.name,
+          description: detailData.serrucho.description,
+          status: detailData.serrucho.status,
+        });
+      }
+
       if (settleRes.ok) {
         const settleData = await settleRes.json();
         setSettlement(settleData);
@@ -82,7 +96,7 @@ export default function SerruchoWorkspacePage() {
     } finally {
       setLoading(false);
     }
-  }, [serruchoId, toast]);
+  }, [serruchoId, toast, saveRecent]);
 
   React.useEffect(() => {
     loadData();
@@ -145,7 +159,27 @@ export default function SerruchoWorkspacePage() {
         </div>
 
         {/* Action Header Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              setCopiedLink(true);
+              toast({
+                type: "success",
+                title: "Enlace copiado",
+                message: "Enlace del serrucho copiado al portapapeles.",
+              });
+              setTimeout(() => setCopiedLink(false), 2500);
+            }}
+            className="gap-1.5 font-semibold text-xs"
+            title="Copiar enlace para compartir con otros organizadores"
+          >
+            {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
+            <span>{copiedLink ? "¡Copiado!" : "Compartir Link"}</span>
+          </Button>
+
           {!isClosed ? (
             <>
               <Button

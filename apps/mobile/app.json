@@ -35,15 +35,6 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-image-picker",
-        {
-          "cameraPermission": "Permite a Serrucho tomar fotos de tus facturas para dividirlas en el coro."
-        }
-      ]
-    ],
     "experiments": {
       "typedRoutes": true
     },

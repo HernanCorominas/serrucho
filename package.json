@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit && npm run typecheck --workspace=@serrucho/core",
     "test": "npm run test --workspace=@serrucho/web",
     "test:watch": "npm run test:watch --workspace=@serrucho/web",
-    "test:e2e": "npm run test:e2e --workspace=@serrucho/web"
+    "test:e2e": "npm run test:e2e --workspace=@serrucho/web",
+    "postinstall": "node -e \"const fs=require('fs');const p='node_modules/metro-cache/package.json';if(fs.existsSync(p)){const j=JSON.parse(fs.readFileSync(p));if(j.exports&&!j.exports['./*']){j.exports['./*']='./*';j.exports['./src/*']='./src/*';fs.writeFileSync(p,JSON.stringify(j,null,2));}}\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

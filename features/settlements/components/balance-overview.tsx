@@ -18,6 +18,7 @@ import { DebtSimplificationCard } from "./debt-simplification-card";
 import { CategoryBreakdownCard } from "./category-breakdown-card";
 import { GroupSummaryDialog } from "./group-summary-dialog";
 import { CoroAwardsCard } from "./coro-awards-card";
+import { CollectionProgressRing } from "@/components/collection-progress";
 
 interface BalanceOverviewProps {
   participants: ParticipantFinancials[];
@@ -42,6 +43,14 @@ export function BalanceOverview({
 
   return (
     <div className="space-y-6">
+      {/* Collection Progress Ring — shown when there are debtors */}
+      {participants.length > 0 && (
+        <CollectionProgressRing
+          participants={participants}
+          totalExpensesCents={totalExpensesCents}
+          serruchoName={serruchoName}
+        />
+      )}  
       {/* Top summary metric cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card className="border-orange-200/60 bg-gradient-to-br from-orange-50/70 to-card dark:from-orange-950/20 dark:border-orange-900/40">

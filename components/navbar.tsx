@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlusCircle, LayoutDashboard, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/notification-bell";
 
 export function Navbar() {
   return (
@@ -37,6 +38,8 @@ export function Navbar() {
           </Link>
 
           <ThemeToggle />
+
+          <NotificationBell />
 
           <Link href="/dashboard?new=true">
             <Button size="sm" className="gap-1.5 shadow-sm font-bold bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm">

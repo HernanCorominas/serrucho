@@ -3,7 +3,7 @@
  * All monetary calculations are performed in integer cents to prevent floating point inaccuracies.
  */
 
-import { ExpenseCategory, SimplifiedTransfer, CategoryTotal, CATEGORY_INFO } from "@/lib/types/domain";
+import { ExpenseCategory, SimplifiedTransfer, CategoryTotal, CATEGORY_INFO } from "../types/domain";
 
 export interface SplitParticipantInput {
   participantId: string;
@@ -400,8 +400,8 @@ export function generateGroupWhatsAppSummary(params: {
 export function calculateCoroAwards(params: {
   participants: { id: string; name: string; total_paid_cents: number; total_owed_cents: number; net_balance_cents: number }[];
   expenses: { id: string; description: string; amount_cents: number; paid_by_participant_id: string; category?: string }[];
-}): import("@/lib/types/domain").CoroAward[] {
-  const awards: import("@/lib/types/domain").CoroAward[] = [];
+}): import("../types/domain").CoroAward[] {
+  const awards: import("../types/domain").CoroAward[] = [];
   if (!params.participants.length || !params.expenses.length) return awards;
 
   const partMap = new Map(params.participants.map((p) => [p.id, p]));
@@ -517,12 +517,12 @@ export function calculateCoroAwards(params: {
  * and prorates ITBIS (18%), Ley (10%) and voluntary tip to each person's exact consumption.
  */
 export function calculateItemizedSplits(params: {
-  lines: import("@/lib/types/domain").ItemizedExpenseLine[];
+  lines: import("../types/domain").ItemizedExpenseLine[];
   participantIds: string[];
   itbisPercent?: number; // default 18
   servicePercent?: number; // default 10
   customTipCents?: number;
-}): import("@/lib/types/domain").ItemizedSplitResult {
+}): import("../types/domain").ItemizedSplitResult {
   const { lines, participantIds } = params;
   const itbisPercent = params.itbisPercent ?? 18;
   const servicePercent = params.servicePercent ?? 10;
@@ -592,9 +592,9 @@ export function calculateItemizedSplits(params: {
  * Calculates complete ParticipantFinancials list with paid, owed, and net balance.
  */
 export function calculateParticipantBalances(
-  participants: import("@/lib/types/domain").Participant[],
-  expenses: import("@/lib/types/domain").ExpenseWithSplits[]
-): import("@/lib/types/domain").ParticipantFinancials[] {
+  participants: import("../types/domain").Participant[],
+  expenses: import("../types/domain").ExpenseWithSplits[]
+): import("../types/domain").ParticipantFinancials[] {
   const map = calculateNetBalances(
     participants.map((p) => p.id),
     expenses.map((e) => ({
@@ -617,3 +617,6 @@ export function calculateParticipantBalances(
     };
   });
 }
+
+
+

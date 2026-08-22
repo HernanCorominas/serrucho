@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Serrucho",
+    "slug": "serrucho",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "serrucho",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f97316"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "do.serrucho.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Serrucho necesita acceso a la cámara para escanear facturas y comprobantes."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "do.serrucho.app",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Permite a Serrucho tomar fotos de tus facturas para dividirlas en el coro."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      },
+      "supabaseUrl": "https://xyzcompany.supabase.co",
+      "supabaseAnonKey": ""
+    }
+  }
+}

@@ -43,10 +43,7 @@ export async function getExchangeRates(): Promise<ExchangeRates> {
 
   try {
     // 100% Free public API, no key required, CORS enabled
-    const res = await fetch("https://open.er-api.com/v6/latest/USD", {
-      cache: "force-cache",
-      next: { revalidate: 3600 },
-    });
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
 
     if (res.ok) {
       const data = await res.json();

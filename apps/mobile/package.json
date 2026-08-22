@@ -13,7 +13,10 @@
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
     "@react-native-async-storage/async-storage": "1.23.1",
+    "@serrucho/config": "*",
     "@serrucho/core": "*",
+    "@serrucho/supabase": "*",
+    "@serrucho/ui": "*",
     "@supabase/supabase-js": "^2.48.1",
     "expo": "~52.0.28",
     "expo-constants": "~17.0.3",

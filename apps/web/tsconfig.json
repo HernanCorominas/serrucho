@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"],
+      "@serrucho/core": ["../../packages/core/src/index.ts"],
+      "@serrucho/core/*": ["../../packages/core/src/*"],
+      "@serrucho/supabase": ["../../packages/supabase/src/index.ts"],
+      "@serrucho/supabase/*": ["../../packages/supabase/src/*"],
+      "@serrucho/ui": ["../../packages/ui/src/index.ts"],
+      "@serrucho/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

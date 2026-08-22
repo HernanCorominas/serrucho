@@ -21,7 +21,12 @@
     "paths": {
       "@/*": ["./*"],
       "@serrucho/core": ["./packages/core/src/index.ts"],
-      "@serrucho/core/*": ["./packages/core/src/*"]
+      "@serrucho/core/*": ["./packages/core/src/*"],
+      "@serrucho/supabase": ["./packages/supabase/src/index.ts"],
+      "@serrucho/supabase/*": ["./packages/supabase/src/*"],
+      "@serrucho/ui": ["./packages/ui/src/index.ts"],
+      "@serrucho/ui/*": ["./packages/ui/src/*"],
+      "@serrucho/config": ["./packages/config/index.js"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

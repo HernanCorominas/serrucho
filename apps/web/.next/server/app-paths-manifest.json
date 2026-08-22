@@ -1,0 +1,18 @@
+{
+  "/api/public/settlement/[token]/route": "app/api/public/settlement/[token]/route.js",
+  "/api/serruchos/[id]/close/route": "app/api/serruchos/[id]/close/route.js",
+  "/api/serruchos/[id]/expenses/[expId]/route": "app/api/serruchos/[id]/expenses/[expId]/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/serruchos/[id]/expenses/route": "app/api/serruchos/[id]/expenses/route.js",
+  "/api/serruchos/[id]/participants/[partId]/route": "app/api/serruchos/[id]/participants/[partId]/route.js",
+  "/api/serruchos/[id]/participants/route": "app/api/serruchos/[id]/participants/route.js",
+  "/api/serruchos/[id]/route": "app/api/serruchos/[id]/route.js",
+  "/api/serruchos/[id]/settlement/route": "app/api/serruchos/[id]/settlement/route.js",
+  "/api/serruchos/[id]/snapshots/[snapshotId]/pay/route": "app/api/serruchos/[id]/snapshots/[snapshotId]/pay/route.js",
+  "/api/serruchos/route": "app/api/serruchos/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/[id]/page": "app/dashboard/[id]/page.js",
+  "/page": "app/page.js",
+  "/s/[token]/page": "app/s/[token]/page.js",
+  "/calculadora/page": "app/calculadora/page.js"
+}

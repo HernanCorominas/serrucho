@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ParticipantService } from "@/features/participants/service";
+import { assertWritePermission, handleApiError } from "@/lib/security/permissions";
 
 export async function GET(
   _req: NextRequest,
@@ -20,6 +21,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    await assertWritePermission(id, req);
+
     let body: any = {};
     try {
       body = await req.json();
@@ -29,6 +32,7 @@ export async function POST(
     const created = await ParticipantService.add(id, body);
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    return handleApiError(err);
   }
 }
+

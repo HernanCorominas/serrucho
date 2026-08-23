@@ -33,3 +33,12 @@ export function maskDestination(destination: string): string {
   }
   return "***";
 }
+
+/**
+ * Generates a cryptographically secure random token for read-only access links.
+ * Returns a 16-byte (128-bit) hex string (32 characters).
+ */
+export function generateReadOnlyToken(): string {
+  return crypto.randomBytes(16).toString("hex");
+}
+

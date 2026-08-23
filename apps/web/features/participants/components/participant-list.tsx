@@ -13,6 +13,7 @@ import { hapticLight, hapticImpact } from "@/lib/utils/haptics";
 interface ParticipantListProps {
   serruchoId: string;
   isClosed: boolean;
+  isReadOnly?: boolean;
   participants: Participant[];
   onAddClick: () => void;
   onParticipantDeleted: () => void;
@@ -21,6 +22,7 @@ interface ParticipantListProps {
 export function ParticipantList({
   serruchoId,
   isClosed,
+  isReadOnly = false,
   participants,
   onAddClick,
   onParticipantDeleted,
@@ -107,7 +109,7 @@ export function ParticipantList({
           </CardDescription>
         </div>
 
-        {!isClosed && (
+        {!isClosed && !isReadOnly && (
           <Button
             size="sm"
             onClick={() => {
@@ -120,6 +122,7 @@ export function ParticipantList({
             <span>Agregar</span>
           </Button>
         )}
+
       </CardHeader>
 
       <CardContent className="space-y-3">
@@ -214,7 +217,7 @@ export function ParticipantList({
                   </div>
 
                   <div className="flex items-center gap-1">
-                    {!isClosed && (
+                    {!isClosed && !isReadOnly && (
                       <div className="flex items-center gap-1">
                         <select
                           value={defShares}
@@ -242,6 +245,7 @@ export function ParticipantList({
                       </div>
                     )}
                   </div>
+
                 </div>
               );
             })}

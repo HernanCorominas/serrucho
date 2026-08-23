@@ -15,6 +15,7 @@ interface DebtSimplificationCardProps {
   serruchoName?: string;
   serruchoId?: string;
   paymentInstructions?: string | null;
+  isReadOnly?: boolean;
   onSettled?: () => void;
 }
 
@@ -22,6 +23,7 @@ export function DebtSimplificationCard({
   participants,
   serruchoName = "Serrucho",
   serruchoId,
+  isReadOnly = false,
   onSettled,
 }: DebtSimplificationCardProps) {
   const [settleDialogOpen, setSettleDialogOpen] = React.useState(false);
@@ -120,7 +122,7 @@ export function DebtSimplificationCard({
                     </span>
 
                     <div className="flex items-center gap-1.5">
-                      {serruchoId && (
+                      {serruchoId && !isReadOnly && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -138,6 +140,7 @@ export function DebtSimplificationCard({
                           <span>Saldar</span>
                         </Button>
                       )}
+
 
                       <a href={waUrl} target="_blank" rel="noopener noreferrer">
                         <Button

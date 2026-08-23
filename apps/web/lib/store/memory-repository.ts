@@ -196,6 +196,11 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return this.serruchos.get(id) || null;
   }
 
+  async getSerruchoByReadOnlyToken(token: string): Promise<Serrucho | null> {
+    if (!token || token.trim().length === 0) return null;
+    return Array.from(this.serruchos.values()).find((s) => s.read_only_token === token) || null;
+  }
+
   async createSerrucho(
     data: Omit<Serrucho, "id" | "created_at" | "updated_at" | "closed_at">
   ): Promise<Serrucho> {
@@ -204,6 +209,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     const serrucho: Serrucho = {
       ...data,
       id,
+      read_only_token: data.read_only_token || `ro-${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
       closed_at: null,
       created_at: now,
       updated_at: now,
@@ -211,6 +217,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     this.serruchos.set(id, serrucho);
     return serrucho;
   }
+
 
   async updateSerrucho(id: string, updates: Partial<Serrucho>): Promise<Serrucho> {
     const existing = this.serruchos.get(id);

@@ -32,6 +32,7 @@ interface BalanceOverviewProps {
   paymentInstructions?: string | null;
   currency?: string;
   myParticipantId?: string | null;
+  isReadOnly?: boolean;
   onAddExpenseClick?: () => void;
   onSettled?: () => void;
 }
@@ -44,6 +45,7 @@ export function BalanceOverview({
   serruchoId,
   paymentInstructions,
   myParticipantId,
+  isReadOnly = false,
   onAddExpenseClick,
   onSettled,
 }: BalanceOverviewProps) {
@@ -205,8 +207,10 @@ export function BalanceOverview({
           serruchoName={serruchoName}
           serruchoId={serruchoId}
           paymentInstructions={paymentInstructions}
+          isReadOnly={isReadOnly}
           onSettled={onSettled}
         />
+
       )}
 
       {/* Coro Awards Real-time Badges */}

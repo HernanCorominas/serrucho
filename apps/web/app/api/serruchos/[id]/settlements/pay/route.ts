@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TransferService } from "@/features/transfers/service";
 import { markSettledSchema } from "@/lib/validations/schemas";
+import { assertWritePermission, handleApiError } from "@/lib/security/permissions";
 
 export async function POST(
   req: NextRequest,
@@ -8,6 +9,8 @@ export async function POST(
 ) {
   try {
     const { id: serruchoId } = await params;
+    await assertWritePermission(serruchoId, req);
+
     const body = await req.json();
     const validated = markSettledSchema.parse(body);
 
@@ -34,9 +37,7 @@ export async function POST(
 
     return NextResponse.json(transfer, { status: 201 });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Error al registrar pago de liquidación" },
-      { status: 400 }
-    );
+    return handleApiError(err);
   }
 }
+

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SettlementService } from "@/features/settlements/service";
+import { assertWritePermission, handleApiError } from "@/lib/security/permissions";
 
 export async function POST(
   req: NextRequest,
@@ -7,6 +8,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    await assertWritePermission(id, req);
+
     let body: any = {};
     try {
       body = await req.json();
@@ -16,6 +19,7 @@ export async function POST(
     const result = await SettlementService.closeSerrucho(id, body);
     return NextResponse.json(result);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    return handleApiError(err);
   }
 }
+

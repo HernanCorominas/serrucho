@@ -66,6 +66,18 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     return data as Serrucho;
   }
 
+  async getSerruchoByReadOnlyToken(token: string): Promise<Serrucho | null> {
+    if (!token || token.trim().length === 0) return null;
+    const { data, error } = await this.client
+      .from("serruchos")
+      .select("*")
+      .eq("read_only_token", token)
+      .single();
+    if (error || !data) return null;
+    return data as Serrucho;
+  }
+
+
   async createSerrucho(
     serrucho: Omit<Serrucho, "id" | "created_at" | "updated_at" | "closed_at">
   ): Promise<Serrucho> {

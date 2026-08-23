@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SerruchoService } from "@/features/serruchos/service";
 import { getRepository } from "@/lib/store";
+import { assertWritePermission, handleApiError } from "@/lib/security/permissions";
 
 export async function GET(
   _req: NextRequest,
@@ -11,6 +12,11 @@ export async function GET(
     const serrucho = await SerruchoService.getById(id);
     if (!serrucho) {
       return NextResponse.json({ error: "Serrucho no encontrado" }, { status: 404 });
+    }
+
+    // Ensure read_only_token exists
+    if (!serrucho.read_only_token) {
+      serrucho.read_only_token = await SerruchoService.getReadOnlyToken(id);
     }
 
     const repo = getRepository();
@@ -41,19 +47,21 @@ export async function GET(
       logs,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    await assertWritePermission(id, req);
     const success = await SerruchoService.delete(id);
     return NextResponse.json({ success });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return handleApiError(err);
   }
 }
+

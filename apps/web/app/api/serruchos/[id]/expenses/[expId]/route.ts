@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ExpenseService } from "@/features/expenses/service";
+import { assertWritePermission, handleApiError } from "@/lib/security/permissions";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; expId: string }> }
 ) {
   try {
-    const { expId } = await params;
+    const { id, expId } = await params;
+    await assertWritePermission(id, req);
     const body = await req.json();
     const updated = await ExpenseService.update(expId, body);
     return NextResponse.json(updated);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Error al actualizar gasto" }, { status: 400 });
+    return handleApiError(err);
   }
 }
 
@@ -27,10 +29,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; expId: string }> }
 ) {
   try {
-    const { expId } = await params;
+    const { id, expId } = await params;
+    await assertWritePermission(id, req);
     const success = await ExpenseService.delete(expId);
     return NextResponse.json({ success });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    return handleApiError(err);
   }
 }
+

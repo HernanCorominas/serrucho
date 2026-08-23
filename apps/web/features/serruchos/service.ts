@@ -79,4 +79,22 @@ export class SerruchoService {
     const repo = getRepository();
     return repo.deleteSerrucho(id);
   }
+
+  static async getByReadOnlyToken(token: string): Promise<Serrucho | null> {
+    if (!token || token.trim().length === 0) return null;
+    const repo = getRepository();
+    return repo.getSerruchoByReadOnlyToken(token.trim());
+  }
+
+  static async getReadOnlyToken(id: string): Promise<string> {
+    const repo = getRepository();
+    const serrucho = await repo.getSerruchoById(id);
+    if (!serrucho) throw new Error("Serrucho no encontrado");
+    if (serrucho.read_only_token) return serrucho.read_only_token;
+
+    const token = `ro-${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+    const updated = await repo.updateSerrucho(id, { read_only_token: token });
+    return updated.read_only_token || token;
+  }
 }
+

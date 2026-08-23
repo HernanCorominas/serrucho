@@ -41,6 +41,7 @@ import { EditIncomeDialog } from "@/features/incomes/components/edit-income-dial
 interface ExpenseListProps {
   serruchoId: string;
   isClosed: boolean;
+  isReadOnly?: boolean;
   expenses: ExpenseWithSplits[];
   participants?: Participant[];
   transfers?: TransferWithParticipants[];
@@ -59,6 +60,7 @@ interface ExpenseListProps {
 export function ExpenseList({
   serruchoId,
   isClosed,
+  isReadOnly = false,
   expenses,
   participants = [],
   transfers = [],
@@ -309,7 +311,7 @@ export function ExpenseList({
           </CardDescription>
         </div>
 
-        {!isClosed && (
+        {!isClosed && !isReadOnly && (
           <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
             {onAddIncomeClick && (
               <Button
@@ -341,6 +343,7 @@ export function ExpenseList({
             </Button>
           </div>
         )}
+
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -546,7 +549,7 @@ export function ExpenseList({
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
               Registra gastos grupales, transferencias directas o reembolsos al serrucho.
             </p>
-            {!isClosed && (
+            {!isClosed && !isReadOnly && (
               <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
                 <Button size="sm" onClick={onAddClick} className="gap-1.5 font-bold">
                   <PlusCircle className="h-4 w-4" />
@@ -663,7 +666,7 @@ export function ExpenseList({
                       </span>
                     </div>
 
-                    {!isClosed && (
+                    {!isClosed && !isReadOnly && (
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
@@ -741,7 +744,7 @@ export function ExpenseList({
                     </span>
                   </div>
 
-                  {!isClosed && (
+                  {!isClosed && !isReadOnly && (
                     <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
@@ -857,7 +860,7 @@ export function ExpenseList({
                       )}
                     </div>
 
-                    {!isClosed && (
+                    {!isClosed && !isReadOnly && (
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"

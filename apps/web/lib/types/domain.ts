@@ -90,6 +90,7 @@ export interface Serrucho {
   payment_instructions: string | null;
   payment_deadline: string | null;
   closed_at: string | null;
+  read_only_token?: string | null;
   created_at: string;
   updated_at: string;
 }

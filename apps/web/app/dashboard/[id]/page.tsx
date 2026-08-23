@@ -12,6 +12,7 @@ import {
   Share2,
   Check,
   History,
+  Eye,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export default function SerruchoWorkspacePage() {
   const [settlement, setSettlement] = React.useState<LiveSettlementData | null>(null);
   const [snapshots, setSnapshots] = React.useState<SettlementSnapshot[]>([]);
   const [logs, setLogs] = React.useState<NotificationLog[]>([]);
+  const [isReadOnly, setIsReadOnly] = React.useState(false);
 
   // Dialogs
   const [addPartOpen, setAddPartOpen] = React.useState(false);
@@ -67,6 +69,18 @@ export default function SerruchoWorkspacePage() {
   const [activeTab, setActiveTab] = React.useState("balance");
   const [copiedLink, setCopiedLink] = React.useState(false);
   const [myParticipantId, setMyParticipantId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roParam = urlParams.get("ro") || urlParams.get("ro_token");
+      const readOnlyFlag =
+        urlParams.get("readonly") === "1" || urlParams.get("readonly") === "true";
+      if (roParam || readOnlyFlag) {
+        setIsReadOnly(true);
+      }
+    }
+  }, []);
 
   React.useEffect(() => {
     if (serruchoId && typeof window !== "undefined") {
@@ -89,6 +103,7 @@ export default function SerruchoWorkspacePage() {
       }
     }
   }, [serruchoId]);
+
 
   const handleSelectMyIdentity = (pId: string | null) => {
     setMyParticipantId(pId);
@@ -210,6 +225,15 @@ export default function SerruchoWorkspacePage() {
               >
                 {isClosed ? "Cerrado" : "Abierto"}
               </Badge>
+              {isReadOnly && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider gap-1"
+                >
+                  <Eye className="h-3 w-3" />
+                  <span>Solo Lectura</span>
+                </Badge>
+              )}
             </div>
             {serrucho.description && (
               <p className="text-xs text-muted-foreground mt-0.5 max-w-md line-clamp-1">
@@ -230,7 +254,7 @@ export default function SerruchoWorkspacePage() {
             <span>Compartir</span>
           </Button>
 
-          {!isClosed ? (
+          {!isClosed && !isReadOnly ? (
             <>
               <Button
                 variant="outline"
@@ -285,13 +309,36 @@ export default function SerruchoWorkspacePage() {
                 <span>Cerrar Serrucho</span>
               </Button>
             </>
-          ) : (
+          ) : isClosed ? (
             <Badge variant="outline" className="text-xs font-bold py-1.5 px-3">
               Cuentas Inmutables
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-bold py-1.5 px-3">
+              Modo Solo Consulta
             </Badge>
           )}
         </div>
       </div>
+
+      {/* Read-Only Notice Banner */}
+      {isReadOnly && (
+        <div className="rounded-2xl p-4 bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-xs text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🔒</span>
+            <div>
+              <h4 className="font-extrabold text-sm">Modo de Solo Lectura</h4>
+              <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                Tienes acceso para consultar gastos, balances y cuentas, pero no para realizar modificaciones.
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-300 text-[10px] uppercase font-bold shrink-0">
+            Solo Consulta
+          </Badge>
+        </div>
+      )}
+
 
       {/* Promo Banner for Web Guests */}
       <div className="rounded-2xl p-4 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-200 dark:border-orange-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
@@ -392,6 +439,7 @@ export default function SerruchoWorkspacePage() {
               paymentInstructions={serrucho.payment_instructions}
               currency={serrucho.currency}
               myParticipantId={myParticipantId}
+              isReadOnly={isReadOnly}
               onAddExpenseClick={() => setAddExpOpen(true)}
               onSettled={loadData}
             />
@@ -403,6 +451,7 @@ export default function SerruchoWorkspacePage() {
           <ExpenseList
             serruchoId={serrucho.id}
             isClosed={isClosed}
+            isReadOnly={isReadOnly}
             expenses={expenses}
             participants={participants}
             transfers={transfers}
@@ -424,6 +473,7 @@ export default function SerruchoWorkspacePage() {
           <ParticipantList
             serruchoId={serrucho.id}
             isClosed={isClosed}
+            isReadOnly={isReadOnly}
             participants={participants}
             onAddClick={() => setAddPartOpen(true)}
             onParticipantDeleted={loadData}
@@ -444,6 +494,7 @@ export default function SerruchoWorkspacePage() {
               paymentInstructions={serrucho.payment_instructions}
               paymentDeadline={serrucho.payment_deadline}
               closedAt={serrucho.closed_at}
+              isReadOnly={isReadOnly}
               snapshots={snapshots}
               expenses={expenses}
               logs={logs}
@@ -461,20 +512,23 @@ export default function SerruchoWorkspacePage() {
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
                   Al pulsar "Cerrar serrucho", se generarán estados de cuenta individuales con enlaces seguros e inmutables para cada participante con sus datos de pago.
                 </p>
-                <div className="pt-2">
-                  <Button
-                    size="lg"
-                    onClick={() => setCloseWizardOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2 px-6 shadow-md"
-                  >
-                    <Lock className="h-4 w-4" />
-                    <span>Iniciar Cierre del Serrucho</span>
-                  </Button>
-                </div>
+                {!isReadOnly && (
+                  <div className="pt-2">
+                    <Button
+                      size="lg"
+                      onClick={() => setCloseWizardOpen(true)}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2 px-6 shadow-md"
+                    >
+                      <Lock className="h-4 w-4" />
+                      <span>Iniciar Cierre del Serrucho</span>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
         </TabsContent>
+
       </Tabs>
 
       {/* Add Participant Dialog */}
@@ -518,7 +572,9 @@ export default function SerruchoWorkspacePage() {
         onOpenChange={setShareOpen}
         serruchoName={serrucho.name}
         serruchoId={serrucho.id}
+        readOnlyToken={serrucho.read_only_token}
       />
+
 
       {/* Close Serrucho Wizard Dialog */}
       {settlement && (

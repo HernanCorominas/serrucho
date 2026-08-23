@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRepository } from "@/lib/store";
 import { togglePaymentSchema } from "@/lib/validations/schemas";
+import { assertWritePermission, handleApiError } from "@/lib/security/permissions";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; snapshotId: string }> }
 ) {
   try {
-    const { snapshotId } = await params;
+    const { id, snapshotId } = await params;
+    await assertWritePermission(id, req);
+
     let body: any = {};
     try {
       body = await req.json();
@@ -26,6 +29,7 @@ export async function POST(
 
     return NextResponse.json(updated);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Error al actualizar estado de pago" }, { status: 400 });
+    return handleApiError(err);
   }
 }
+

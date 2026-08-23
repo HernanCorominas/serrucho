@@ -35,6 +35,7 @@ interface ClosedSettlementViewProps {
   paymentInstructions: string | null;
   paymentDeadline: string | null;
   closedAt: string | null;
+  isReadOnly?: boolean;
   snapshots: (SettlementSnapshot & {
     participant?: Participant;
     raw_token?: string;
@@ -51,6 +52,7 @@ export function ClosedSettlementView({
   paymentInstructions,
   paymentDeadline,
   closedAt,
+  isReadOnly = false,
   snapshots,
   expenses = [],
   logs = [],
@@ -289,6 +291,7 @@ export function ClosedSettlementView({
         serruchoName={serruchoName}
         serruchoId={serruchoId}
         paymentInstructions={paymentInstructions}
+        isReadOnly={isReadOnly}
         onSettled={onSnapshotUpdated}
       />
 
@@ -388,7 +391,7 @@ export function ClosedSettlementView({
 
                 <div className="flex items-center gap-2 flex-wrap self-end sm:self-center">
                   {/* Mark as paid toggle for debtors */}
-                  {isDebtor && serruchoId && (
+                  {isDebtor && serruchoId && !isReadOnly && (
                     <Button
                       variant={snap.is_paid ? "outline" : "default"}
                       size="sm"
@@ -404,6 +407,7 @@ export function ClosedSettlementView({
                       <span>{snap.is_paid ? "Pagado ✓" : "Marcar Pagado"}</span>
                     </Button>
                   )}
+
 
                   {/* QR Code button */}
                   {url && (

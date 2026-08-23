@@ -23,6 +23,7 @@ export interface ISerruchoRepository {
   // Serruchos
   getSerruchosByOwner(ownerId: string): Promise<Serrucho[]>;
   getSerruchoById(id: string): Promise<Serrucho | null>;
+  getSerruchoByReadOnlyToken(token: string): Promise<Serrucho | null>;
   createSerrucho(serrucho: Omit<Serrucho, "id" | "created_at" | "updated_at" | "closed_at">): Promise<Serrucho>;
   updateSerrucho(id: string, updates: Partial<Serrucho>): Promise<Serrucho>;
   deleteSerrucho(id: string): Promise<boolean>;

@@ -36,9 +36,10 @@ export class SettlementService {
    */
   static async calculateLiveSettlement(serruchoId: string): Promise<LiveSettlementData> {
     const repo = getRepository();
-    const [participants, expenses] = await Promise.all([
+    const [participants, expenses, transfers] = await Promise.all([
       repo.getParticipants(serruchoId),
       repo.getExpenses(serruchoId),
+      repo.getTransfers(serruchoId),
     ]);
 
     const participantIds = participants.map((p) => p.id);
@@ -57,7 +58,13 @@ export class SettlementService {
       })
     );
 
-    const netMap = calculateNetBalances(participantIds, expenseDetails);
+    const transferDetails = transfers.map((t) => ({
+      senderParticipantId: t.sender_participant_id,
+      receiverParticipantId: t.receiver_participant_id,
+      amountCents: t.amount_cents,
+    }));
+
+    const netMap = calculateNetBalances(participantIds, expenseDetails, transferDetails);
     const totalExpensesCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
 
     const enrichedParticipants: ParticipantFinancials[] = participants.map((p) => {

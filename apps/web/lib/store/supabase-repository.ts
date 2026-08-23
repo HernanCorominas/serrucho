@@ -4,6 +4,7 @@ import {
   Participant,
   Expense,
   ExpenseParticipant,
+  Transfer,
   SettlementSnapshot,
   SettlementItem,
   NotificationLog,
@@ -379,5 +380,55 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data as NotificationLog[];
+  }
+
+  // Transfers
+  async getTransfers(serruchoId: string): Promise<Transfer[]> {
+    const { data, error } = await this.client
+      .from("transfers")
+      .select("*")
+      .eq("serrucho_id", serruchoId)
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return (data || []).map((t) => ({
+      ...t,
+      amount_cents: Number(t.amount_cents),
+    })) as Transfer[];
+  }
+
+  async getTransferById(id: string): Promise<Transfer | null> {
+    const { data, error } = await this.client
+      .from("transfers")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error || !data) return null;
+    return {
+      ...data,
+      amount_cents: Number(data.amount_cents),
+    } as Transfer;
+  }
+
+  async createTransfer(
+    transferData: Omit<Transfer, "id" | "created_at" | "updated_at">
+  ): Promise<Transfer> {
+    const { data, error } = await this.client
+      .from("transfers")
+      .insert(transferData)
+      .select()
+      .single();
+    if (error) throw error;
+    return {
+      ...data,
+      amount_cents: Number(data.amount_cents),
+    } as Transfer;
+  }
+
+  async deleteTransfer(id: string): Promise<boolean> {
+    const { error } = await this.client
+      .from("transfers")
+      .delete()
+      .eq("id", id);
+    return !error;
   }
 }

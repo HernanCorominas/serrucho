@@ -82,6 +82,33 @@ export interface ExpenseParticipant {
   owed_cents: number;
 }
 
+export type PaymentMethod =
+  | "TRANSFER_POPULAR"
+  | "TRANSFER_BHD"
+  | "TRANSFER_BANRESERVAS"
+  | "TRANSFER_OTHER"
+  | "CASH"
+  | "OTHER";
+
+export interface Transfer {
+  id: string;
+  serrucho_id: string;
+  sender_participant_id: string;
+  receiver_participant_id: string;
+  amount_cents: number;
+  transfer_date: string;
+  notes: string | null;
+  payment_method?: PaymentMethod | null;
+  receipt_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransferWithParticipants extends Transfer {
+  sender_name: string;
+  receiver_name: string;
+}
+
 export interface SettlementSnapshot {
   id: string;
   serrucho_id: string;

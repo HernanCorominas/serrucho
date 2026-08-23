@@ -98,7 +98,7 @@ export const expenseSchema = z
     })
   );
 
-export type ExpenseInput = z.infer<typeof expenseSchema>;
+export type ExpenseInput = z.input<typeof expenseSchema>;
 
 export const closeSerruchoSchema = z.object({
   payment_instructions: z
@@ -118,3 +118,34 @@ export const togglePaymentSchema = z.object({
 });
 
 export type TogglePaymentInput = z.infer<typeof togglePaymentSchema>;
+
+export const paymentMethodSchema = z.enum([
+  "TRANSFER_POPULAR",
+  "TRANSFER_BHD",
+  "TRANSFER_BANRESERVAS",
+  "TRANSFER_OTHER",
+  "CASH",
+  "OTHER",
+]);
+
+export const transferSchema = z
+  .object({
+    sender_participant_id: z.string().min(1, "Selecciona quién entregó el dinero"),
+    receiver_participant_id: z.string().min(1, "Selecciona quién recibió el dinero"),
+    amount: z
+      .number({ invalid_type_error: "Ingresa un monto válido" })
+      .positive("El monto debe ser mayor a 0"),
+    transfer_date: z.string().min(1, "Fecha de transferencia requerida"),
+    notes: z.string().max(300, "La nota no puede exceder 300 caracteres").optional().nullable(),
+    payment_method: paymentMethodSchema.optional().nullable(),
+    receipt_url: z.string().url().optional().nullable().or(z.literal("")),
+  })
+  .refine(
+    (data) => data.sender_participant_id !== data.receiver_participant_id,
+    {
+      message: "El emisor y el receptor no pueden ser la misma persona",
+      path: ["receiver_participant_id"],
+    }
+  );
+
+export type TransferInput = z.infer<typeof transferSchema>;

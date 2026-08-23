@@ -3,6 +3,7 @@ import {
   Participant,
   Expense,
   ExpenseParticipant,
+  Transfer,
   SettlementSnapshot,
   SettlementItem,
   NotificationLog,
@@ -58,6 +59,12 @@ export interface ISerruchoRepository {
     }[]
   ): Promise<SettlementSnapshot[]>;
   markSnapshotPaid(snapshotId: string, isPaid: boolean): Promise<SettlementSnapshot>;
+
+  // Transfers
+  getTransfers(serruchoId: string): Promise<Transfer[]>;
+  getTransferById(id: string): Promise<Transfer | null>;
+  createTransfer(transfer: Omit<Transfer, "id" | "created_at" | "updated_at">): Promise<Transfer>;
+  deleteTransfer(id: string): Promise<boolean>;
 
   // Notification Logs
   createNotificationLog(log: Omit<NotificationLog, "id" | "created_at">): Promise<NotificationLog>;

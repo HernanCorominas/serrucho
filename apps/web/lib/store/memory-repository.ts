@@ -3,6 +3,7 @@ import {
   Participant,
   Expense,
   ExpenseParticipant,
+  Transfer,
   SettlementSnapshot,
   SettlementItem,
   NotificationLog,
@@ -16,6 +17,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
   public participants: Map<string, Participant> = new Map();
   public expenses: Map<string, Expense> = new Map();
   public expenseParticipants: ExpenseParticipant[] = [];
+  public transfers: Map<string, Transfer> = new Map();
   public settlementSnapshots: Map<string, SettlementSnapshot> = new Map();
   public settlementItems: Map<string, SettlementItem> = new Map();
   public notificationLogs: Map<string, NotificationLog> = new Map();
@@ -435,5 +437,35 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return Array.from(this.notificationLogs.values()).filter(
       (l) => l.serrucho_id === serruchoId
     );
+  }
+
+  // Transfers
+  async getTransfers(serruchoId: string): Promise<Transfer[]> {
+    return Array.from(this.transfers.values()).filter(
+      (t) => t.serrucho_id === serruchoId
+    );
+  }
+
+  async getTransferById(id: string): Promise<Transfer | null> {
+    return this.transfers.get(id) || null;
+  }
+
+  async createTransfer(
+    transferData: Omit<Transfer, "id" | "created_at" | "updated_at">
+  ): Promise<Transfer> {
+    const id = `trans-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const now = new Date().toISOString();
+    const transfer: Transfer = {
+      ...transferData,
+      id,
+      created_at: now,
+      updated_at: now,
+    };
+    this.transfers.set(id, transfer);
+    return transfer;
+  }
+
+  async deleteTransfer(id: string): Promise<boolean> {
+    return this.transfers.delete(id);
   }
 }

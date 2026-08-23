@@ -21,6 +21,7 @@ import { ParticipantList } from "@/features/participants/components/participant-
 import { AddParticipantDialog } from "@/features/participants/components/add-participant-dialog";
 import { ExpenseList } from "@/features/expenses/components/expense-list";
 import { AddExpenseDialog } from "@/features/expenses/components/add-expense-dialog";
+import { AddTransferDialog } from "@/features/transfers/components/add-transfer-dialog";
 import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serrucho-dialog";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
 import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
@@ -29,6 +30,7 @@ import {
   Serrucho,
   Participant,
   ExpenseWithSplits,
+  TransferWithParticipants,
   SettlementSnapshot,
   NotificationLog,
 } from "@/lib/types/domain";
@@ -45,6 +47,7 @@ export default function SerruchoWorkspacePage() {
   const [serrucho, setSerrucho] = React.useState<Serrucho | null>(null);
   const [participants, setParticipants] = React.useState<Participant[]>([]);
   const [expenses, setExpenses] = React.useState<ExpenseWithSplits[]>([]);
+  const [transfers, setTransfers] = React.useState<TransferWithParticipants[]>([]);
   const [settlement, setSettlement] = React.useState<LiveSettlementData | null>(null);
   const [snapshots, setSnapshots] = React.useState<SettlementSnapshot[]>([]);
   const [logs, setLogs] = React.useState<NotificationLog[]>([]);
@@ -52,6 +55,7 @@ export default function SerruchoWorkspacePage() {
   // Dialogs
   const [addPartOpen, setAddPartOpen] = React.useState(false);
   const [addExpOpen, setAddExpOpen] = React.useState(false);
+  const [addTransOpen, setAddTransOpen] = React.useState(false);
   const [shareOpen, setShareOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
@@ -80,10 +84,11 @@ export default function SerruchoWorkspacePage() {
     if (!serruchoId) return;
     try {
       setLoading(true);
-      const [detailRes, settleRes, expRes] = await Promise.all([
+      const [detailRes, settleRes, expRes, transRes] = await Promise.all([
         fetch(`/api/serruchos/${serruchoId}`),
         fetch(`/api/serruchos/${serruchoId}/settlement`),
         fetch(`/api/serruchos/${serruchoId}/expenses`),
+        fetch(`/api/serruchos/${serruchoId}/transfers`),
       ]);
 
       if (!detailRes.ok) throw new Error("Serrucho no encontrado");
@@ -111,6 +116,11 @@ export default function SerruchoWorkspacePage() {
       if (expRes.ok) {
         const expData = await expRes.json();
         setExpenses(expData);
+      }
+
+      if (transRes.ok) {
+        const transData = await transRes.json();
+        setTransfers(transData);
       }
     } catch (err: any) {
       toast({ type: "error", message: err.message || "Error cargando serrucho" });
@@ -202,6 +212,17 @@ export default function SerruchoWorkspacePage() {
               >
                 <Users className="h-3.5 w-3.5" />
                 <span>+ Participante</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAddTransOpen(true)}
+                className="gap-1.5 font-semibold text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+                disabled={participants.length < 2}
+              >
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                <span>💸 Transferencia</span>
               </Button>
 
               <Button
@@ -338,8 +359,11 @@ export default function SerruchoWorkspacePage() {
             serruchoId={serrucho.id}
             isClosed={isClosed}
             expenses={expenses}
+            transfers={transfers}
             onAddClick={() => setAddExpOpen(true)}
+            onAddTransferClick={() => setAddTransOpen(true)}
             onExpenseDeleted={loadData}
+            onTransferDeleted={loadData}
           />
         </TabsContent>
 
@@ -411,6 +435,15 @@ export default function SerruchoWorkspacePage() {
         open={addExpOpen}
         onOpenChange={setAddExpOpen}
         onExpenseAdded={loadData}
+      />
+
+      {/* Add Transfer Dialog */}
+      <AddTransferDialog
+        serruchoId={serrucho.id}
+        participants={participants}
+        open={addTransOpen}
+        onOpenChange={setAddTransOpen}
+        onTransferAdded={loadData}
       />
 
       {/* Share Serrucho Dialog */}

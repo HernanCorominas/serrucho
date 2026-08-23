@@ -1,34 +1,70 @@
 "use client";
 
 import * as React from "react";
-import { Receipt, Trash2, PlusCircle, Calendar, UserCheck, Search, Filter } from "lucide-react";
+import { Receipt, Trash2, PlusCircle, Calendar, UserCheck, Search, Filter, ArrowRightLeft, CreditCard } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDOP } from "@/lib/finance/math";
-import { ExpenseWithSplits, ExpenseCategory, CATEGORY_INFO } from "@/lib/types/domain";
+import { ExpenseWithSplits, ExpenseCategory, CATEGORY_INFO, TransferWithParticipants } from "@/lib/types/domain";
 
 interface ExpenseListProps {
   serruchoId: string;
   isClosed: boolean;
   expenses: ExpenseWithSplits[];
+  transfers?: TransferWithParticipants[];
   onAddClick: () => void;
+  onAddTransferClick?: () => void;
   onExpenseDeleted: () => void;
+  onTransferDeleted?: () => void;
 }
 
 export function ExpenseList({
   serruchoId,
   isClosed,
   expenses,
+  transfers = [],
   onAddClick,
+  onAddTransferClick,
   onExpenseDeleted,
+  onTransferDeleted,
 }: ExpenseListProps) {
   const { toast } = useToast();
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("ALL");
+  const [movementType, setMovementType] = React.useState<"ALL" | "EXPENSES" | "TRANSFERS">("ALL");
+
+  const handleDeleteTransfer = async (id: string) => {
+    if (!confirm("¿Estás seguro de eliminar esta transferencia?")) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      const res = await fetch(`/api/serruchos/${serruchoId}/transfers/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "No se pudo eliminar la transferencia");
+      }
+
+      toast({
+        type: "success",
+        title: "Transferencia eliminada",
+        message: "El movimiento ha sido eliminado del serrucho.",
+      });
+      if (onTransferDeleted) onTransferDeleted();
+    } catch (err: any) {
+      toast({ type: "error", message: err.message });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleDelete = async (id: string, description: string) => {
     if (!confirm(`¿Estás seguro de eliminar el gasto "${description}"?`)) {
@@ -59,8 +95,9 @@ export function ExpenseList({
     }
   };
 
-  // Filter expenses based on search and category
+  // Filter expenses and transfers based on search, category and movement type
   const filteredExpenses = React.useMemo(() => {
+    if (movementType === "TRANSFERS") return [];
     return expenses.filter((exp) => {
       const matchesSearch =
         exp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,10 +108,42 @@ export function ExpenseList({
 
       return matchesSearch && matchesCat;
     });
-  }, [expenses, searchQuery, selectedCategory]);
+  }, [expenses, searchQuery, selectedCategory, movementType]);
+
+  const filteredTransfers = React.useMemo(() => {
+    if (movementType === "EXPENSES" || selectedCategory !== "ALL") return [];
+    return transfers.filter((t) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        t.sender_name.toLowerCase().includes(q) ||
+        t.receiver_name.toLowerCase().includes(q) ||
+        (t.notes && t.notes.toLowerCase().includes(q))
+      );
+    });
+  }, [transfers, searchQuery, movementType, selectedCategory]);
 
   const totalCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
-  const filteredCents = filteredExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
+
+  const paymentMethodLabel = (method?: string | null) => {
+    switch (method) {
+      case "TRANSFER_POPULAR":
+        return "Banco Popular";
+      case "TRANSFER_BHD":
+        return "Banco BHD";
+      case "TRANSFER_BANRESERVAS":
+        return "Banreservas";
+      case "TRANSFER_OTHER":
+        return "Transferencia";
+      case "CASH":
+        return "Efectivo 💵";
+      default:
+        return "Directo";
+    }
+  };
+
+  const hasAnyItems = expenses.length > 0 || transfers.length > 0;
+  const hasFilteredItems = filteredExpenses.length > 0 || filteredTransfers.length > 0;
 
   return (
     <Card>
@@ -82,101 +151,173 @@ export function ExpenseList({
         <div>
           <CardTitle className="text-lg flex items-center gap-2">
             <Receipt className="h-5 w-5 text-primary" />
-            <span>Gastos Registrados ({expenses.length})</span>
+            <span>Movimientos ({expenses.length + transfers.length})</span>
           </CardTitle>
           <CardDescription>
-            Total acumulado: <strong className="text-foreground">{formatDOP(totalCents)}</strong>
+            Gastos acumulados: <strong className="text-foreground">{formatDOP(totalCents)}</strong>
+            {transfers.length > 0 && (
+              <span> • {transfers.length} {transfers.length === 1 ? "transferencia directa" : "transferencias directas"}</span>
+            )}
           </CardDescription>
         </div>
 
         {!isClosed && (
-          <Button size="sm" onClick={onAddClick} className="gap-1.5 font-bold self-start sm:self-auto">
-            <PlusCircle className="h-4 w-4" />
-            <span>Anotar Gasto</span>
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            {onAddTransferClick && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onAddTransferClick}
+                className="gap-1.5 font-bold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+              >
+                <ArrowRightLeft className="h-4 w-4" />
+                <span>Transferencia</span>
+              </Button>
+            )}
+
+            <Button size="sm" onClick={onAddClick} className="gap-1.5 font-bold">
+              <PlusCircle className="h-4 w-4" />
+              <span>Anotar Gasto</span>
+            </Button>
+          </div>
         )}
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Search & Category Filter Bar */}
-        {expenses.length > 0 && (
+        {/* Search & Type Filter Bar */}
+        {hasAnyItems && (
           <div className="space-y-2.5 pb-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por concepto o quien pagó..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 text-xs sm:text-sm h-9"
-              />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por concepto, persona o nota..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 text-xs sm:text-sm h-9"
+                />
+              </div>
+
+              {/* Movement Type Switcher */}
+              <div className="flex items-center bg-muted p-0.5 rounded-lg text-xs font-semibold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setMovementType("ALL")}
+                  className={`px-2.5 py-1 rounded-md transition-all ${
+                    movementType === "ALL"
+                      ? "bg-card text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Todos ({expenses.length + transfers.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMovementType("EXPENSES")}
+                  className={`px-2.5 py-1 rounded-md transition-all ${
+                    movementType === "EXPENSES"
+                      ? "bg-card text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Gastos ({expenses.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMovementType("TRANSFERS")}
+                  className={`px-2.5 py-1 rounded-md transition-all ${
+                    movementType === "TRANSFERS"
+                      ? "bg-card text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Transferencias ({transfers.length})
+                </button>
+              </div>
             </div>
 
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory("ALL")}
-                className={`px-2.5 py-1 rounded-lg font-semibold shrink-0 transition-all border ${
-                  selectedCategory === "ALL"
-                    ? "bg-primary text-white border-primary shadow-xs"
-                    : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-                }`}
-              >
-                Todos ({expenses.length})
-              </button>
+            {/* Category Filter Pills (when showing expenses) */}
+            {movementType !== "TRANSFERS" && expenses.length > 0 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory("ALL")}
+                  className={`px-2.5 py-1 rounded-lg font-semibold shrink-0 transition-all border ${
+                    selectedCategory === "ALL"
+                      ? "bg-primary text-white border-primary shadow-xs"
+                      : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+                  }`}
+                >
+                  Todas las categorías
+                </button>
 
-              {(Object.keys(CATEGORY_INFO) as ExpenseCategory[]).map((catKey) => {
-                const info = CATEGORY_INFO[catKey];
-                const count = expenses.filter((e) => (e.category || "OTHER") === catKey).length;
-                if (count === 0 && selectedCategory !== catKey) return null;
+                {(Object.keys(CATEGORY_INFO) as ExpenseCategory[]).map((catKey) => {
+                  const info = CATEGORY_INFO[catKey];
+                  const count = expenses.filter((e) => (e.category || "OTHER") === catKey).length;
+                  if (count === 0 && selectedCategory !== catKey) return null;
 
-                return (
-                  <button
-                    key={catKey}
-                    type="button"
-                    onClick={() => setSelectedCategory(catKey)}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold shrink-0 transition-all border ${
-                      selectedCategory === catKey
-                        ? "bg-primary text-white border-primary shadow-xs"
-                        : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-                    }`}
-                  >
-                    <span>{info.emoji}</span>
-                    <span>{info.label.split("/")[0].trim()} ({count})</span>
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={catKey}
+                      type="button"
+                      onClick={() => setSelectedCategory(catKey)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold shrink-0 transition-all border ${
+                        selectedCategory === catKey
+                          ? "bg-primary text-white border-primary shadow-xs"
+                          : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+                      }`}
+                    >
+                      <span>{info.emoji}</span>
+                      <span>{info.label.split("/")[0].trim()} ({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
-        {expenses.length === 0 ? (
+        {!hasAnyItems ? (
           <div className="text-center py-10 border border-dashed rounded-2xl p-6 bg-muted/20">
             <Receipt className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <h4 className="font-bold text-foreground text-sm">No hay gastos anotados</h4>
+            <h4 className="font-bold text-foreground text-sm">No hay movimientos registrados</h4>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Registra los pagos realizados por ti o tus amigos para calcular la división automática.
+              Registra gastos grupales o transferencias directas entre los participantes.
             </p>
             {!isClosed && (
-              <Button size="sm" onClick={onAddClick} className="mt-4 gap-1.5 font-bold">
-                <PlusCircle className="h-4 w-4" />
-                <span>Registrar primer gasto</span>
-              </Button>
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Button size="sm" onClick={onAddClick} className="gap-1.5 font-bold">
+                  <PlusCircle className="h-4 w-4" />
+                  <span>Registrar gasto</span>
+                </Button>
+                {onAddTransferClick && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onAddTransferClick}
+                    className="gap-1.5 font-bold"
+                  >
+                    <ArrowRightLeft className="h-4 w-4" />
+                    <span>Transferir dinero</span>
+                  </Button>
+                )}
+              </div>
             )}
           </div>
-        ) : filteredExpenses.length === 0 ? (
+        ) : !hasFilteredItems ? (
           <div className="text-center py-8 border rounded-2xl p-6 bg-muted/10">
             <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-40" />
             <p className="text-xs font-semibold text-muted-foreground">
-              No se encontraron gastos que coincidan con los filtros aplicados.
+              No se encontraron movimientos que coincidan con los filtros aplicados.
             </p>
             <Button
               variant="ghost"
               size="sm"
-              className="mt-2 text-xs text-primary"
+              className="mt-2 text-xs text-primary font-bold"
               onClick={() => {
                 setSearchQuery("");
                 setSelectedCategory("ALL");
+                setMovementType("ALL");
               }}
             >
               Restablecer filtros
@@ -184,6 +325,70 @@ export function ExpenseList({
           </div>
         ) : (
           <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+            {/* Transfers List */}
+            {filteredTransfers.map((t) => (
+              <div
+                key={t.id}
+                className="p-4 hover:bg-emerald-500/5 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-500/[0.02]"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="h-6 w-6 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center font-bold">
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                    </span>
+                    <h5 className="font-bold text-base text-foreground">
+                      {t.sender_name} <span className="text-emerald-600 font-black">➔</span> {t.receiver_name}
+                    </h5>
+                    <Badge variant="outline" className="text-[10px] font-bold border-emerald-500/40 text-emerald-700 dark:text-emerald-300">
+                      💸 Transferencia Directa
+                    </Badge>
+                    {t.payment_method && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                        {paymentMethodLabel(t.payment_method)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" /> {t.transfer_date}
+                    </span>
+                    {t.notes && (
+                      <>
+                        <span>•</span>
+                        <span className="italic font-medium text-foreground">&quot;{t.notes}&quot;</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 self-end sm:self-center">
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 block">
+                      Transferido
+                    </span>
+                    <span className="text-lg font-black text-emerald-700 dark:text-emerald-400">
+                      {formatDOP(t.amount_cents)}
+                    </span>
+                  </div>
+
+                  {!isClosed && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                      onClick={() => handleDeleteTransfer(t.id)}
+                      disabled={deletingId === t.id}
+                      title="Eliminar transferencia"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Expenses List */}
             {filteredExpenses.map((exp) => {
               const catInfo = CATEGORY_INFO[exp.category] || CATEGORY_INFO.OTHER;
 
@@ -207,7 +412,13 @@ export function ExpenseList({
                         variant={exp.split_method === "PERCENTAGE" ? "info" : "secondary"}
                         className="text-[10px] uppercase font-bold"
                       >
-                        {exp.split_method === "PERCENTAGE" ? "% Porcentaje" : "Equitativo"}
+                        {exp.split_method === "PERCENTAGE"
+                          ? "% Porcentaje"
+                          : exp.split_method === "SHARES"
+                          ? "Cuotas / Shares"
+                          : exp.split_method === "EXACT"
+                          ? "Montos Fijos"
+                          : "Equitativo"}
                       </Badge>
                     </div>
 

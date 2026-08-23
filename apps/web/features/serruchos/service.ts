@@ -28,12 +28,16 @@ export class SerruchoService {
     });
 
     const creatorName = validated.creator_name?.trim() || "Tú (Organizador)";
+    const isRegistered = ownerId && ownerId !== "guest-owner";
     await repo.createParticipant({
       serrucho_id: serrucho.id,
       name: creatorName,
       email: null,
       phone: null,
       preferred_channel: "EMAIL",
+      user_id: isRegistered ? ownerId : null,
+      access_status: isRegistered ? "LINKED_ACCOUNT" : "IDENTIFIED",
+      last_seen_at: new Date().toISOString(),
     });
 
     if (validated.initial_participants && Array.isArray(validated.initial_participants)) {
@@ -46,6 +50,8 @@ export class SerruchoService {
             email: null,
             phone: null,
             preferred_channel: "EMAIL",
+            access_status: "INVITED",
+            last_seen_at: null,
           });
         }
       }

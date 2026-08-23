@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
-import { Participant } from "@/lib/types/domain";
+import { Participant, ACCESS_STATUS_INFO } from "@/lib/types/domain";
 import { hapticLight, hapticImpact } from "@/lib/utils/haptics";
 
 interface ParticipantListProps {
@@ -159,6 +159,9 @@ export function ParticipantList({
           <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
             {filteredParticipants.map((p) => {
               const defShares = p.default_shares ?? 1;
+              const accessStatus = p.access_status || "INVITED";
+              const statusInfo = ACCESS_STATUS_INFO[accessStatus];
+
               return (
                 <div
                   key={p.id}
@@ -169,13 +172,20 @@ export function ParticipantList({
                       {p.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h5 className="font-bold text-sm text-foreground">{p.name}</h5>
                         {defShares !== 1 ? (
                           <Badge variant="secondary" className="text-[10px] font-bold px-1.5 py-0">
                             {defShares}x {defShares === 2 ? "Pareja" : defShares === 0.5 ? "Niño" : defShares === 3 ? "Familia" : "Cuotas"}
                           </Badge>
                         ) : null}
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusInfo.color}`}
+                          title={p.last_seen_at ? `Visto: ${new Date(p.last_seen_at).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit", day: "numeric", month: "short" })}` : statusInfo.description}
+                        >
+                          <span>{statusInfo.emoji}</span>
+                          <span>{statusInfo.label}</span>
+                        </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         {p.email && (
@@ -189,6 +199,16 @@ export function ParticipantList({
                           </span>
                         )}
                         {!p.email && !p.phone && <span>Sin datos de contacto</span>}
+                        {p.last_seen_at && (
+                          <>
+                            <span>•</span>
+                            <span className="text-[11px] text-muted-foreground/80">
+                              {accessStatus === "INVITED"
+                                ? "Invitación enviada"
+                                : `Abrió ${new Date(p.last_seen_at).toLocaleDateString("es-DO", { day: "numeric", month: "short" })}`}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

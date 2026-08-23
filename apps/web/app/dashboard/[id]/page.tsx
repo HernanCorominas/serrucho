@@ -70,8 +70,23 @@ export default function SerruchoWorkspacePage() {
 
   React.useEffect(() => {
     if (serruchoId && typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlParticipantId = urlParams.get("p");
       const stored = localStorage.getItem(`serrucho_my_id_${serruchoId}`);
-      if (stored) setMyParticipantId(stored);
+
+      const targetId = urlParticipantId || stored;
+      if (targetId) {
+        setMyParticipantId(targetId);
+        if (targetId) {
+          localStorage.setItem(`serrucho_my_id_${serruchoId}`, targetId);
+          // Mark seen presence asynchronously
+          fetch(`/api/serruchos/${serruchoId}/participants/${targetId}/seen`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: urlParticipantId ? "ACCESSED" : "IDENTIFIED" }),
+          }).catch(() => {});
+        }
+      }
     }
   }, [serruchoId]);
 
@@ -80,6 +95,11 @@ export default function SerruchoWorkspacePage() {
     if (serruchoId && typeof window !== "undefined") {
       if (pId) {
         localStorage.setItem(`serrucho_my_id_${serruchoId}`, pId);
+        fetch(`/api/serruchos/${serruchoId}/participants/${pId}/seen`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "IDENTIFIED" }),
+        }).then(() => loadData()).catch(() => {});
       } else {
         localStorage.removeItem(`serrucho_my_id_${serruchoId}`);
       }

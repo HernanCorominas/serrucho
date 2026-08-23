@@ -245,6 +245,8 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     const participant: Participant = {
       ...data,
       id,
+      access_status: data.access_status || "INVITED",
+      last_seen_at: data.last_seen_at || null,
       created_at: now,
       updated_at: now,
     };

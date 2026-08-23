@@ -94,6 +94,42 @@ export interface Serrucho {
   updated_at: string;
 }
 
+export type ParticipantAccessStatus =
+  | "INVITED"
+  | "ACCESSED"
+  | "IDENTIFIED"
+  | "LINKED_ACCOUNT";
+
+export const ACCESS_STATUS_INFO: Record<
+  ParticipantAccessStatus,
+  { label: string; emoji: string; color: string; description: string }
+> = {
+  INVITED: {
+    label: "Invitado",
+    emoji: "⏳",
+    color: "bg-muted text-muted-foreground border-border",
+    description: "Pendiente de abrir el enlace",
+  },
+  ACCESSED: {
+    label: "Accedió",
+    emoji: "👁️",
+    color: "bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-800",
+    description: "Abrió el serrucho",
+  },
+  IDENTIFIED: {
+    label: "Identificado",
+    emoji: "✅",
+    color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800",
+    description: "Activo en el coro",
+  },
+  LINKED_ACCOUNT: {
+    label: "Cuenta vinculada",
+    emoji: "🔗",
+    color: "bg-purple-500/10 text-purple-600 border-purple-200 dark:border-purple-800",
+    description: "Usuario registrado",
+  },
+};
+
 export interface Participant {
   id: string;
   serrucho_id: string;
@@ -104,6 +140,8 @@ export interface Participant {
   default_shares?: number;
   user_id?: string | null;
   is_active?: boolean;
+  access_status?: ParticipantAccessStatus;
+  last_seen_at?: string | null;
   created_at: string;
   updated_at: string;
 }

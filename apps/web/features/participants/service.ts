@@ -1,5 +1,5 @@
 import { getRepository } from "@/lib/store";
-import { Participant } from "@/lib/types/domain";
+import { Participant, ParticipantAccessStatus } from "@/lib/types/domain";
 import { participantSchema, ParticipantInput } from "@/lib/validations/schemas";
 import { ActivityService } from "@/features/activity/service";
 
@@ -118,5 +118,55 @@ export class ParticipantService {
     }
 
     return deleted;
+  }
+
+  /**
+   * Updates seen/access presence for a participant.
+   * Status progression: INVITED -> ACCESSED -> IDENTIFIED -> LINKED_ACCOUNT.
+   */
+  static async markSeen(
+    participantId: string,
+    targetStatus: ParticipantAccessStatus = "ACCESSED"
+  ): Promise<Participant> {
+    const repo = getRepository();
+    const existing = await repo.getParticipantById(participantId);
+    if (!existing) throw new Error("Participante no encontrado");
+
+    const statusWeights: Record<ParticipantAccessStatus, number> = {
+      INVITED: 0,
+      ACCESSED: 1,
+      IDENTIFIED: 2,
+      LINKED_ACCOUNT: 3,
+    };
+
+    const currentWeight = statusWeights[existing.access_status || "INVITED"];
+    const targetWeight = statusWeights[targetStatus];
+
+    const nextStatus = targetWeight > currentWeight ? targetStatus : existing.access_status || "INVITED";
+    const now = new Date().toISOString();
+
+    return repo.updateParticipant(participantId, {
+      access_status: nextStatus,
+      last_seen_at: now,
+    });
+  }
+
+  /**
+   * Links a registered user account to a participant.
+   */
+  static async linkAccount(
+    participantId: string,
+    userId: string
+  ): Promise<Participant> {
+    const repo = getRepository();
+    const existing = await repo.getParticipantById(participantId);
+    if (!existing) throw new Error("Participante no encontrado");
+
+    const now = new Date().toISOString();
+    return repo.updateParticipant(participantId, {
+      user_id: userId,
+      access_status: "LINKED_ACCOUNT",
+      last_seen_at: now,
+    });
   }
 }

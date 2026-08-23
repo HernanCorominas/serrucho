@@ -3,6 +3,7 @@ import { Linking, Alert } from "react-native";
 import { Button } from "./ui/Button";
 import { triggerHaptic } from "../utils/haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { formatPhoneForWhatsApp, buildWhatsAppShareUrl } from "@serrucho/core";
 
 interface WhatsAppShareButtonProps {
   phone?: string | null;
@@ -19,26 +20,19 @@ export const WhatsAppShareButton: React.FC<WhatsAppShareButtonProps> = ({
 }) => {
   const handleOpenWhatsApp = async () => {
     triggerHaptic("medium");
-    
-    // Clean phone number (Dominican format or international)
-    let cleanPhone = phone ? phone.replace(/[^0-9]/g, "") : "";
-    if (cleanPhone.length === 10 && (cleanPhone.startsWith("809") || cleanPhone.startsWith("829") || cleanPhone.startsWith("849"))) {
-      cleanPhone = `1${cleanPhone}`;
-    }
 
+    const cleanPhone = formatPhoneForWhatsApp(phone);
     const encodedText = encodeURIComponent(message);
-    const url = cleanPhone
+    const nativeUrl = cleanPhone
       ? `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`
       : `whatsapp://send?text=${encodedText}`;
 
-    const webFallback = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodedText}`
-      : `https://wa.me/?text=${encodedText}`;
+    const webFallback = buildWhatsAppShareUrl(message, cleanPhone);
 
     try {
-      const canOpen = await Linking.canOpenURL(url);
+      const canOpen = await Linking.canOpenURL(nativeUrl);
       if (canOpen) {
-        await Linking.openURL(url);
+        await Linking.openURL(nativeUrl);
       } else {
         await Linking.openURL(webFallback);
       }

@@ -9,6 +9,8 @@ import {
   Modal,
   Alert,
   TouchableOpacity,
+  Share,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +27,8 @@ import {
   formatDOP,
   calculateParticipantBalances,
   CATEGORY_INFO,
+  generateSerruchoInviteMessage,
+  buildWhatsAppShareUrl,
   type Serrucho,
   type Participant,
   type ExpenseWithSplits,
@@ -287,6 +291,27 @@ export default function SerruchoDetailScreen() {
     );
   };
 
+  const handleShareSerrucho = async () => {
+    if (!serrucho) return;
+    triggerHaptic("medium");
+
+    const joinUrl = `https://serrucho.do/dashboard/${id}`;
+    const inviteMsg = generateSerruchoInviteMessage({
+      serruchoName: serrucho.name,
+      joinUrl,
+    });
+
+    try {
+      await Share.share({
+        message: inviteMsg,
+        title: `Unirse a ${serrucho.name}`,
+      });
+    } catch {
+      const waUrl = buildWhatsAppShareUrl(inviteMsg);
+      await Linking.openURL(waUrl);
+    }
+  };
+
   if (!serrucho) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
@@ -353,6 +378,17 @@ export default function SerruchoDetailScreen() {
                 {expenses.length} reg.
               </Text>
             </View>
+          </View>
+
+          {/* Share Coro Action */}
+          <View style={{ marginTop: 12 }}>
+            <Button
+              title="Compartir con el Coro por WhatsApp 🇩🇴"
+              onPress={handleShareSerrucho}
+              variant="secondary"
+              size="sm"
+              icon={<Ionicons name="logo-whatsapp" size={16} color="#ffffff" />}
+            />
           </View>
         </Card>
 

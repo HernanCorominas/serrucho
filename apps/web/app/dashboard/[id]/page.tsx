@@ -21,6 +21,7 @@ import { ParticipantList } from "@/features/participants/components/participant-
 import { AddParticipantDialog } from "@/features/participants/components/add-participant-dialog";
 import { ExpenseList } from "@/features/expenses/components/expense-list";
 import { AddExpenseDialog } from "@/features/expenses/components/add-expense-dialog";
+import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serrucho-dialog";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
 import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
 import { ClosedSettlementView } from "@/features/settlements/components/closed-settlement-view";
@@ -51,6 +52,7 @@ export default function SerruchoWorkspacePage() {
   // Dialogs
   const [addPartOpen, setAddPartOpen] = React.useState(false);
   const [addExpOpen, setAddExpOpen] = React.useState(false);
+  const [shareOpen, setShareOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
   const [copiedLink, setCopiedLink] = React.useState(false);
@@ -182,21 +184,12 @@ export default function SerruchoWorkspacePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              setCopiedLink(true);
-              toast({
-                type: "success",
-                title: "Enlace copiado",
-                message: "Enlace del serrucho copiado al portapapeles.",
-              });
-              setTimeout(() => setCopiedLink(false), 2500);
-            }}
-            className="gap-1.5 font-semibold text-xs"
-            title="Copiar enlace para compartir con otros organizadores"
+            onClick={() => setShareOpen(true)}
+            className="gap-1.5 font-bold text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+            title="Compartir enlace con amigos por WhatsApp, QR o Copiar Link"
           >
-            {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
-            <span>{copiedLink ? "¡Copiado!" : "Compartir Link"}</span>
+            <Share2 className="h-3.5 w-3.5" />
+            <span>Compartir Coro 🇩🇴</span>
           </Button>
 
           {!isClosed ? (
@@ -416,6 +409,14 @@ export default function SerruchoWorkspacePage() {
         open={addExpOpen}
         onOpenChange={setAddExpOpen}
         onExpenseAdded={loadData}
+      />
+
+      {/* Share Serrucho Dialog */}
+      <ShareSerruchoDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        serruchoName={serrucho.name}
+        serruchoId={serrucho.id}
       />
 
       {/* Close Serrucho Wizard Dialog */}

@@ -4,5 +4,6 @@
 export * from "./finance/math";
 export * from "./finance/currency";
 export * from "./finance/receipt-parser";
+export * from "./finance/share";
 export * from "./types/domain";
 export * from "./validations/schemas";

@@ -177,6 +177,62 @@ export function splitByExactAmounts(
   }));
 }
 
+/**
+ * Splits an expense by relative shares/weights (e.g. 1 share for singles, 2 for couples, 0.5 for kids).
+ * Handles floating/decimal shares and deterministically allocates rounding cents to prevent penny loss.
+ */
+export function splitByShares(
+  totalCents: number,
+  splits: { participantId: string; shares: number }[]
+): SplitResult[] {
+  if (!splits.length || totalCents <= 0) {
+    return splits.map((s) => ({
+      participantId: s.participantId,
+      owedCents: 0,
+    }));
+  }
+
+  const totalShares = splits.reduce((sum, s) => sum + (s.shares > 0 ? s.shares : 0), 0);
+  if (totalShares <= 0) {
+    throw new Error("El total de cuotas / shares debe ser mayor a 0");
+  }
+
+  // Calculate base share in cents and keep fractional remainder
+  const calculated = splits.map((s) => {
+    const rawExact = (totalCents * (s.shares > 0 ? s.shares : 0)) / totalShares;
+    const baseCents = Math.floor(rawExact);
+    const fractionalRemainder = rawExact - baseCents;
+    return {
+      participantId: s.participantId,
+      shares: s.shares,
+      baseCents,
+      fractionalRemainder,
+    };
+  });
+
+  const sumBaseCents = calculated.reduce((sum, item) => sum + item.baseCents, 0);
+  const remainderCents = totalCents - sumBaseCents;
+
+  // Sort by highest fractional remainder, then participantId for determinism
+  const sortedByFraction = [...calculated].sort((a, b) => {
+    if (Math.abs(b.fractionalRemainder - a.fractionalRemainder) > 0.00001) {
+      return b.fractionalRemainder - a.fractionalRemainder;
+    }
+    return a.participantId.localeCompare(b.participantId);
+  });
+
+  const bonusIds = new Set<string>();
+  for (let i = 0; i < remainderCents; i++) {
+    bonusIds.add(sortedByFraction[i].participantId);
+  }
+
+  return calculated.map((item) => ({
+    participantId: item.participantId,
+    owedCents: item.baseCents + (bonusIds.has(item.participantId) ? 1 : 0),
+    percentageBasisPoints: Math.round((item.shares / totalShares) * 10000),
+  }));
+}
+
 export interface ParticipantFinancialSummary {
   participantId: string;
   totalPaidCents: number;

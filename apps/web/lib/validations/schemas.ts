@@ -40,6 +40,7 @@ export const expenseParticipantSplitSchema = z.object({
   participant_id: z.string().min(1, "ID de participante requerido"),
   percentage: z.number().min(0).max(100).optional(),
   amount: z.number().min(0).optional(),
+  shares: z.number().positive("Las cuotas / shares deben ser mayores a 0").optional(),
 });
 
 export const expenseCategorySchema = z.enum([
@@ -79,13 +80,19 @@ export const expenseSchema = z
         const sum = data.splits.reduce((acc, s) => acc + (s.amount || 0), 0);
         return Math.abs(sum - data.amount) < 0.01;
       }
+      if (data.split_method === "SHARES") {
+        const totalShares = data.splits.reduce((acc, s) => acc + (s.shares || 0), 0);
+        return totalShares > 0 && data.splits.every((s) => (s.shares || 0) > 0);
+      }
       return true;
     },
     (data) => ({
       message:
         data.split_method === "PERCENTAGE"
           ? "La suma de los porcentajes debe ser exactamente 100%"
-          : "La suma de los montos individuales debe ser exactamente igual al monto total",
+          : data.split_method === "EXACT"
+          ? "La suma de los montos individuales debe ser exactamente igual al monto total"
+          : "Cada participante debe tener al menos 0.1 cuotas / shares",
       path: ["splits"],
     })
   );

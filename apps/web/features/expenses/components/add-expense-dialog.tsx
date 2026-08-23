@@ -35,7 +35,7 @@ export function AddExpenseDialog({
   const [paidById, setPaidById] = React.useState<string>("");
   const [expenseDate, setExpenseDate] = React.useState(new Date().toISOString().split("T")[0]);
   const [category, setCategory] = React.useState<ExpenseCategory>("OTHER");
-  const [splitMethod, setSplitMethod] = React.useState<"EQUAL" | "PERCENTAGE" | "EXACT">("EQUAL");
+  const [splitMethod, setSplitMethod] = React.useState<"EQUAL" | "PERCENTAGE" | "EXACT" | "SHARES">("EQUAL");
 
   // Multi-currency support
   const [currency, setCurrency] = React.useState<SupportedCurrency>("DOP");
@@ -49,6 +49,7 @@ export function AddExpenseDialog({
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [percentages, setPercentages] = React.useState<Record<string, number>>({});
   const [exactAmounts, setExactAmounts] = React.useState<Record<string, number>>({});
+  const [shares, setShares] = React.useState<Record<string, number>>({});
   const [participantSearch, setParticipantSearch] = React.useState("");
 
   React.useEffect(() => {
@@ -68,11 +69,16 @@ export function AddExpenseDialog({
       const allIds = new Set(participants.map((p) => p.id));
       setSelectedIds(allIds);
 
-      // Default equal percentages
+      // Default equal percentages & 1 share each
       const equalPct = Number((100 / participants.length).toFixed(2));
       const pMap: Record<string, number> = {};
-      participants.forEach((p) => (pMap[p.id] = equalPct));
+      const sMap: Record<string, number> = {};
+      participants.forEach((p) => {
+        pMap[p.id] = equalPct;
+        sMap[p.id] = 1;
+      });
       setPercentages(pMap);
+      setShares(sMap);
     }
   }, [participants, open]);
 
@@ -128,6 +134,13 @@ export function AddExpenseDialog({
     }));
   };
 
+  const handleShareChange = (id: string, val: number) => {
+    setShares((prev) => ({
+      ...prev,
+      [id]: isNaN(val) || val <= 0 ? 1 : val,
+    }));
+  };
+
   // Percentage sum check
   const currentPctSum = React.useMemo(() => {
     if (splitMethod !== "PERCENTAGE") return 100;
@@ -144,6 +157,12 @@ export function AddExpenseDialog({
 
   const exactDifference = targetTotal - currentExactSum;
   const isExactValid = Math.abs(exactDifference) < 0.01;
+
+  // Total Shares check
+  const totalShares = React.useMemo(() => {
+    if (splitMethod !== "SHARES") return selectedIds.size;
+    return Array.from(selectedIds).reduce((sum, id) => sum + (shares[id] || 1), 0);
+  }, [splitMethod, selectedIds, shares]);
 
   const handleApplyItemized = (params: {
     totalAmount: number;
@@ -201,6 +220,14 @@ export function AddExpenseDialog({
       return;
     }
 
+    if (splitMethod === "SHARES" && totalShares <= 0) {
+      toast({
+        type: "error",
+        message: "El total de cuotas / shares debe ser mayor a 0",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -208,6 +235,7 @@ export function AddExpenseDialog({
         participant_id: id,
         percentage: splitMethod === "PERCENTAGE" ? percentages[id] : undefined,
         amount: splitMethod === "EXACT" ? (exactAmounts[id] || 0) : undefined,
+        shares: splitMethod === "SHARES" ? (shares[id] || 1) : undefined,
       }));
 
       // Append currency note if foreign currency
@@ -437,7 +465,7 @@ export function AddExpenseDialog({
                 <Label className="text-xs uppercase font-bold text-muted-foreground">
                   ¿Cómo se divide este gasto?
                 </Label>
-                <div className="flex gap-1 bg-muted p-0.5 rounded-lg text-xs font-semibold">
+                <div className="flex flex-wrap gap-1 bg-muted p-0.5 rounded-lg text-xs font-semibold">
                   <button
                     type="button"
                     onClick={() => setSplitMethod("EQUAL")}
@@ -448,6 +476,17 @@ export function AddExpenseDialog({
                     }`}
                   >
                     Equitativo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSplitMethod("SHARES")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      splitMethod === "SHARES"
+                        ? "bg-card text-foreground shadow-sm font-bold"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Cuotas (Shares)
                   </button>
                   <button
                     type="button"
@@ -534,6 +573,9 @@ export function AddExpenseDialog({
                     )
                     .map((p) => {
                       const isSelected = selectedIds.has(p.id);
+                      const userShares = shares[p.id] !== undefined ? shares[p.id] : 1;
+                      const userShareAmount = totalShares > 0 ? (userShares / totalShares) * targetTotal : 0;
+
                       return (
                         <div
                           key={p.id}
@@ -550,8 +592,48 @@ export function AddExpenseDialog({
                               onChange={() => toggleParticipant(p.id)}
                               className="rounded border-input text-primary focus:ring-primary h-4 w-4"
                             />
-                            <span className="font-semibold text-xs sm:text-sm">{p.name}</span>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-xs sm:text-sm">{p.name}</span>
+                              {splitMethod === "SHARES" && isSelected && targetTotal > 0 && (
+                                <span className="text-[10px] text-primary font-bold">
+                                  ~ RD$ {userShareAmount.toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              )}
+                            </div>
                           </label>
+
+                          {/* Shares (Cuotas) Input & Stepper */}
+                          {splitMethod === "SHARES" && isSelected && (
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex gap-1">
+                                {[0.5, 1, 2].map((sVal) => (
+                                  <button
+                                    key={sVal}
+                                    type="button"
+                                    onClick={() => handleShareChange(p.id, sVal)}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                                      userShares === sVal
+                                        ? "bg-primary text-white border-primary"
+                                        : "border-border text-muted-foreground hover:bg-muted"
+                                    }`}
+                                  >
+                                    {sVal}x
+                                  </button>
+                                ))}
+                              </div>
+
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0.1"
+                                className="h-8 w-14 text-center text-xs py-1 px-1 font-bold"
+                                value={userShares}
+                                onChange={(e) =>
+                                  handleShareChange(p.id, parseFloat(e.target.value))
+                                }
+                              />
+                            </div>
+                          )}
 
                           {/* Percentage Input */}
                           {splitMethod === "PERCENTAGE" && isSelected && (
@@ -611,6 +693,21 @@ export function AddExpenseDialog({
                     })}
                 </div>
               </div>
+
+              {/* Status Indicator for SHARES (Cuotas) */}
+              {splitMethod === "SHARES" && (
+                <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-xs space-y-1">
+                  <div className="flex items-center justify-between font-bold text-foreground">
+                    <span>Total Cuotas: {totalShares.toFixed(1)} cuotas</span>
+                    <span className="text-primary font-black">
+                      RD$ {(totalShares > 0 ? targetTotal / totalShares : 0).toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por cuota (1x)
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    💡 Más cuotas = mayor parte del gasto (ej. parejas = 2 cuotas, solteros = 1 cuota, niños = 0.5 cuota).
+                  </div>
+                </div>
+              )}
 
               {/* Status Indicator for Percentage */}
               {splitMethod === "PERCENTAGE" && (

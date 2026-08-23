@@ -1,7 +1,7 @@
 import { getRepository } from "@/lib/store";
 import { ExpenseWithSplits } from "@/lib/types/domain";
 import { expenseSchema, ExpenseInput } from "@/lib/validations/schemas";
-import { toCents, splitEqually, splitByPercentage, splitByExactAmounts } from "@/lib/finance/math";
+import { toCents, splitEqually, splitByPercentage, splitByExactAmounts, splitByShares } from "@/lib/finance/math";
 
 export class ExpenseService {
   static async listBySerrucho(serruchoId: string): Promise<ExpenseWithSplits[]> {
@@ -83,6 +83,17 @@ export class ExpenseService {
         participant_id: r.participantId,
         owed_cents: r.owedCents,
         percentage_basis_points: Math.round((r.owedCents / totalCents) * 10000),
+      }));
+    } else if (validated.split_method === "SHARES") {
+      const sharesInput = validated.splits.map((s) => ({
+        participantId: s.participant_id,
+        shares: s.shares || 1,
+      }));
+      const results = splitByShares(totalCents, sharesInput);
+      calculatedSplits = results.map((r) => ({
+        participant_id: r.participantId,
+        owed_cents: r.owedCents,
+        percentage_basis_points: r.percentageBasisPoints ?? null,
       }));
     } else {
       const participantIds = validated.splits.map((s) => s.participant_id);

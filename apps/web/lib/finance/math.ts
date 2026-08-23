@@ -61,6 +61,32 @@ export function formatDOP(cents: number, includeSign: boolean = false): string {
 }
 
 /**
+ * Formats integer cents into any supported currency (DOP default with RD$, USD with US$, EUR, etc.).
+ */
+export function formatCurrency(cents: number, currency: string = "DOP", includeSign: boolean = false): string {
+  if (!currency || currency === "DOP") {
+    return formatDOP(cents, includeSign);
+  }
+  const amount = fromCents(cents);
+  const formatted = new Intl.NumberFormat("es-DO", {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Math.abs(amount));
+
+  const standard = formatted.replace("USD", "US$").trim();
+  if (includeSign) {
+    if (cents > 0) return `+${standard}`;
+    if (cents < 0) return `-${standard}`;
+  }
+  return cents < 0 ? `-${standard}` : standard;
+}
+
+export { generateSerruchoInviteMessage, buildWhatsAppShareUrl } from "@serrucho/core";
+
+
+/**
  * Splits an expense equitably among specified participants.
  * Deterministically distributes leftover cents (total % count) to the first N participants.
  */

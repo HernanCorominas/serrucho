@@ -1,6 +1,7 @@
 import { getRepository } from "@/lib/store";
 import { Participant } from "@/lib/types/domain";
 import { participantSchema, ParticipantInput } from "@/lib/validations/schemas";
+import { ActivityService } from "@/features/activity/service";
 
 export class ParticipantService {
   static async listBySerrucho(serruchoId: string): Promise<Participant[]> {
@@ -23,7 +24,7 @@ export class ParticipantService {
       throw new Error("No se pueden agregar participantes a un serrucho cerrado");
     }
 
-    return repo.createParticipant({
+    const created = await repo.createParticipant({
       serrucho_id: serruchoId,
       name: validated.name.trim(),
       email: validated.email ? validated.email.trim().toLowerCase() : null,
@@ -31,6 +32,17 @@ export class ParticipantService {
       preferred_channel: validated.preferred_channel || "EMAIL",
       default_shares: validated.default_shares ?? 1,
     });
+
+    await ActivityService.record({
+      serrucho_id: serruchoId,
+      actor_name: created.name,
+      action_type: "PARTICIPANT_ADDED",
+      entity_type: "PARTICIPANT",
+      entity_id: created.id,
+      summary: `Se agregó a ${created.name} al coro`,
+    });
+
+    return created;
   }
 
   static async update(id: string, input: Partial<ParticipantInput>): Promise<Participant> {
@@ -43,7 +55,7 @@ export class ParticipantService {
       throw new Error("No se pueden editar participantes en un serrucho cerrado");
     }
 
-    return repo.updateParticipant(id, {
+    const updated = await repo.updateParticipant(id, {
       ...(input.name ? { name: input.name.trim() } : {}),
       ...(input.email !== undefined
         ? { email: input.email ? input.email.trim().toLowerCase() : null }
@@ -52,6 +64,17 @@ export class ParticipantService {
       ...(input.preferred_channel ? { preferred_channel: input.preferred_channel } : {}),
       ...(input.default_shares !== undefined ? { default_shares: input.default_shares } : {}),
     });
+
+    await ActivityService.record({
+      serrucho_id: existing.serrucho_id,
+      actor_name: updated.name,
+      action_type: "PARTICIPANT_UPDATED",
+      entity_type: "PARTICIPANT",
+      entity_id: updated.id,
+      summary: `Se actualizaron los datos de ${updated.name}`,
+    });
+
+    return updated;
   }
 
   static async delete(id: string): Promise<boolean> {
@@ -82,6 +105,18 @@ export class ParticipantService {
       );
     }
 
-    return repo.deleteParticipant(id);
+    const deleted = await repo.deleteParticipant(id);
+    if (deleted) {
+      await ActivityService.record({
+        serrucho_id: existing.serrucho_id,
+        actor_name: existing.name,
+        action_type: "PARTICIPANT_REMOVED",
+        entity_type: "PARTICIPANT",
+        entity_id: id,
+        summary: `Se eliminó a ${existing.name} del coro`,
+      });
+    }
+
+    return deleted;
   }
 }

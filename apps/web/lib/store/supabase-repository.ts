@@ -13,6 +13,7 @@ import {
   SettlementItem,
   NotificationLog,
   Profile,
+  ActivityEvent,
 } from "@/lib/types/domain";
 import { ISerruchoRepository } from "./repository";
 
@@ -576,5 +577,37 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     await this.client.from("income_participants").delete().eq("income_id", id);
     const { error } = await this.client.from("incomes").delete().eq("id", id);
     return !error;
+  }
+
+  async createActivityEvent(
+    event: Omit<ActivityEvent, "id" | "created_at">
+  ): Promise<ActivityEvent> {
+    const { data, error } = await this.client
+      .from("activity_events")
+      .insert(event)
+      .select()
+      .single();
+
+    if (error) {
+      // In case activity_events table is not yet migrated in Supabase, return formatted fallback
+      return {
+        ...event,
+        id: `act-${Date.now()}`,
+        created_at: new Date().toISOString(),
+      };
+    }
+    return data as ActivityEvent;
+  }
+
+  async getActivityEvents(serruchoId: string, limit: number = 100): Promise<ActivityEvent[]> {
+    const { data, error } = await this.client
+      .from("activity_events")
+      .select("*")
+      .eq("serrucho_id", serruchoId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error || !data) return [];
+    return data as ActivityEvent[];
   }
 }

@@ -1,7 +1,8 @@
 import { getRepository } from "@/lib/store";
 import { Transfer, TransferWithParticipants } from "@/lib/types/domain";
 import { transferSchema, TransferInput } from "@/lib/validations/schemas";
-import { toCents } from "@/lib/finance/math";
+import { toCents, formatDOP } from "@/lib/finance/math";
+import { ActivityService } from "@/features/activity/service";
 
 export class TransferService {
   static async listBySerrucho(serruchoId: string): Promise<TransferWithParticipants[]> {
@@ -49,7 +50,7 @@ export class TransferService {
 
     const amountCents = toCents(validated.amount);
 
-    return repo.createTransfer({
+    const created = await repo.createTransfer({
       serrucho_id: serruchoId,
       sender_participant_id: validated.sender_participant_id,
       receiver_participant_id: validated.receiver_participant_id,
@@ -59,6 +60,22 @@ export class TransferService {
       payment_method: validated.payment_method || null,
       receipt_url: validated.receipt_url || null,
     });
+
+    await ActivityService.record({
+      serrucho_id: serruchoId,
+      actor_name: sender.name,
+      action_type: "TRANSFER_CREATED",
+      entity_type: "TRANSFER",
+      entity_id: created.id,
+      summary: `${sender.name} transfirió ${formatDOP(amountCents)} a ${receiver.name}`,
+      metadata: {
+        amount_cents: amountCents,
+        sender_id: sender.id,
+        receiver_id: receiver.id,
+      },
+    });
+
+    return created;
   }
 
   static async update(
@@ -116,11 +133,26 @@ export class TransferService {
     });
 
     const participantMap = new Map(participants.map((p) => [p.id, p.name]));
+    const senderName = participantMap.get(updated.sender_participant_id) || "Alguien";
+    const receiverName = participantMap.get(updated.receiver_participant_id) || "Alguien";
+
+    await ActivityService.record({
+      serrucho_id: existing.serrucho_id,
+      actor_name: senderName,
+      action_type: "TRANSFER_UPDATED",
+      entity_type: "TRANSFER",
+      entity_id: updated.id,
+      summary: `Se editó la transferencia de ${senderName} a ${receiverName} (${formatDOP(updated.amount_cents)})`,
+      metadata: {
+        old_amount_cents: existing.amount_cents,
+        new_amount_cents: updated.amount_cents,
+      },
+    });
 
     return {
       ...updated,
-      sender_name: participantMap.get(updated.sender_participant_id) || "Desconocido",
-      receiver_name: participantMap.get(updated.receiver_participant_id) || "Desconocido",
+      sender_name: senderName,
+      receiver_name: receiverName,
     };
   }
 
@@ -134,6 +166,26 @@ export class TransferService {
       throw new Error("No se pueden eliminar transferencias en un serrucho cerrado");
     }
 
-    return repo.deleteTransfer(id);
+    const participants = await repo.getParticipants(existing.serrucho_id);
+    const participantMap = new Map(participants.map((p) => [p.id, p.name]));
+    const senderName = participantMap.get(existing.sender_participant_id) || "Alguien";
+    const receiverName = participantMap.get(existing.receiver_participant_id) || "Alguien";
+
+    const deleted = await repo.deleteTransfer(id);
+    if (deleted) {
+      await ActivityService.record({
+        serrucho_id: existing.serrucho_id,
+        actor_name: senderName,
+        action_type: "TRANSFER_DELETED",
+        entity_type: "TRANSFER",
+        entity_id: id,
+        summary: `Se eliminó la transferencia de ${senderName} a ${receiverName} (${formatDOP(existing.amount_cents)})`,
+        metadata: {
+          amount_cents: existing.amount_cents,
+        },
+      });
+    }
+
+    return deleted;
   }
 }

@@ -12,6 +12,7 @@ import {
   SettlementItem,
   NotificationLog,
   Profile,
+  ActivityEvent,
 } from "@/lib/types/domain";
 
 export interface ISerruchoRepository {
@@ -98,4 +99,8 @@ export interface ISerruchoRepository {
   // Notification Logs
   createNotificationLog(log: Omit<NotificationLog, "id" | "created_at">): Promise<NotificationLog>;
   getNotificationLogs(serruchoId: string): Promise<NotificationLog[]>;
+
+  // Activity / Audit Trail
+  createActivityEvent(event: Omit<ActivityEvent, "id" | "created_at">): Promise<ActivityEvent>;
+  getActivityEvents(serruchoId: string, limit?: number): Promise<ActivityEvent[]>;
 }

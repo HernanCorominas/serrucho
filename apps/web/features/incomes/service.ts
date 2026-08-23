@@ -11,7 +11,9 @@ import {
   splitByPercentage,
   splitByExactAmounts,
   splitByShares,
+  formatDOP,
 } from "@/lib/finance/math";
+import { ActivityService } from "@/features/activity/service";
 
 export class IncomeService {
   static async listBySerrucho(serruchoId: string): Promise<IncomeWithSplits[]> {
@@ -133,7 +135,7 @@ export class IncomeService {
       }));
     }
 
-    return repo.createIncome(
+    const created = await repo.createIncome(
       {
         serrucho_id: serruchoId,
         description: validated.description.trim(),
@@ -146,6 +148,24 @@ export class IncomeService {
       },
       calculatedSplits
     );
+
+    const participantMap = new Map(participants.map((p) => [p.id, p.name]));
+    const receiverName = participantMap.get(created.received_by_participant_id) || "Alguien";
+
+    await ActivityService.record({
+      serrucho_id: serruchoId,
+      actor_name: receiverName,
+      action_type: "INCOME_CREATED",
+      entity_type: "INCOME",
+      entity_id: created.id,
+      summary: `${receiverName} registró reembolso "${created.description}" — ${formatDOP(created.amount_cents)}`,
+      metadata: {
+        amount_cents: created.amount_cents,
+        description: created.description,
+      },
+    });
+
+    return created;
   }
 
   static async update(
@@ -258,10 +278,24 @@ export class IncomeService {
 
     const participantMap = new Map(participants.map((p) => [p.id, p.name]));
     const splits = await repo.getIncomeSplits(updated.id);
+    const receiverName = participantMap.get(updated.received_by_participant_id) || "Alguien";
+
+    await ActivityService.record({
+      serrucho_id: existing.serrucho_id,
+      actor_name: receiverName,
+      action_type: "INCOME_UPDATED",
+      entity_type: "INCOME",
+      entity_id: updated.id,
+      summary: `Se editó el reembolso "${updated.description}" (${formatDOP(updated.amount_cents)})`,
+      metadata: {
+        old_amount_cents: existing.amount_cents,
+        new_amount_cents: updated.amount_cents,
+      },
+    });
 
     return {
       ...updated,
-      received_by_name: participantMap.get(updated.received_by_participant_id) || "Desconocido",
+      received_by_name: receiverName,
       splits: splits.map((s) => ({
         ...s,
         participant_name: participantMap.get(s.participant_id) || "Desconocido",
@@ -279,6 +313,25 @@ export class IncomeService {
       throw new Error("No se pueden eliminar ingresos en un serrucho cerrado");
     }
 
-    return repo.deleteIncome(id);
+    const participants = await repo.getParticipants(existing.serrucho_id);
+    const participantMap = new Map(participants.map((p) => [p.id, p.name]));
+    const receiverName = participantMap.get(existing.received_by_participant_id) || "Alguien";
+
+    const deleted = await repo.deleteIncome(id);
+    if (deleted) {
+      await ActivityService.record({
+        serrucho_id: existing.serrucho_id,
+        actor_name: receiverName,
+        action_type: "INCOME_DELETED",
+        entity_type: "INCOME",
+        entity_id: id,
+        summary: `Se eliminó el reembolso "${existing.description}" (${formatDOP(existing.amount_cents)})`,
+        metadata: {
+          amount_cents: existing.amount_cents,
+        },
+      });
+    }
+
+    return deleted;
   }
 }

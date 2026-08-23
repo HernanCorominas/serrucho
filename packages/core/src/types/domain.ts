@@ -332,4 +332,46 @@ export interface ItemizedSplitResult {
   }[];
 }
 
+export type ActivityActionType =
+  | "EXPENSE_CREATED"
+  | "EXPENSE_UPDATED"
+  | "EXPENSE_DELETED"
+  | "TRANSFER_CREATED"
+  | "TRANSFER_UPDATED"
+  | "TRANSFER_DELETED"
+  | "INCOME_CREATED"
+  | "INCOME_UPDATED"
+  | "INCOME_DELETED"
+  | "PARTICIPANT_ADDED"
+  | "PARTICIPANT_UPDATED"
+  | "PARTICIPANT_REMOVED"
+  | "SETTLEMENT_MARKED_PAID"
+  | "SERRUCHO_CREATED"
+  | "SERRUCHO_UPDATED"
+  | "SERRUCHO_CLOSED"
+  | "ATTACHMENT_ADDED"
+  | "ATTACHMENT_REMOVED";
+
+export type ActivityEntityType =
+  | "EXPENSE"
+  | "TRANSFER"
+  | "INCOME"
+  | "PARTICIPANT"
+  | "SETTLEMENT"
+  | "SERRUCHO"
+  | "ATTACHMENT";
+
+export interface ActivityEvent {
+  id: string;
+  serrucho_id: string;
+  actor_name: string;
+  action_type: ActivityActionType;
+  entity_type: ActivityEntityType;
+  entity_id?: string | null;
+  summary: string;
+  metadata?: Record<string, any> | null;
+  created_at: string;
+}
+
+
 

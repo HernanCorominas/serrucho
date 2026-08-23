@@ -12,6 +12,7 @@ import {
   SettlementItem,
   NotificationLog,
   Profile,
+  ActivityEvent,
 } from "@/lib/types/domain";
 import { ISerruchoRepository } from "./repository";
 
@@ -27,6 +28,7 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
   public settlementSnapshots: Map<string, SettlementSnapshot> = new Map();
   public settlementItems: Map<string, SettlementItem> = new Map();
   public notificationLogs: Map<string, NotificationLog> = new Map();
+  public activityEvents: Map<string, ActivityEvent> = new Map();
 
   constructor() {
     this.seedDemoData();
@@ -577,5 +579,25 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       (ip) => ip.income_id !== id
     );
     return existed;
+  }
+
+  async createActivityEvent(
+    event: Omit<ActivityEvent, "id" | "created_at">
+  ): Promise<ActivityEvent> {
+    const id = `act-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const created: ActivityEvent = {
+      ...event,
+      id,
+      created_at: new Date().toISOString(),
+    };
+    this.activityEvents.set(id, created);
+    return created;
+  }
+
+  async getActivityEvents(serruchoId: string, limit: number = 100): Promise<ActivityEvent[]> {
+    return Array.from(this.activityEvents.values())
+      .filter((e) => e.serrucho_id === serruchoId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit);
   }
 }

@@ -9,6 +9,7 @@ import { calculateNetBalances } from "@/lib/finance/math";
 import { generateSettlementToken, hashSettlementToken } from "@/lib/security/tokens";
 import { NotificationRouter } from "@/features/notifications/router";
 import { SettlementNotification } from "@/features/notifications/types";
+import { ActivityService } from "@/features/activity/service";
 
 export interface LiveSettlementData {
   serruchoId: string;
@@ -302,6 +303,19 @@ export class SettlementService {
         sent_at: res.success ? new Date().toISOString() : null,
       });
     }
+
+    await ActivityService.record({
+      serrucho_id: serruchoId,
+      actor_name: "Administrador",
+      action_type: "SERRUCHO_CLOSED",
+      entity_type: "SERRUCHO",
+      entity_id: serruchoId,
+      summary: "Se cerró el serrucho y se congelaron los saldos de liquidación",
+      metadata: {
+        closed_at: closedAt,
+        total_snapshots: snapshotResults.length,
+      },
+    });
 
     return {
       serruchoId,

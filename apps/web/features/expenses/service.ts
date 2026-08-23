@@ -1,7 +1,8 @@
 import { getRepository } from "@/lib/store";
 import { ExpenseWithSplits } from "@/lib/types/domain";
 import { expenseSchema, ExpenseInput } from "@/lib/validations/schemas";
-import { toCents, splitEqually, splitByPercentage, splitByExactAmounts, splitByShares } from "@/lib/finance/math";
+import { toCents, splitEqually, splitByPercentage, splitByExactAmounts, splitByShares, formatDOP } from "@/lib/finance/math";
+import { ActivityService } from "@/features/activity/service";
 
 export class ExpenseService {
   static async listBySerrucho(serruchoId: string): Promise<ExpenseWithSplits[]> {
@@ -120,10 +121,25 @@ export class ExpenseService {
 
     const participantMap = new Map(participants.map((p) => [p.id, p.name]));
     const splits = await repo.getExpenseSplits(created.id);
+    const paidByName = participantMap.get(created.paid_by_participant_id) || "Alguien";
+
+    await ActivityService.record({
+      serrucho_id: serruchoId,
+      actor_name: paidByName,
+      action_type: "EXPENSE_CREATED",
+      entity_type: "EXPENSE",
+      entity_id: created.id,
+      summary: `${paidByName} agregó "${created.description}" — ${formatDOP(created.amount_cents)}`,
+      metadata: {
+        amount_cents: created.amount_cents,
+        description: created.description,
+        split_method: created.split_method,
+      },
+    });
 
     return {
       ...created,
-      paid_by_name: participantMap.get(created.paid_by_participant_id) || "Desconocido",
+      paid_by_name: paidByName,
       splits: splits.map((s) => ({
         ...s,
         participant_name: participantMap.get(s.participant_id) || "Desconocido",
@@ -252,10 +268,25 @@ export class ExpenseService {
     );
 
     const splits = await repo.getExpenseSplits(updated.id);
+    const paidByName = participantMap.get(updated.paid_by_participant_id) || "Alguien";
+
+    await ActivityService.record({
+      serrucho_id: existing.serrucho_id,
+      actor_name: paidByName,
+      action_type: "EXPENSE_UPDATED",
+      entity_type: "EXPENSE",
+      entity_id: updated.id,
+      summary: `${paidByName} editó el gasto "${updated.description}" — ${formatDOP(updated.amount_cents)}`,
+      metadata: {
+        old_amount_cents: existing.amount_cents,
+        new_amount_cents: updated.amount_cents,
+        description: updated.description,
+      },
+    });
 
     return {
       ...updated,
-      paid_by_name: participantMap.get(updated.paid_by_participant_id) || "Desconocido",
+      paid_by_name: paidByName,
       splits: splits.map((s) => ({
         ...s,
         participant_name: participantMap.get(s.participant_id) || "Desconocido",
@@ -273,6 +304,26 @@ export class ExpenseService {
       throw new Error("No se pueden eliminar gastos de un serrucho cerrado");
     }
 
-    return repo.deleteExpense(expenseId);
+    const participants = await repo.getParticipants(existing.serrucho_id);
+    const participantMap = new Map(participants.map((p) => [p.id, p.name]));
+    const actorName = participantMap.get(existing.paid_by_participant_id) || "Alguien";
+
+    const deleted = await repo.deleteExpense(expenseId);
+    if (deleted) {
+      await ActivityService.record({
+        serrucho_id: existing.serrucho_id,
+        actor_name: actorName,
+        action_type: "EXPENSE_DELETED",
+        entity_type: "EXPENSE",
+        entity_id: expenseId,
+        summary: `Se eliminó el gasto "${existing.description}" — ${formatDOP(existing.amount_cents)}`,
+        metadata: {
+          amount_cents: existing.amount_cents,
+          description: existing.description,
+        },
+      });
+    }
+
+    return deleted;
   }
 }

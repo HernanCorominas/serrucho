@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Share2,
   Check,
+  History,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serru
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
 import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
 import { ClosedSettlementView } from "@/features/settlements/components/closed-settlement-view";
+import { ActivityFeed } from "@/features/activity/components/activity-feed";
 import {
   Serrucho,
   Participant,
@@ -335,7 +337,7 @@ export default function SerruchoWorkspacePage() {
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full sm:w-auto">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full sm:w-auto h-auto p-1 gap-1">
           <TabsTrigger value="balance" className="gap-1.5">
             <TrendingUp className="h-4 w-4" />
             <span>Balances</span>
@@ -347,6 +349,10 @@ export default function SerruchoWorkspacePage() {
           <TabsTrigger value="participants" className="gap-1.5">
             <Users className="h-4 w-4" />
             <span>Participantes ({participants.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="gap-1.5">
+            <History className="h-4 w-4" />
+            <span>Historial</span>
           </TabsTrigger>
           <TabsTrigger value="closure" className="gap-1.5">
             <Lock className="h-4 w-4" />
@@ -404,7 +410,12 @@ export default function SerruchoWorkspacePage() {
           />
         </TabsContent>
 
-        {/* Tab 4: Closure & Snapshots */}
+        {/* Tab 4: Activity History */}
+        <TabsContent value="activity">
+          <ActivityFeed serruchoId={serrucho.id} />
+        </TabsContent>
+
+        {/* Tab 5: Closure & Snapshots */}
         <TabsContent value="closure">
           {isClosed ? (
             <ClosedSettlementView

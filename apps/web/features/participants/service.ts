@@ -62,12 +62,21 @@ export class ParticipantService {
       throw new Error("No se pueden eliminar participantes de un serrucho cerrado");
     }
 
-    // Check if participant has expenses or splits
+    // Integrity Check: ensure participant has no paid expenses or active split debts
     const expenses = await repo.getExpenses(existing.serrucho_id);
     const hasPaid = expenses.some((e) => e.paid_by_participant_id === id);
-    if (hasPaid) {
+    let hasSplits = false;
+    for (const exp of expenses) {
+      const splits = await repo.getExpenseSplits(exp.id);
+      if (splits.some((s) => s.participant_id === id && s.owed_cents > 0)) {
+        hasSplits = true;
+        break;
+      }
+    }
+
+    if (hasPaid || hasSplits) {
       throw new Error(
-        "No puedes eliminar un participante que tiene gastos registrados a su nombre. Elimina o reasigna sus gastos primero."
+        "No puedes eliminar un participante que tiene gastos o deudas registradas. Elimina o reasigna los gastos correspondientes primero para proteger la integridad contable."
       );
     }
 

@@ -6,6 +6,9 @@ import {
   ScrollView,
   RefreshControl,
   useColorScheme,
+  Modal,
+  Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +16,7 @@ import { colors } from "../../src/theme/colors";
 import { Button } from "../../src/components/ui/Button";
 import { Card } from "../../src/components/ui/Card";
 import { Badge } from "../../src/components/ui/Badge";
+import { Input } from "../../src/components/ui/Input";
 import { BalanceRing } from "../../src/components/BalanceRing";
 import { WhatsAppShareButton } from "../../src/components/WhatsAppShareButton";
 import { mobileStorage } from "../../src/services/storage";
@@ -40,6 +44,12 @@ export default function SerruchoDetailScreen() {
   const [balances, setBalances] = useState<ParticipantFinancials[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"balances" | "expenses" | "participants">("balances");
+
+  // Participant Management States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPName, setNewPName] = useState("");
+  const [newPPhone, setNewPPhone] = useState("");
+  const [editingP, setEditingP] = useState<Participant | null>(null);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -165,6 +175,116 @@ export default function SerruchoDetailScreen() {
     triggerHaptic("light");
     await loadData();
     setRefreshing(false);
+  };
+
+  const handleAddParticipant = async () => {
+    if (!newPName.trim()) {
+      triggerHaptic("error");
+      Alert.alert("Nombre requerido", "Por favor ingresa el nombre del amigo.");
+      return;
+    }
+
+    triggerHaptic("medium");
+    const newP: Participant = {
+      id: `p-${Date.now()}`,
+      serrucho_id: id,
+      name: newPName.trim(),
+      phone: newPPhone.trim() || null,
+      email: null,
+      preferred_channel: "WHATSAPP",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const updatedParticipants = [...participants, newP];
+    const updatedBalances = calculateParticipantBalances(updatedParticipants, expenses);
+    setParticipants(updatedParticipants);
+    setBalances(updatedBalances);
+
+    if (serrucho) {
+      await mobileStorage.saveSerruchoDetail(id, {
+        serrucho,
+        participants: updatedParticipants,
+        expenses,
+        balances: updatedBalances,
+      });
+    }
+
+    setNewPName("");
+    setNewPPhone("");
+    setShowAddModal(false);
+    triggerHaptic("success");
+  };
+
+  const handleUpdateParticipant = async () => {
+    if (!editingP || !editingP.name.trim()) return;
+
+    triggerHaptic("medium");
+    const updatedParticipants = participants.map((p) =>
+      p.id === editingP.id
+        ? { ...editingP, name: editingP.name.trim(), phone: editingP.phone?.trim() || null, updated_at: new Date().toISOString() }
+        : p
+    );
+    const updatedBalances = calculateParticipantBalances(updatedParticipants, expenses);
+    setParticipants(updatedParticipants);
+    setBalances(updatedBalances);
+
+    if (serrucho) {
+      await mobileStorage.saveSerruchoDetail(id, {
+        serrucho,
+        participants: updatedParticipants,
+        expenses,
+        balances: updatedBalances,
+      });
+    }
+
+    setEditingP(null);
+    triggerHaptic("success");
+  };
+
+  const handleDeleteParticipant = (pId: string, pName: string) => {
+    const hasPaid = expenses.some((e) => e.paid_by_participant_id === pId);
+    const hasSplits = expenses.some((e) =>
+      e.splits.some((s) => s.participant_id === pId && s.owed_cents > 0)
+    );
+
+    if (hasPaid || hasSplits) {
+      triggerHaptic("warning");
+      Alert.alert(
+        "Integridad Contable",
+        `No puedes eliminar a "${pName}" porque tiene gastos o deudas registradas en este serrucho. Elimina o reasigna sus gastos primero para no romper las cuentas.`
+      );
+      return;
+    }
+
+    triggerHaptic("warning");
+    Alert.alert(
+      "Eliminar Amigo",
+      `¿Deseas retirar a "${pName}" de este serrucho?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            const updatedParticipants = participants.filter((p) => p.id !== pId);
+            const updatedBalances = calculateParticipantBalances(updatedParticipants, expenses);
+            setParticipants(updatedParticipants);
+            setBalances(updatedBalances);
+
+            if (serrucho) {
+              await mobileStorage.saveSerruchoDetail(id, {
+                serrucho,
+                participants: updatedParticipants,
+                expenses,
+                balances: updatedBalances,
+              });
+            }
+            triggerHaptic("success");
+          },
+        },
+      ]
+    );
   };
 
   if (!serrucho) {
@@ -406,25 +526,162 @@ export default function SerruchoDetailScreen() {
         {/* Tab 3: Participants */}
         {activeTab === "participants" && (
           <View style={styles.tabContent}>
-            {participants.map((p) => (
-              <Card key={p.id} style={styles.participantCard}>
-                <View style={styles.participantRow}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{p.name.charAt(0)}</Text>
+            {serrucho.status === "OPEN" && (
+              <Button
+                title="+ Agregar Amigo al Serrucho"
+                onPress={() => {
+                  triggerHaptic("light");
+                  setShowAddModal(true);
+                }}
+                variant="primary"
+                size="md"
+                style={{ marginBottom: 12 }}
+                icon={<Ionicons name="person-add" size={16} color="#ffffff" />}
+              />
+            )}
+
+            {participants.map((p, idx) => {
+              const isOwner = idx === 0 || p.name.includes("Organizador") || p.name.includes("Tú");
+              return (
+                <Card key={p.id} style={styles.participantCard}>
+                  <View style={styles.participantRow}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{p.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={[styles.pName, { color: theme.text }]}>{p.name}</Text>
+                        {isOwner && <Badge label="ORGANIZADOR" variant="warning" size="sm" />}
+                      </View>
+                      <Text style={[styles.pPhone, { color: theme.textMuted }]}>
+                        {p.phone ? `📱 ${p.phone}` : p.email ? `✉️ ${p.email}` : "Sin teléfono registrado"}
+                      </Text>
+                    </View>
+
+                    {serrucho.status === "OPEN" && (
+                      <View style={{ flexDirection: "row", gap: 6 }}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            triggerHaptic("light");
+                            setEditingP(p);
+                          }}
+                          style={[styles.iconActionBtn, { backgroundColor: theme.border }]}
+                        >
+                          <Ionicons name="pencil" size={14} color={theme.text} />
+                        </TouchableOpacity>
+
+                        {!isOwner && (
+                          <TouchableOpacity
+                            onPress={() => handleDeleteParticipant(p.id, p.name)}
+                            style={[styles.iconActionBtn, { backgroundColor: colors.danger + "20" }]}
+                          >
+                            <Ionicons name="trash-outline" size={14} color={colors.danger} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.pName, { color: theme.text }]}>{p.name}</Text>
-                    <Text style={[styles.pPhone, { color: theme.textMuted }]}>
-                      {p.phone || p.email || "Sin contacto"}
-                    </Text>
-                  </View>
-                  <Badge label="ACTIVO" variant="success" size="sm" />
-                </View>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </View>
         )}
       </ScrollView>
+
+      {/* Modal: Add Participant */}
+      <Modal visible={showAddModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              Agregar Amigo al Serrucho 👥
+            </Text>
+            <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>
+              Añade a un amigo para incluirlo en la división de gastos.
+            </Text>
+
+            <Input
+              label="Nombre del Amigo *"
+              placeholder="Ej. Carlos Matos"
+              value={newPName}
+              onChangeText={setNewPName}
+              autoFocus
+            />
+
+            <Input
+              label="Teléfono / WhatsApp (Opcional)"
+              placeholder="Ej. 829-555-0123"
+              value={newPPhone}
+              onChangeText={setNewPPhone}
+              keyboardType="phone-pad"
+            />
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Cancelar"
+                variant="ghost"
+                onPress={() => setShowAddModal(false)}
+                size="md"
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Agregar ➔"
+                variant="primary"
+                onPress={handleAddParticipant}
+                size="md"
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal: Edit Participant */}
+      <Modal visible={!!editingP} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              Editar Amigo ✏️
+            </Text>
+
+            {editingP && (
+              <>
+                <Input
+                  label="Nombre *"
+                  placeholder="Nombre"
+                  value={editingP.name}
+                  onChangeText={(text) => setEditingP({ ...editingP, name: text })}
+                  autoFocus
+                />
+
+                <Input
+                  label="Teléfono / WhatsApp (Opcional)"
+                  placeholder="809..."
+                  value={editingP.phone || ""}
+                  onChangeText={(text) => setEditingP({ ...editingP, phone: text })}
+                  keyboardType="phone-pad"
+                />
+              </>
+            )}
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Cancelar"
+                variant="ghost"
+                onPress={() => setEditingP(null)}
+                size="md"
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Guardar Cambios"
+                variant="primary"
+                onPress={handleUpdateParticipant}
+                size="md"
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Floating Bottom Action Bar */}
       {serrucho.status === "OPEN" && (
@@ -654,5 +911,42 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 10,
     borderTopWidth: 1,
+  },
+  iconActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
   },
 });

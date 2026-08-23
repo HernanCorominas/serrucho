@@ -47,3 +47,23 @@ export async function PATCH(req: NextRequest) {
     return handleApiError(err);
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId") || req.headers.get("x-user-id");
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Se requiere ID de usuario para eliminar la cuenta" },
+        { status: 400 }
+      );
+    }
+
+    const success = await AuthService.deleteAccount(userId);
+    return NextResponse.json({ success });
+  } catch (err: any) {
+    return handleApiError(err);
+  }
+}
+

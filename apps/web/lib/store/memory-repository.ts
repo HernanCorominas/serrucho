@@ -187,6 +187,30 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return profile;
   }
 
+  async deleteProfile(id: string): Promise<boolean> {
+    const deleted = this.profiles.delete(id);
+    // Unlink participants
+    for (const [partId, part] of this.participants.entries()) {
+      if (part.user_id === id) {
+        this.participants.set(partId, {
+          ...part,
+          user_id: undefined,
+          access_status: "INVITED",
+        });
+      }
+    }
+    // Reassign owned serruchos to guest
+    for (const [sId, s] of this.serruchos.entries()) {
+      if (s.owner_id === id) {
+        this.serruchos.set(sId, {
+          ...s,
+          owner_id: "guest-anonymous",
+        });
+      }
+    }
+    return deleted;
+  }
+
   // Serruchos
   async getSerruchosByOwner(ownerId: string): Promise<Serrucho[]> {
     return Array.from(this.serruchos.values()).filter((s) => s.owner_id === ownerId);
@@ -214,7 +238,6 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return this.serruchos.get(id) || null;
   }
 
-
   async getSerruchoByReadOnlyToken(token: string): Promise<Serrucho | null> {
     if (!token || token.trim().length === 0) return null;
     return Array.from(this.serruchos.values()).find((s) => s.read_only_token === token) || null;
@@ -237,7 +260,6 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return serrucho;
   }
 
-
   async updateSerrucho(id: string, updates: Partial<Serrucho>): Promise<Serrucho> {
     const existing = this.serruchos.get(id);
     if (!existing) throw new Error("Serrucho no encontrado");
@@ -251,8 +273,79 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
   }
 
   async deleteSerrucho(id: string): Promise<boolean> {
-    return this.serruchos.delete(id);
+    const existed = this.serruchos.delete(id);
+    if (!existed) return false;
+
+    // 1. Delete participants
+    for (const [pId, p] of this.participants.entries()) {
+      if (p.serrucho_id === id) {
+        this.participants.delete(pId);
+      }
+    }
+
+    // 2. Delete expenses and expense splits
+    const deletedExpenseIds = new Set<string>();
+    for (const [eId, e] of this.expenses.entries()) {
+      if (e.serrucho_id === id) {
+        this.expenses.delete(eId);
+        deletedExpenseIds.add(eId);
+      }
+    }
+    this.expenseParticipants = this.expenseParticipants.filter(
+      (ep) => !deletedExpenseIds.has(ep.expense_id)
+    );
+
+    // 3. Delete transfers
+    for (const [tId, t] of this.transfers.entries()) {
+      if (t.serrucho_id === id) {
+        this.transfers.delete(tId);
+      }
+    }
+
+    // 4. Delete incomes and income splits
+    const deletedIncomeIds = new Set<string>();
+    for (const [incId, inc] of this.incomes.entries()) {
+      if (inc.serrucho_id === id) {
+        this.incomes.delete(incId);
+        deletedIncomeIds.add(incId);
+      }
+    }
+    this.incomeParticipants = this.incomeParticipants.filter(
+      (ip) => !deletedIncomeIds.has(ip.income_id)
+    );
+
+    // 5. Delete snapshots and snapshot items
+    const deletedSnapshotIds = new Set<string>();
+    for (const [sId, s] of this.settlementSnapshots.entries()) {
+      if (s.serrucho_id === id) {
+        this.settlementSnapshots.delete(sId);
+        deletedSnapshotIds.add(sId);
+      }
+    }
+    for (const [itemId, item] of this.settlementItems.entries()) {
+      if (deletedSnapshotIds.has(item.snapshot_id)) {
+        this.settlementItems.delete(itemId);
+      }
+    }
+
+    // 6. Delete notification logs
+    for (const [nId, n] of this.notificationLogs.entries()) {
+      if (n.serrucho_id === id) {
+        this.notificationLogs.delete(nId);
+      }
+    }
+
+    // 7. Delete activity events
+    for (const [aId, a] of this.activityEvents.entries()) {
+      if (a.serrucho_id === id) {
+        this.activityEvents.delete(aId);
+      }
+    }
+
+    return true;
   }
+
+
 
   // Participants
   async getParticipants(serruchoId: string): Promise<Participant[]> {

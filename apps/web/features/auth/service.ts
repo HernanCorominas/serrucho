@@ -127,4 +127,13 @@ export class AuthService {
 
     return { linkedParticipants, linkedSerruchos };
   }
+
+  /**
+   * Deletes a user account and personal profile, unlinking participant records.
+   */
+  static async deleteAccount(userId: string): Promise<boolean> {
+    const repo = getRepository();
+    return repo.deleteProfile(userId);
+  }
 }
+

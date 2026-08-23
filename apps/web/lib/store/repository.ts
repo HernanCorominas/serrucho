@@ -19,6 +19,8 @@ export interface ISerruchoRepository {
   // Profiles
   getProfile(id: string): Promise<Profile | null>;
   upsertProfile(profile: Profile): Promise<Profile>;
+  deleteProfile(id: string): Promise<boolean>;
+
 
   // Serruchos
   getSerruchosByOwner(ownerId: string): Promise<Serrucho[]>;

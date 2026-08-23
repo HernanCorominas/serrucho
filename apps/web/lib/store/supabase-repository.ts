@@ -45,6 +45,18 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     return data as Profile;
   }
 
+  async deleteProfile(id: string): Promise<boolean> {
+    // Unlink participants
+    await this.client
+      .from("participants")
+      .update({ user_id: null, access_status: "INVITED" })
+      .eq("user_id", id);
+
+    const { error } = await this.client.from("profiles").delete().eq("id", id);
+    return !error;
+  }
+
+
   // Serruchos
   async getSerruchosByOwner(ownerId: string): Promise<Serrucho[]> {
     const { data, error } = await this.client

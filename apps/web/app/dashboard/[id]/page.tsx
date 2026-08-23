@@ -14,6 +14,7 @@ import {
   History,
   Eye,
   FileSpreadsheet,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { AddExpenseDialog } from "@/features/expenses/components/add-expense-dia
 import { AddTransferDialog } from "@/features/transfers/components/add-transfer-dialog";
 import { AddIncomeDialog } from "@/features/incomes/components/add-income-dialog";
 import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serrucho-dialog";
+import { DeleteSerruchoDialog } from "@/features/serruchos/components/delete-serrucho-dialog";
 import { ExportSerruchoDialog } from "@/features/export/components/export-dialog";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
 import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
@@ -68,6 +70,7 @@ export default function SerruchoWorkspacePage() {
   const [addIncomeOpen, setAddIncomeOpen] = React.useState(false);
   const [shareOpen, setShareOpen] = React.useState(false);
   const [exportOpen, setExportOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
   const [copiedLink, setCopiedLink] = React.useState(false);
@@ -266,6 +269,19 @@ export default function SerruchoWorkspacePage() {
             <Share2 className="h-3.5 w-3.5 text-primary" />
             <span>Compartir</span>
           </Button>
+
+          {!isReadOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteOpen(true)}
+              className="font-semibold text-xs border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 h-8 px-2.5"
+              title="Eliminar Serrucho"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+
 
 
           {!isClosed && !isReadOnly ? (
@@ -596,6 +612,15 @@ export default function SerruchoWorkspacePage() {
         serruchoId={serrucho.id}
         serruchoName={serrucho.name}
       />
+
+      {/* Delete Serrucho Dialog */}
+      <DeleteSerruchoDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        serruchoId={serrucho.id}
+        serruchoName={serrucho.name}
+      />
+
 
 
 

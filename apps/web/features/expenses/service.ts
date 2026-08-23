@@ -1,7 +1,7 @@
 import { getRepository } from "@/lib/store";
 import { ExpenseWithSplits } from "@/lib/types/domain";
 import { expenseSchema, ExpenseInput } from "@/lib/validations/schemas";
-import { toCents, splitEqually, splitByPercentage } from "@/lib/finance/math";
+import { toCents, splitEqually, splitByPercentage, splitByExactAmounts } from "@/lib/finance/math";
 
 export class ExpenseService {
   static async listBySerrucho(serruchoId: string): Promise<ExpenseWithSplits[]> {
@@ -72,6 +72,17 @@ export class ExpenseService {
         participant_id: r.participantId,
         owed_cents: r.owedCents,
         percentage_basis_points: r.percentageBasisPoints ?? null,
+      }));
+    } else if (validated.split_method === "EXACT") {
+      const exactInput = validated.splits.map((s) => ({
+        participantId: s.participant_id,
+        amountCents: toCents(s.amount || 0),
+      }));
+      const results = splitByExactAmounts(totalCents, exactInput);
+      calculatedSplits = results.map((r) => ({
+        participant_id: r.participantId,
+        owed_cents: r.owedCents,
+        percentage_basis_points: Math.round((r.owedCents / totalCents) * 10000),
       }));
     } else {
       const participantIds = validated.splits.map((s) => s.participant_id);

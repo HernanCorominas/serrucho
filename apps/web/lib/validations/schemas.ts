@@ -39,6 +39,7 @@ export type ParticipantInput = z.infer<typeof participantSchema>;
 export const expenseParticipantSplitSchema = z.object({
   participant_id: z.string().min(1, "ID de participante requerido"),
   percentage: z.number().min(0).max(100).optional(),
+  amount: z.number().min(0).optional(),
 });
 
 export const expenseCategorySchema = z.enum([
@@ -62,7 +63,7 @@ export const expenseSchema = z
       .positive("El monto debe ser mayor a 0"),
     paid_by_participant_id: z.string().min(1, "Selecciona quién pagó este gasto"),
     expense_date: z.string().min(1, "Fecha de gasto requerida"),
-    split_method: z.enum(["EQUAL", "PERCENTAGE"]).default("EQUAL"),
+    split_method: z.enum(["EQUAL", "PERCENTAGE", "EXACT", "SHARES", "ITEMIZED"]).default("EQUAL"),
     category: expenseCategorySchema.default("OTHER"),
     splits: z
       .array(expenseParticipantSplitSchema)
@@ -74,12 +75,19 @@ export const expenseSchema = z
         const sum = data.splits.reduce((acc, s) => acc + (s.percentage || 0), 0);
         return Math.abs(sum - 100) < 0.01;
       }
+      if (data.split_method === "EXACT") {
+        const sum = data.splits.reduce((acc, s) => acc + (s.amount || 0), 0);
+        return Math.abs(sum - data.amount) < 0.01;
+      }
       return true;
     },
-    {
-      message: "La suma de los porcentajes debe ser exactamente 100%",
+    (data) => ({
+      message:
+        data.split_method === "PERCENTAGE"
+          ? "La suma de los porcentajes debe ser exactamente 100%"
+          : "La suma de los montos individuales debe ser exactamente igual al monto total",
       path: ["splits"],
-    }
+    })
   );
 
 export type ExpenseInput = z.infer<typeof expenseSchema>;

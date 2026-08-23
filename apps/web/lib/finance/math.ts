@@ -149,6 +149,34 @@ export function splitByPercentage(
   }));
 }
 
+/**
+ * Splits an expense by exact individual amounts per participant.
+ * Validates that the sum of individual cents equals totalCents exactly.
+ */
+export function splitByExactAmounts(
+  totalCents: number,
+  splits: { participantId: string; amountCents: number }[]
+): SplitResult[] {
+  if (!splits.length || totalCents <= 0) {
+    return splits.map((s) => ({
+      participantId: s.participantId,
+      owedCents: 0,
+    }));
+  }
+
+  const sumCents = splits.reduce((acc, s) => acc + s.amountCents, 0);
+  if (sumCents !== totalCents) {
+    throw new Error(
+      `La suma de los montos individuales (${fromCents(sumCents)}) debe ser exactamente igual al monto total (${fromCents(totalCents)})`
+    );
+  }
+
+  return splits.map((s) => ({
+    participantId: s.participantId,
+    owedCents: s.amountCents,
+  }));
+}
+
 export interface ParticipantFinancialSummary {
   participantId: string;
   totalPaidCents: number;

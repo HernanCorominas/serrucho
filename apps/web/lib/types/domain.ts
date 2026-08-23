@@ -1,5 +1,5 @@
 export type SerruchoStatus = "OPEN" | "CLOSED";
-export type SplitMethod = "EQUAL" | "PERCENTAGE";
+export type SplitMethod = "EQUAL" | "PERCENTAGE" | "EXACT" | "SHARES" | "ITEMIZED";
 export type PreferredChannel = "EMAIL" | "WHATSAPP";
 export type NotificationChannel = "EMAIL" | "WHATSAPP";
 export type NotificationStatus = "PENDING" | "SENT" | "FAILED" | "SKIPPED";

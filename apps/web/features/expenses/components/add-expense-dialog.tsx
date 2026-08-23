@@ -35,7 +35,7 @@ export function AddExpenseDialog({
   const [paidById, setPaidById] = React.useState<string>("");
   const [expenseDate, setExpenseDate] = React.useState(new Date().toISOString().split("T")[0]);
   const [category, setCategory] = React.useState<ExpenseCategory>("OTHER");
-  const [splitMethod, setSplitMethod] = React.useState<"EQUAL" | "PERCENTAGE">("EQUAL");
+  const [splitMethod, setSplitMethod] = React.useState<"EQUAL" | "PERCENTAGE" | "EXACT">("EQUAL");
 
   // Multi-currency support
   const [currency, setCurrency] = React.useState<SupportedCurrency>("DOP");
@@ -48,6 +48,7 @@ export function AddExpenseDialog({
   // Selected participants for split
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [percentages, setPercentages] = React.useState<Record<string, number>>({});
+  const [exactAmounts, setExactAmounts] = React.useState<Record<string, number>>({});
   const [participantSearch, setParticipantSearch] = React.useState("");
 
   React.useEffect(() => {
@@ -74,6 +75,17 @@ export function AddExpenseDialog({
       setPercentages(pMap);
     }
   }, [participants, open]);
+
+  // Computed DOP equivalent amount if currency is USD or EUR
+  const convertedDOPAmount = React.useMemo(() => {
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed <= 0) return 0;
+    const rate = customRate ? parseFloat(customRate) : undefined;
+    const cents = convertToDOPCents(parsed, currency, rate);
+    return cents / 100;
+  }, [amount, currency, customRate]);
+
+  const targetTotal = currency === "DOP" ? (parseFloat(amount) || 0) : convertedDOPAmount;
 
   const toggleParticipant = (id: string) => {
     const next = new Set(selectedIds);
@@ -109,6 +121,13 @@ export function AddExpenseDialog({
     }));
   };
 
+  const handleExactAmountChange = (id: string, val: number) => {
+    setExactAmounts((prev) => ({
+      ...prev,
+      [id]: isNaN(val) ? 0 : val,
+    }));
+  };
+
   // Percentage sum check
   const currentPctSum = React.useMemo(() => {
     if (splitMethod !== "PERCENTAGE") return 100;
@@ -117,14 +136,14 @@ export function AddExpenseDialog({
 
   const isPctValid = Math.abs(currentPctSum - 100) < 0.01;
 
-  // Computed DOP equivalent amount if currency is USD or EUR
-  const convertedDOPAmount = React.useMemo(() => {
-    const parsed = parseFloat(amount);
-    if (isNaN(parsed) || parsed <= 0) return 0;
-    const rate = customRate ? parseFloat(customRate) : undefined;
-    const cents = convertToDOPCents(parsed, currency, rate);
-    return cents / 100;
-  }, [amount, currency, customRate]);
+  // Exact amount sum check
+  const currentExactSum = React.useMemo(() => {
+    if (splitMethod !== "EXACT") return targetTotal;
+    return Array.from(selectedIds).reduce((sum, id) => sum + (exactAmounts[id] || 0), 0);
+  }, [splitMethod, selectedIds, exactAmounts, targetTotal]);
+
+  const exactDifference = targetTotal - currentExactSum;
+  const isExactValid = Math.abs(exactDifference) < 0.01;
 
   const handleApplyItemized = (params: {
     totalAmount: number;
@@ -174,12 +193,21 @@ export function AddExpenseDialog({
       return;
     }
 
+    if (splitMethod === "EXACT" && !isExactValid) {
+      toast({
+        type: "error",
+        message: `La suma de los montos individuales es RD$ ${currentExactSum.toFixed(2)}, debe sumar exactamente RD$ ${targetTotal.toFixed(2)}`,
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
       const splitsPayload = Array.from(selectedIds).map((id) => ({
         participant_id: id,
         percentage: splitMethod === "PERCENTAGE" ? percentages[id] : undefined,
+        amount: splitMethod === "EXACT" ? (exactAmounts[id] || 0) : undefined,
       }));
 
       // Append currency note if foreign currency
@@ -413,24 +441,35 @@ export function AddExpenseDialog({
                   <button
                     type="button"
                     onClick={() => setSplitMethod("EQUAL")}
-                    className={`px-3 py-1 rounded-md transition-all ${
+                    className={`px-2.5 py-1 rounded-md transition-all ${
                       splitMethod === "EQUAL"
                         ? "bg-card text-foreground shadow-sm font-bold"
                         : "text-muted-foreground"
                     }`}
                   >
-                    Equitativo (Parejo)
+                    Equitativo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSplitMethod("EXACT")}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      splitMethod === "EXACT"
+                        ? "bg-card text-foreground shadow-sm font-bold"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Montos Fijos (RD$)
                   </button>
                   <button
                     type="button"
                     onClick={() => setSplitMethod("PERCENTAGE")}
-                    className={`px-3 py-1 rounded-md transition-all ${
+                    className={`px-2.5 py-1 rounded-md transition-all ${
                       splitMethod === "PERCENTAGE"
                         ? "bg-card text-foreground shadow-sm font-bold"
                         : "text-muted-foreground"
                     }`}
                   >
-                    Por Porcentaje (%)
+                    Porcentaje (%)
                   </button>
                 </div>
               </div>
@@ -514,6 +553,7 @@ export function AddExpenseDialog({
                             <span className="font-semibold text-xs sm:text-sm">{p.name}</span>
                           </label>
 
+                          {/* Percentage Input */}
                           {splitMethod === "PERCENTAGE" && isSelected && (
                             <div className="flex items-center gap-1">
                               <Input
@@ -530,12 +570,49 @@ export function AddExpenseDialog({
                               <span className="text-xs text-muted-foreground font-bold">%</span>
                             </div>
                           )}
+
+                          {/* Exact Amount Input */}
+                          {splitMethod === "EXACT" && isSelected && (
+                            <div className="flex items-center gap-1.5">
+                              <div className="relative">
+                                <span className="absolute left-2 top-2 text-[10px] text-muted-foreground font-bold">
+                                  RD$
+                                </span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                  className="h-8 w-24 pl-8 text-right text-xs py-1 px-2 font-bold"
+                                  value={exactAmounts[p.id] !== undefined ? exactAmounts[p.id] : ""}
+                                  onChange={(e) =>
+                                    handleExactAmountChange(p.id, parseFloat(e.target.value))
+                                  }
+                                />
+                              </div>
+
+                              {exactDifference > 0.01 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const curr = exactAmounts[p.id] || 0;
+                                    handleExactAmountChange(p.id, Number((curr + exactDifference).toFixed(2)));
+                                  }}
+                                  title="Asignar restante faltante a este participante"
+                                  className="px-1.5 py-1 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary hover:text-white rounded transition-colors"
+                                >
+                                  + Restante
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                 </div>
               </div>
 
+              {/* Status Indicator for Percentage */}
               {splitMethod === "PERCENTAGE" && (
                 <div
                   className={`flex items-center justify-between text-xs font-bold p-2 rounded-lg ${
@@ -549,6 +626,44 @@ export function AddExpenseDialog({
                     <span>Suma de porcentajes:</span>
                   </div>
                   <span>{currentPctSum.toFixed(2)}% de 100%</span>
+                </div>
+              )}
+
+              {/* Status Indicator for EXACT Amount Split */}
+              {splitMethod === "EXACT" && (
+                <div
+                  className={`flex items-center justify-between text-xs font-bold p-2.5 rounded-xl border transition-colors ${
+                    isExactValid
+                      ? "bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
+                      : exactDifference > 0.01
+                      ? "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800"
+                      : "bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800"
+                  }`}
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>
+                        Asignado: RD$ {currentExactSum.toLocaleString("es-DO", { minimumFractionDigits: 2 })} / RD$ {targetTotal.toLocaleString("es-DO", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    {isExactValid ? (
+                      <span className="text-emerald-700 dark:text-emerald-400 font-black">
+                        ¡Monto cuadrado! 🎉
+                      </span>
+                    ) : exactDifference > 0.01 ? (
+                      <span className="text-amber-700 dark:text-amber-400 font-black">
+                        Faltan: RD$ {exactDifference.toLocaleString("es-DO", { minimumFractionDigits: 2 })}
+                      </span>
+                    ) : (
+                      <span className="text-rose-700 dark:text-rose-400 font-black">
+                        Exceso: RD$ {Math.abs(exactDifference).toLocaleString("es-DO", { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -565,7 +680,11 @@ export function AddExpenseDialog({
             </Button>
             <Button
               type="submit"
-              disabled={loading || (splitMethod === "PERCENTAGE" && !isPctValid)}
+              disabled={
+                loading ||
+                (splitMethod === "PERCENTAGE" && !isPctValid) ||
+                (splitMethod === "EXACT" && !isExactValid)
+              }
               className="bg-primary text-white font-bold"
             >
               {loading ? "Guardando..." : "Guardar Gasto"}

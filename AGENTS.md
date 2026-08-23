@@ -29,4 +29,5 @@ Regla de oro: No declares DONE si no pasa lint, typecheck, tests y build.
 - **NUNCA** pasar al siguiente archivo/prompt sin antes preguntar y recibir la confirmación explícita del usuario.
 - No saltar al siguiente hasta que el actual esté 100% implementado, probado y estable.
 - Reutilizar lo existente y respetar la adaptación a República Dominicana (DOP/RD$, WhatsApp, $0 costo).
+- **Preservación Arquitectónica Obligatoria:** No modificar la estructura actual del sistema ni la arquitectura existente; todo requerimiento nuevo debe adaptarse a la arquitectura actual. Si por alguna razón se considerara algún cambio de arquitectura, **se debe consultar y pedir aprobación previa al usuario**.
 

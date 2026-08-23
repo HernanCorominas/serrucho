@@ -48,12 +48,26 @@ export const splitMethodSchema = z.enum(["EQUAL", "PERCENTAGE", "EXACT", "SHARES
 export type SplitMethodInput = z.infer<typeof splitMethodSchema>;
 
 export const expenseCategorySchema = z.enum([
+  "RENT_HOUSING",
+  "ACCOMMODATION",
   "LODGING",
+  "GROCERIES",
   "FOOD_GROCERIES",
-  "DRINKS_ALCOHOL",
-  "FUEL_TRANSPORT",
+  "RESTAURANTS_DELIVERY",
   "RESTAURANT",
+  "TRANSPORTATION",
+  "GAS_FUEL",
+  "FUEL_TRANSPORT",
+  "HOME_UTILITIES",
+  "INTERNET_TELECOM",
+  "HEALTH_MEDICAL",
   "ENTERTAINMENT",
+  "SHOPPING",
+  "PERSONAL_CARE",
+  "FEES_CHARGES",
+  "GIFTS",
+  "TRIPS_TRAVEL",
+  "DRINKS_ALCOHOL",
   "OTHER",
 ]);
 

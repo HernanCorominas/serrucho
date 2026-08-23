@@ -13,6 +13,9 @@ import {
   ArrowRightLeft,
   CreditCard,
   Download,
+  X,
+  Users,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,6 +76,8 @@ export function ExpenseList({
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("ALL");
+  const [selectedParticipantId, setSelectedParticipantId] = React.useState<string>("ALL");
+  const [selectedDate, setSelectedDate] = React.useState<string>("");
   const [movementType, setMovementType] = React.useState<"ALL" | "EXPENSES" | "TRANSFERS" | "INCOMES">("ALL");
 
   // Edit states
@@ -172,50 +177,96 @@ export function ExpenseList({
     }
   };
 
-  // Filter expenses, transfers and incomes based on search, category and movement type
+  // Filter expenses, transfers and incomes based on search, category, participant, date and movement type
   const filteredExpenses = React.useMemo(() => {
     if (movementType === "TRANSFERS" || movementType === "INCOMES") return [];
     return expenses.filter((exp) => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        exp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        exp.paid_by_name.toLowerCase().includes(searchQuery.toLowerCase());
+        !searchQuery.trim() ||
+        exp.description.toLowerCase().includes(q) ||
+        exp.paid_by_name.toLowerCase().includes(q) ||
+        exp.splits.some((s) => s.participant_name.toLowerCase().includes(q));
 
       const matchesCat =
         selectedCategory === "ALL" || (exp.category || "OTHER") === selectedCategory;
 
-      return matchesSearch && matchesCat;
+      const matchesParticipant =
+        selectedParticipantId === "ALL" ||
+        exp.paid_by_participant_id === selectedParticipantId ||
+        exp.splits.some((s) => s.participant_id === selectedParticipantId);
+
+      const matchesDate = !selectedDate || exp.expense_date.startsWith(selectedDate);
+
+      return matchesSearch && matchesCat && matchesParticipant && matchesDate;
     });
-  }, [expenses, searchQuery, selectedCategory, movementType]);
+  }, [expenses, searchQuery, selectedCategory, selectedParticipantId, selectedDate, movementType]);
 
   const filteredTransfers = React.useMemo(() => {
     if (movementType === "EXPENSES" || movementType === "INCOMES" || selectedCategory !== "ALL") return [];
     return transfers.filter((t) => {
-      if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
-      return (
+      const matchesSearch =
+        !searchQuery.trim() ||
         t.sender_name.toLowerCase().includes(q) ||
         t.receiver_name.toLowerCase().includes(q) ||
-        (t.notes && t.notes.toLowerCase().includes(q))
-      );
+        (t.notes && t.notes.toLowerCase().includes(q));
+
+      const matchesParticipant =
+        selectedParticipantId === "ALL" ||
+        t.sender_participant_id === selectedParticipantId ||
+        t.receiver_participant_id === selectedParticipantId;
+
+      const matchesDate = !selectedDate || t.transfer_date.startsWith(selectedDate);
+
+      return matchesSearch && matchesParticipant && matchesDate;
     });
-  }, [transfers, searchQuery, movementType, selectedCategory]);
+  }, [transfers, searchQuery, movementType, selectedCategory, selectedParticipantId, selectedDate]);
 
   const filteredIncomes = React.useMemo(() => {
     if (movementType === "EXPENSES" || movementType === "TRANSFERS" || selectedCategory !== "ALL") return [];
     return incomes.filter((inc) => {
-      if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
-      return (
+      const matchesSearch =
+        !searchQuery.trim() ||
         inc.description.toLowerCase().includes(q) ||
         inc.received_by_name.toLowerCase().includes(q) ||
-        inc.splits.some((s) => s.participant_name.toLowerCase().includes(q))
-      );
+        inc.splits.some((s) => s.participant_name.toLowerCase().includes(q));
+
+      const matchesParticipant =
+        selectedParticipantId === "ALL" ||
+        inc.received_by_participant_id === selectedParticipantId ||
+        inc.splits.some((s) => s.participant_id === selectedParticipantId);
+
+      const matchesDate = !selectedDate || inc.income_date.startsWith(selectedDate);
+
+      return matchesSearch && matchesParticipant && matchesDate;
     });
-  }, [incomes, searchQuery, movementType, selectedCategory]);
+  }, [incomes, searchQuery, movementType, selectedCategory, selectedParticipantId, selectedDate]);
 
   const totalCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
   const totalIncomesCents = incomes.reduce((sum, inc) => sum + inc.amount_cents, 0);
   const totalMovementsCount = expenses.length + transfers.length + incomes.length;
+
+  const filteredExpensesCents = filteredExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
+  const filteredTransfersCents = filteredTransfers.reduce((sum, t) => sum + t.amount_cents, 0);
+  const filteredIncomesCents = filteredIncomes.reduce((sum, inc) => sum + inc.amount_cents, 0);
+  const filteredTotalCount = filteredExpenses.length + filteredTransfers.length + filteredIncomes.length;
+
+  const isAnyFilterActive =
+    searchQuery.trim() !== "" ||
+    selectedCategory !== "ALL" ||
+    selectedParticipantId !== "ALL" ||
+    selectedDate !== "" ||
+    movementType !== "ALL";
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("ALL");
+    setSelectedParticipantId("ALL");
+    setSelectedDate("");
+    setMovementType("ALL");
+  };
 
   const paymentMethodLabel = (method?: string | null) => {
     switch (method) {
@@ -292,22 +343,52 @@ export function ExpenseList({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Search & Type Filter Bar */}
+        {/* Search & Multi-criteria Filter Bar */}
         {hasAnyItems && (
-          <div className="space-y-2.5 pb-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
+          <div className="space-y-3 pb-2">
+            {/* Top row: search + participant + date */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+              <div className="relative sm:col-span-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por concepto, persona o nota..."
+                  placeholder="Buscar concepto, notas, personas..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 text-xs sm:text-sm h-9"
                 />
               </div>
 
-              {/* Movement Type Switcher */}
-              <div className="flex items-center bg-muted p-0.5 rounded-lg text-xs font-semibold shrink-0 overflow-x-auto">
+              {/* Participant Filter */}
+              <div className="sm:col-span-3">
+                <select
+                  value={selectedParticipantId}
+                  onChange={(e) => setSelectedParticipantId(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="ALL">👥 Todos los integrantes</option>
+                  {participants.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Filter */}
+              <div className="sm:col-span-3">
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="text-xs h-9"
+                  title="Filtrar por fecha exacta"
+                />
+              </div>
+            </div>
+
+            {/* Middle row: Movement Type Switcher */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center bg-muted p-0.5 rounded-lg text-xs font-semibold overflow-x-auto max-w-full">
                 <button
                   type="button"
                   onClick={() => setMovementType("ALL")}
@@ -353,11 +434,23 @@ export function ExpenseList({
                   Reembolsos ({incomes.length})
                 </button>
               </div>
+
+              {isAnyFilterActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1 px-2"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  <span>Limpiar filtros</span>
+                </Button>
+              )}
             </div>
 
-            {/* Category Filter Pills (when showing expenses) */}
-            {movementType === "EXPENSES" && expenses.length > 0 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+            {/* Category Filter Pills (when showing expenses or all) */}
+            {(movementType === "ALL" || movementType === "EXPENSES") && expenses.length > 0 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
                 <button
                   type="button"
                   onClick={() => setSelectedCategory("ALL")}
@@ -387,10 +480,59 @@ export function ExpenseList({
                       }`}
                     >
                       <span>{info.emoji}</span>
-                      <span>{info.label.split("/")[0].trim()} ({count})</span>
+                      <span>
+                        {info.label.split("/")[0].trim()} ({count})
+                      </span>
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Quick Answer / Insight Banner answering "¿Cuánto gastamos en...?" */}
+            {isAnyFilterActive && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="h-6 w-6 rounded-md bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-foreground">
+                      {selectedCategory !== "ALL" ? (
+                        <>
+                          {CATEGORY_INFO[selectedCategory as ExpenseCategory]?.emoji}{" "}
+                          {CATEGORY_INFO[selectedCategory as ExpenseCategory]?.label}:{" "}
+                          <strong className="text-primary text-sm font-black">
+                            {formatDOP(filteredExpensesCents)}
+                          </strong>
+                        </>
+                      ) : (
+                        <>
+                          Total en vista filtrada:{" "}
+                          <strong className="text-primary text-sm font-black">
+                            {formatDOP(filteredExpensesCents + filteredTransfersCents + filteredIncomesCents)}
+                          </strong>
+                        </>
+                      )}
+                    </span>
+                    <span className="text-muted-foreground ml-1.5">
+                      ({filteredTotalCount} {filteredTotalCount === 1 ? "movimiento encontrado" : "movimientos encontrados"}
+                      {selectedCategory !== "ALL" && totalCents > 0
+                        ? ` • ${((filteredExpensesCents / totalCents) * 100).toFixed(1)}% del gasto total`
+                        : ""})
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="h-7 text-[11px] gap-1 self-end sm:self-auto font-medium"
+                >
+                  <X className="h-3 w-3" />
+                  <span>Ver todo</span>
+                </Button>
               </div>
             )}
           </div>

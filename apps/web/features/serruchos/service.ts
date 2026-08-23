@@ -16,16 +16,42 @@ export class SerruchoService {
   static async create(ownerId: string, input: SerruchoInput): Promise<Serrucho> {
     const validated = serruchoSchema.parse(input);
     const repo = getRepository();
-    return repo.createSerrucho({
+    const serrucho = await repo.createSerrucho({
       owner_id: ownerId,
       name: validated.name,
       description: validated.description || null,
-      currency: "DOP",
+      currency: validated.currency || "DOP",
       event_date: validated.event_date || null,
       status: "OPEN",
       payment_instructions: null,
       payment_deadline: null,
     });
+
+    const creatorName = validated.creator_name?.trim() || "Tú (Organizador)";
+    await repo.createParticipant({
+      serrucho_id: serrucho.id,
+      name: creatorName,
+      email: null,
+      phone: null,
+      preferred_channel: "EMAIL",
+    });
+
+    if (validated.initial_participants && Array.isArray(validated.initial_participants)) {
+      for (const pName of validated.initial_participants) {
+        const clean = typeof pName === "string" ? pName.trim() : "";
+        if (clean && clean !== creatorName) {
+          await repo.createParticipant({
+            serrucho_id: serrucho.id,
+            name: clean,
+            email: null,
+            phone: null,
+            preferred_channel: "EMAIL",
+          });
+        }
+      }
+    }
+
+    return serrucho;
   }
 
   static async update(id: string, input: Partial<SerruchoInput>): Promise<Serrucho> {

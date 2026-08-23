@@ -6,7 +6,10 @@ export const serruchoSchema = z.object({
     .min(2, "El nombre del serrucho debe tener al menos 2 caracteres")
     .max(100, "El nombre no puede exceder 100 caracteres"),
   description: z.string().max(500, "La descripción no puede exceder 500 caracteres").optional().nullable(),
+  currency: z.enum(["DOP", "USD", "EUR"]).default("DOP"),
   event_date: z.string().optional().nullable(),
+  creator_name: z.string().max(100).optional().nullable(),
+  initial_participants: z.array(z.string()).optional(),
 });
 
 export type SerruchoInput = z.infer<typeof serruchoSchema>;

@@ -8,18 +8,42 @@ import {
 
 describe("Zod Validation Schemas", () => {
   describe("serruchoSchema", () => {
-    it("validates valid serrucho input", () => {
+    it("validates valid serrucho input with default currency and initial participants", () => {
       const result = serruchoSchema.safeParse({
         name: "Playa Las Terrenas",
         description: "Comida y villa",
         event_date: "2026-08-25",
+        creator_name: "Braulio",
+        initial_participants: ["Carlos", "Laura", "Marcos"],
       });
       expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.currency).toBe("DOP");
+        expect(result.data.creator_name).toBe("Braulio");
+        expect(result.data.initial_participants).toHaveLength(3);
+      }
     });
 
-    it("fails if name is too short", () => {
+    it("accepts valid USD or EUR currency selection", () => {
+      const resultUSD = serruchoSchema.safeParse({
+        name: "Viaje a Miami",
+        currency: "USD",
+      });
+      expect(resultUSD.success).toBe(true);
+
+      const resultEUR = serruchoSchema.safeParse({
+        name: "Viaje a Madrid",
+        currency: "EUR",
+      });
+      expect(resultEUR.success).toBe(true);
+    });
+
+    it("fails if name is too short or empty", () => {
       const result = serruchoSchema.safeParse({ name: "A" });
       expect(result.success).toBe(false);
+
+      const empty = serruchoSchema.safeParse({ name: "" });
+      expect(empty.success).toBe(false);
     });
   });
 

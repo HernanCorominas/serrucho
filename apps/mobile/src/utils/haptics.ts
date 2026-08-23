@@ -2,11 +2,14 @@ import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
 export const triggerHaptic = async (
-  type: "light" | "medium" | "heavy" | "success" | "warning" | "error" = "light"
+  type: "light" | "medium" | "heavy" | "success" | "warning" | "error" | "selection" = "light"
 ) => {
   if (Platform.OS === "web") return;
   try {
     switch (type) {
+      case "selection":
+        await Haptics.selectionAsync();
+        break;
       case "light":
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         break;

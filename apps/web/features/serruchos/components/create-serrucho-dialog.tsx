@@ -25,6 +25,9 @@ export function CreateSerruchoDialog({
   const [formData, setFormData] = React.useState({
     name: "",
     description: "",
+    currency: "DOP" as "DOP" | "USD" | "EUR",
+    creator_name: "",
+    initial_participants_text: "",
     event_date: new Date().toISOString().split("T")[0],
   });
 
@@ -37,10 +40,26 @@ export function CreateSerruchoDialog({
 
     try {
       setLoading(true);
+      const initialParticipants = formData.initial_participants_text
+        ? formData.initial_participants_text
+            .split(/[,;\n]/)
+            .map((p) => p.trim())
+            .filter((p) => p.length > 0)
+        : [];
+
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        currency: formData.currency,
+        creator_name: formData.creator_name.trim() || null,
+        initial_participants: initialParticipants,
+        event_date: formData.event_date || null,
+      };
+
       const res = await fetch("/api/serruchos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -56,7 +75,14 @@ export function CreateSerruchoDialog({
       });
 
       onOpenChange(false);
-      setFormData({ name: "", description: "", event_date: new Date().toISOString().split("T")[0] });
+      setFormData({
+        name: "",
+        description: "",
+        currency: "DOP",
+        creator_name: "",
+        initial_participants_text: "",
+        event_date: new Date().toISOString().split("T")[0],
+      });
 
       if (onCreated) {
         onCreated(serrucho.id);
@@ -83,11 +109,12 @@ export function CreateSerruchoDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Nombre del Serrucho */}
           <div className="space-y-1.5">
             <Label htmlFor="name">Nombre del serrucho *</Label>
             <Input
               id="name"
-              placeholder="Ej. Playa Las Terrenas 🌴, Cena de Cumpleaños, Barbacoa"
+              placeholder="Ej. Fin de Semana Las Terrenas 🌴, Cena de Cumpleaños"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
@@ -95,6 +122,57 @@ export function CreateSerruchoDialog({
             />
           </div>
 
+          {/* Moneda y Creador */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="currency">Moneda</Label>
+              <select
+                id="currency"
+                className="w-full h-10 px-3 rounded-xl border border-input bg-background text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20"
+                value={formData.currency}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    currency: e.target.value as "DOP" | "USD" | "EUR",
+                  })
+                }
+              >
+                <option value="DOP">🇩🇴 DOP (RD$ Dominicano)</option>
+                <option value="USD">🇺🇸 USD ($ Dólar)</option>
+                <option value="EUR">🇪🇺 EUR (€ Euro)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="creator_name">Tu Nombre / Apodo (Opcional)</Label>
+              <Input
+                id="creator_name"
+                placeholder="Ej. Braulio"
+                value={formData.creator_name}
+                onChange={(e) => setFormData({ ...formData, creator_name: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* Participantes Iniciales */}
+          <div className="space-y-1.5">
+            <Label htmlFor="initial_participants">
+              Amigos del coro (Opcional, separados por coma)
+            </Label>
+            <Input
+              id="initial_participants"
+              placeholder="Ej. Carlos, Laura, Marcos, Paola"
+              value={formData.initial_participants_text}
+              onChange={(e) =>
+                setFormData({ ...formData, initial_participants_text: e.target.value })
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Puedes dejarlos en blanco y agregarlos o enviarles el link de WhatsApp después.
+            </p>
+          </div>
+
+          {/* Fecha y Descripción */}
           <div className="space-y-1.5">
             <Label htmlFor="event_date">Fecha de la actividad</Label>
             <Input
@@ -109,7 +187,7 @@ export function CreateSerruchoDialog({
             <Label htmlFor="description">Descripción o notas (opcional)</Label>
             <Input
               id="description"
-              placeholder="Ej. Gastos de villa, combustible, bebidas y supermercado"
+              placeholder="Ej. Villa, combustible, bebidas y supermercado"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />

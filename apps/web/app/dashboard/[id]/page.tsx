@@ -211,7 +211,7 @@ export default function SerruchoWorkspacePage() {
   const totalCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
 
   return (
-    <div className="container max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
+    <div className="container max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-8 space-y-6">
       {/* Header & Quick Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -642,6 +642,77 @@ export default function SerruchoWorkspacePage() {
           }}
         />
       )}
+
+      {/* ─── MOBILE STICKY FLOATING ACTION DOCK (sm:hidden) ─────────────────── */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-30 p-2.5 bg-background/90 backdrop-blur-md border-t border-border/80 pb-[calc(env(safe-area-inset-bottom,8px)+8px)] flex items-center justify-between gap-1.5 shadow-lg no-print">
+        {!isClosed && !isReadOnly ? (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddPartOpen(true)}
+              className="flex-1 text-[10px] font-bold h-10 px-1 flex-col gap-0.5 rounded-xl border-border hover:bg-muted"
+            >
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>+ Persona</span>
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddIncomeOpen(true)}
+              className="flex-1 text-[10px] font-bold h-10 px-1 flex-col gap-0.5 rounded-xl border-cyan-500/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/40"
+              disabled={participants.length === 0}
+            >
+              <TrendingUp className="h-3.5 w-3.5 text-cyan-600" />
+              <span>Reembolso</span>
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddTransOpen(true)}
+              className="flex-1 text-[10px] font-bold h-10 px-1 flex-col gap-0.5 rounded-xl border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              disabled={participants.length < 2}
+            >
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Transferir</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setAddExpOpen(true)}
+              className="flex-[1.4] text-xs font-black h-11 px-3 bg-primary hover:bg-primary/90 text-white rounded-xl shadow-md shadow-primary/25 gap-1.5"
+              disabled={participants.length === 0}
+            >
+              <Receipt className="h-4 w-4" />
+              <span>+ Gasto</span>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setExportOpen(true)}
+              className="flex-1 text-xs font-bold h-10 rounded-xl gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              <span>Exportar Excel</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setShareOpen(true)}
+              className="flex-1 text-xs font-bold h-10 bg-primary hover:bg-primary/90 text-white rounded-xl shadow-md gap-1.5"
+            >
+              <Share2 className="h-4 w-4" />
+              <span>Compartir</span>
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
+

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatDOP, simplifyDebts } from "@/lib/finance/math";
 import { ParticipantFinancials } from "@/lib/types/domain";
 import { MarkSettledDialog } from "./mark-settled-dialog";
+import { WhatsAppReminderDialog } from "@/features/notifications/components/whatsapp-reminder-dialog";
 
 interface DebtSimplificationCardProps {
   participants: ParticipantFinancials[];
@@ -23,14 +24,23 @@ export function DebtSimplificationCard({
   participants,
   serruchoName = "Serrucho",
   serruchoId,
+  paymentInstructions,
   isReadOnly = false,
   onSettled,
 }: DebtSimplificationCardProps) {
+
   const [settleDialogOpen, setSettleDialogOpen] = React.useState(false);
+  const [reminderDialogOpen, setReminderDialogOpen] = React.useState(false);
   const [selectedTransfer, setSelectedTransfer] = React.useState<{
     debtorId: string;
     creditorId: string;
     amountCents: number;
+  } | null>(null);
+  const [selectedReminder, setSelectedReminder] = React.useState<{
+    debtorId: string;
+    debtorName: string;
+    amountCents: number;
+    senderName: string;
   } | null>(null);
 
   const transfers = React.useMemo(() => {
@@ -142,17 +152,24 @@ export function DebtSimplificationCard({
                       )}
 
 
-                      <a href={waUrl} target="_blank" rel="noopener noreferrer">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 px-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1"
-                          title="Avisar por WhatsApp"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">Avisar</span>
-                        </Button>
-                      </a>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedReminder({
+                            debtorId: t.from_participant_id,
+                            debtorName: t.from_name,
+                            amountCents: t.amount_cents,
+                            senderName: t.to_name,
+                          });
+                          setReminderDialogOpen(true);
+                        }}
+                        className="h-8 px-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1"
+                        title="Enviar recordatorio por WhatsApp"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Recordar</span>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -179,6 +196,21 @@ export function DebtSimplificationCard({
           initialDebtorId={selectedTransfer?.debtorId}
           initialCreditorId={selectedTransfer?.creditorId}
           initialAmountCents={selectedTransfer?.amountCents}
+        />
+      )}
+
+      {/* WhatsApp Reminder Dialog */}
+      {serruchoId && selectedReminder && (
+        <WhatsAppReminderDialog
+          open={reminderDialogOpen}
+          onOpenChange={setReminderDialogOpen}
+          serruchoId={serruchoId}
+          serruchoName={serruchoName}
+          debtorParticipantId={selectedReminder.debtorId}
+          debtorName={selectedReminder.debtorName}
+          amountCents={selectedReminder.amountCents}
+          senderName={selectedReminder.senderName}
+          paymentInstructions={paymentInstructions}
         />
       )}
     </Card>

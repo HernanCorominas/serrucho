@@ -210,6 +210,7 @@ export type PaymentMethod =
   | "CASH"
   | "MOBILE_PAY"
   | "DEPOSIT"
+  | "CARD"
   | "OTHER";
 
 export const PAYMENT_METHOD_INFO: Record<
@@ -222,9 +223,11 @@ export const PAYMENT_METHOD_INFO: Record<
   TRANSFER_OTHER: { label: "Transferencia Bancaria", shortLabel: "Transferencia", emoji: "🏦" },
   MOBILE_PAY: { label: "Pago Móvil / tPago", shortLabel: "tPago", emoji: "📱" },
   DEPOSIT: { label: "Depósito Bancario", shortLabel: "Depósito", emoji: "🏢" },
+  CARD: { label: "Tarjeta de Débito / Crédito", shortLabel: "Tarjeta", emoji: "💳" },
   CASH: { label: "Efectivo", shortLabel: "Efectivo", emoji: "💵" },
-  OTHER: { label: "Otro Método", shortLabel: "Otro", emoji: "💳" },
+  OTHER: { label: "Otro Método", shortLabel: "Otro", emoji: "⚡" },
 };
+
 
 export type SettlementPaymentStatus =
   | "SETTLED"

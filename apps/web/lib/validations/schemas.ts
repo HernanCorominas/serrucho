@@ -146,8 +146,10 @@ export const paymentMethodSchema = z.enum([
   "CASH",
   "MOBILE_PAY",
   "DEPOSIT",
+  "CARD",
   "OTHER",
 ]);
+
 
 export const settlementPaymentStatusSchema = z.enum([
   "SETTLED",

@@ -10,6 +10,7 @@
  * - Label generation
  */
 
+import { describe, it, expect } from "vitest";
 import { ReceiptService } from "@/features/receipts/service";
 
 // ─── Browser API Mocks (Node environment) ─────────────────────────────────────

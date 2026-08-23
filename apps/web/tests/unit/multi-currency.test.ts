@@ -12,6 +12,7 @@
  * - Zero-sum invariant on converted balances
  */
 
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   convertToDOPCents,
   formatForeignAmount,

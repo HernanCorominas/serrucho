@@ -15,9 +15,14 @@ export async function POST(
       body = {};
     }
 
-    const { is_paid } = togglePaymentSchema.parse(body);
+    const validated = togglePaymentSchema.parse(body);
     const repo = getRepository();
-    const updated = await repo.markSnapshotPaid(snapshotId, is_paid);
+    const updated = await repo.markSnapshotPaid(snapshotId, validated.is_paid, {
+      payment_method: validated.payment_method,
+      payment_notes: validated.payment_notes,
+      paid_amount_cents: validated.paid_amount_cents,
+      payment_status: validated.payment_status,
+    });
 
     return NextResponse.json(updated);
   } catch (err: any) {

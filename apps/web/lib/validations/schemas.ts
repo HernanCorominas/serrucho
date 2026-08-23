@@ -116,20 +116,54 @@ export const closeSerruchoSchema = z.object({
 
 export type CloseSerruchoInput = z.infer<typeof closeSerruchoSchema>;
 
-export const togglePaymentSchema = z.object({
-  is_paid: z.boolean(),
-});
-
-export type TogglePaymentInput = z.infer<typeof togglePaymentSchema>;
-
 export const paymentMethodSchema = z.enum([
   "TRANSFER_POPULAR",
   "TRANSFER_BHD",
   "TRANSFER_BANRESERVAS",
   "TRANSFER_OTHER",
   "CASH",
+  "MOBILE_PAY",
+  "DEPOSIT",
   "OTHER",
 ]);
+
+export const settlementPaymentStatusSchema = z.enum([
+  "SETTLED",
+  "PENDING",
+  "PARTIAL",
+  "DISPUTED",
+  "CANCELLED",
+]);
+
+export const togglePaymentSchema = z.object({
+  is_paid: z.boolean(),
+  payment_method: paymentMethodSchema.optional().nullable(),
+  payment_notes: z.string().max(500).optional().nullable(),
+  paid_amount_cents: z.number().min(0).optional().nullable(),
+  payment_status: settlementPaymentStatusSchema.optional().nullable(),
+});
+
+export type TogglePaymentInput = z.infer<typeof togglePaymentSchema>;
+
+export const markSettledSchema = z
+  .object({
+    from_participant_id: z.string().min(1, "Selecciona quién paga"),
+    to_participant_id: z.string().min(1, "Selecciona quién recibe"),
+    amount: z
+      .number({ invalid_type_error: "Ingresa un monto válido" })
+      .positive("El monto debe ser mayor a 0"),
+    payment_date: z.string().min(1, "Fecha de pago requerida"),
+    payment_method: paymentMethodSchema.default("TRANSFER_POPULAR"),
+    status: settlementPaymentStatusSchema.default("SETTLED"),
+    notes: z.string().max(500, "La nota no puede exceder 500 caracteres").optional().nullable(),
+    receipt_url: z.string().url().optional().nullable().or(z.literal("")),
+  })
+  .refine((data) => data.from_participant_id !== data.to_participant_id, {
+    message: "El pagador y el receptor no pueden ser la misma persona",
+    path: ["to_participant_id"],
+  });
+
+export type MarkSettledInput = z.infer<typeof markSettledSchema>;
 
 export const transferSchema = z
   .object({

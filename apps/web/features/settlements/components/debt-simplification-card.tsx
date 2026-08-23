@@ -1,29 +1,46 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight, Sparkles, CheckCircle2, MessageCircle } from "lucide-react";
+import { ArrowRight, Sparkles, CheckCircle2, MessageCircle, Check } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDOP, simplifyDebts } from "@/lib/finance/math";
 import { ParticipantFinancials } from "@/lib/types/domain";
+import { MarkSettledDialog } from "./mark-settled-dialog";
 
 interface DebtSimplificationCardProps {
   participants: ParticipantFinancials[];
   currency?: string;
   serruchoName?: string;
+  serruchoId?: string;
   paymentInstructions?: string | null;
+  onSettled?: () => void;
 }
 
 export function DebtSimplificationCard({
   participants,
   serruchoName = "Serrucho",
+  serruchoId,
+  onSettled,
 }: DebtSimplificationCardProps) {
+  const [settleDialogOpen, setSettleDialogOpen] = React.useState(false);
+  const [selectedTransfer, setSelectedTransfer] = React.useState<{
+    debtorId: string;
+    creditorId: string;
+    amountCents: number;
+  } | null>(null);
+
   const transfers = React.useMemo(() => {
     return simplifyDebts(participants, participants);
   }, [participants]);
 
   const totalTransferredCents = transfers.reduce((sum, t) => sum + t.amount_cents, 0);
+
+  const handleOpenSettle = (debtorId: string, creditorId: string, amountCents: number) => {
+    setSelectedTransfer({ debtorId, creditorId, amountCents });
+    setSettleDialogOpen(true);
+  };
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background shadow-sm">
@@ -97,22 +114,43 @@ export function DebtSimplificationCard({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 flex-wrap">
                     <span className="text-sm sm:text-base font-extrabold text-primary">
                       {formatDOP(t.amount_cents)}
                     </span>
 
-                    <a href={waUrl} target="_blank" rel="noopener noreferrer">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 px-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1"
-                        title="Avisar por WhatsApp"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Avisar</span>
-                      </Button>
-                    </a>
+                    <div className="flex items-center gap-1.5">
+                      {serruchoId && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleOpenSettle(
+                              t.from_participant_id,
+                              t.to_participant_id,
+                              t.amount_cents
+                            )
+                          }
+                          className="h-8 px-2.5 text-xs font-bold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1"
+                          title="Marcar deuda como saldada"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Saldar</span>
+                        </Button>
+                      )}
+
+                      <a href={waUrl} target="_blank" rel="noopener noreferrer">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1"
+                          title="Avisar por WhatsApp"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Avisar</span>
+                        </Button>
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
@@ -124,6 +162,22 @@ export function DebtSimplificationCard({
           </div>
         )}
       </CardContent>
+
+      {/* Mark Settled Modal */}
+      {serruchoId && (
+        <MarkSettledDialog
+          serruchoId={serruchoId}
+          participants={participants}
+          open={settleDialogOpen}
+          onOpenChange={setSettleDialogOpen}
+          onSettled={() => {
+            if (onSettled) onSettled();
+          }}
+          initialDebtorId={selectedTransfer?.debtorId}
+          initialCreditorId={selectedTransfer?.creditorId}
+          initialAmountCents={selectedTransfer?.amountCents}
+        />
+      )}
     </Card>
   );
 }

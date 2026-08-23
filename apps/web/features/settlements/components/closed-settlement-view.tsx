@@ -287,7 +287,9 @@ export function ClosedSettlementView({
       <DebtSimplificationCard
         participants={participantFinancials}
         serruchoName={serruchoName}
+        serruchoId={serruchoId}
         paymentInstructions={paymentInstructions}
+        onSettled={onSnapshotUpdated}
       />
 
       {/* Snapshots list */}

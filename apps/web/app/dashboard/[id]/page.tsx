@@ -362,10 +362,12 @@ export default function SerruchoWorkspacePage() {
               expenses={expenses}
               totalExpensesCents={totalCents}
               serruchoName={serrucho.name}
+              serruchoId={serrucho.id}
               paymentInstructions={serrucho.payment_instructions}
               currency={serrucho.currency}
               myParticipantId={myParticipantId}
               onAddExpenseClick={() => setAddExpOpen(true)}
+              onSettled={loadData}
             />
           )}
         </TabsContent>

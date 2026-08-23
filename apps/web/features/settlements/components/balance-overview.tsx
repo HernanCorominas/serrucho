@@ -28,10 +28,12 @@ interface BalanceOverviewProps {
   expenses?: Expense[];
   totalExpensesCents: number;
   serruchoName?: string;
+  serruchoId?: string;
   paymentInstructions?: string | null;
   currency?: string;
   myParticipantId?: string | null;
   onAddExpenseClick?: () => void;
+  onSettled?: () => void;
 }
 
 export function BalanceOverview({
@@ -39,9 +41,11 @@ export function BalanceOverview({
   expenses = [],
   totalExpensesCents,
   serruchoName = "Serrucho",
+  serruchoId,
   paymentInstructions,
   myParticipantId,
   onAddExpenseClick,
+  onSettled,
 }: BalanceOverviewProps) {
   const [summaryOpen, setSummaryOpen] = React.useState(false);
 
@@ -199,7 +203,9 @@ export function BalanceOverview({
         <DebtSimplificationCard
           participants={participants}
           serruchoName={serruchoName}
+          serruchoId={serruchoId}
           paymentInstructions={paymentInstructions}
+          onSettled={onSettled}
         />
       )}
 

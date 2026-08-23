@@ -5,6 +5,8 @@ import {
   Expense,
   ExpenseParticipant,
   Transfer,
+  PaymentMethod,
+  SettlementPaymentStatus,
   Income,
   IncomeParticipant,
   SettlementSnapshot,
@@ -341,11 +343,29 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     return createdSnapshots;
   }
 
-  async markSnapshotPaid(snapshotId: string, isPaid: boolean): Promise<SettlementSnapshot> {
+  async markSnapshotPaid(
+    snapshotId: string,
+    isPaid: boolean,
+    details?: {
+      payment_method?: PaymentMethod | null;
+      payment_notes?: string | null;
+      paid_amount_cents?: number | null;
+      payment_status?: SettlementPaymentStatus | null;
+    }
+  ): Promise<SettlementSnapshot> {
     const paidAt = isPaid ? new Date().toISOString() : null;
+    const updatePayload: any = {
+      is_paid: isPaid,
+      paid_at: paidAt,
+    };
+    if (details?.payment_method !== undefined) updatePayload.payment_method = details.payment_method;
+    if (details?.payment_notes !== undefined) updatePayload.payment_notes = details.payment_notes;
+    if (details?.paid_amount_cents !== undefined) updatePayload.paid_amount_cents = details.paid_amount_cents;
+    if (details?.payment_status !== undefined) updatePayload.payment_status = details.payment_status;
+
     const { data, error } = await this.client
       .from("settlement_snapshots")
-      .update({ is_paid: isPaid, paid_at: paidAt })
+      .update(updatePayload)
       .eq("id", snapshotId)
       .select()
       .single();
@@ -358,6 +378,10 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       balance_cents: Number(data.balance_cents),
       is_paid: Boolean(data.is_paid),
       paid_at: data.paid_at || null,
+      payment_method: data.payment_method || null,
+      payment_notes: data.payment_notes || null,
+      payment_status: data.payment_status || (isPaid ? "SETTLED" : "PENDING"),
+      paid_amount_cents: data.paid_amount_cents != null ? Number(data.paid_amount_cents) : null,
     } as SettlementSnapshot;
   }
 

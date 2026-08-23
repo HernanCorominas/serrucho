@@ -4,6 +4,8 @@ import {
   Expense,
   ExpenseParticipant,
   Transfer,
+  PaymentMethod,
+  SettlementPaymentStatus,
   Income,
   IncomeParticipant,
   SettlementSnapshot,
@@ -70,7 +72,16 @@ export interface ISerruchoRepository {
       items: Omit<SettlementItem, "id" | "snapshot_id">[];
     }[]
   ): Promise<SettlementSnapshot[]>;
-  markSnapshotPaid(snapshotId: string, isPaid: boolean): Promise<SettlementSnapshot>;
+  markSnapshotPaid(
+    snapshotId: string,
+    isPaid: boolean,
+    details?: {
+      payment_method?: PaymentMethod | null;
+      payment_notes?: string | null;
+      paid_amount_cents?: number | null;
+      payment_status?: SettlementPaymentStatus | null;
+    }
+  ): Promise<SettlementSnapshot>;
 
   // Transfers
   getTransfers(serruchoId: string): Promise<Transfer[]>;

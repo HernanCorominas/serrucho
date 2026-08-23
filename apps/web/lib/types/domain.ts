@@ -106,7 +106,41 @@ export type PaymentMethod =
   | "TRANSFER_BANRESERVAS"
   | "TRANSFER_OTHER"
   | "CASH"
+  | "MOBILE_PAY"
+  | "DEPOSIT"
   | "OTHER";
+
+export const PAYMENT_METHOD_INFO: Record<
+  PaymentMethod,
+  { label: string; shortLabel: string; emoji: string }
+> = {
+  TRANSFER_POPULAR: { label: "Banco Popular", shortLabel: "Popular", emoji: "🟢" },
+  TRANSFER_BHD: { label: "Banco BHD", shortLabel: "BHD", emoji: "🔵" },
+  TRANSFER_BANRESERVAS: { label: "Banreservas", shortLabel: "Banreservas", emoji: "🔴" },
+  TRANSFER_OTHER: { label: "Transferencia Bancaria", shortLabel: "Transferencia", emoji: "🏦" },
+  MOBILE_PAY: { label: "Pago Móvil / tPago", shortLabel: "tPago", emoji: "📱" },
+  DEPOSIT: { label: "Depósito Bancario", shortLabel: "Depósito", emoji: "🏢" },
+  CASH: { label: "Efectivo", shortLabel: "Efectivo", emoji: "💵" },
+  OTHER: { label: "Otro Método", shortLabel: "Otro", emoji: "💳" },
+};
+
+export type SettlementPaymentStatus =
+  | "SETTLED"
+  | "PENDING"
+  | "PARTIAL"
+  | "DISPUTED"
+  | "CANCELLED";
+
+export const SETTLEMENT_PAYMENT_STATUS_INFO: Record<
+  SettlementPaymentStatus,
+  { label: string; emoji: string; color: string }
+> = {
+  SETTLED: { label: "Saldado Total", emoji: "✅", color: "bg-emerald-500/10 text-emerald-600 border-emerald-300" },
+  PARTIAL: { label: "Pago Parcial", emoji: "⏳", color: "bg-amber-500/10 text-amber-600 border-amber-300" },
+  PENDING: { label: "Pendiente", emoji: "🕒", color: "bg-slate-500/10 text-slate-600 border-slate-300" },
+  DISPUTED: { label: "En Revisión / Disputado", emoji: "⚠️", color: "bg-rose-500/10 text-rose-600 border-rose-300" },
+  CANCELLED: { label: "Cancelado", emoji: "❌", color: "bg-gray-500/10 text-gray-500 border-gray-300" },
+};
 
 export interface Transfer {
   id: string;
@@ -166,6 +200,10 @@ export interface SettlementSnapshot {
   public_token_hash: string;
   is_paid: boolean;
   paid_at: string | null;
+  payment_method?: PaymentMethod | null;
+  payment_notes?: string | null;
+  payment_status?: SettlementPaymentStatus | null;
+  paid_amount_cents?: number | null;
   created_at: string;
 }
 

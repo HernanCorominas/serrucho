@@ -4,6 +4,8 @@ import {
   Expense,
   ExpenseParticipant,
   Transfer,
+  PaymentMethod,
+  SettlementPaymentStatus,
   Income,
   IncomeParticipant,
   SettlementSnapshot,
@@ -409,7 +411,16 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return createdSnapshots;
   }
 
-  async markSnapshotPaid(snapshotId: string, isPaid: boolean): Promise<SettlementSnapshot> {
+  async markSnapshotPaid(
+    snapshotId: string,
+    isPaid: boolean,
+    details?: {
+      payment_method?: PaymentMethod | null;
+      payment_notes?: string | null;
+      paid_amount_cents?: number | null;
+      payment_status?: SettlementPaymentStatus | null;
+    }
+  ): Promise<SettlementSnapshot> {
     const existing = this.settlementSnapshots.get(snapshotId);
     if (!existing) throw new Error("Estado de cuenta no encontrado");
 
@@ -417,6 +428,11 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       ...existing,
       is_paid: isPaid,
       paid_at: isPaid ? new Date().toISOString() : null,
+      payment_method: details?.payment_method ?? existing.payment_method ?? null,
+      payment_notes: details?.payment_notes ?? existing.payment_notes ?? null,
+      payment_status: details?.payment_status ?? (isPaid ? "SETTLED" : "PENDING"),
+      paid_amount_cents:
+        details?.paid_amount_cents ?? (isPaid ? Math.abs(existing.balance_cents) : 0),
     };
 
     this.settlementSnapshots.set(snapshotId, updated);

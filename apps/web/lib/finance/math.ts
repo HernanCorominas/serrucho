@@ -334,7 +334,10 @@ export function calculateNetBalances(
  */
 export function simplifyDebts(
   participants: { id: string; name: string }[],
-  netBalances: Map<string, number> | { id: string; net_balance_cents: number; name: string }[]
+  netBalances:
+    | Map<string, number>
+    | Map<string, ParticipantFinancialSummary>
+    | { id: string; net_balance_cents: number; name: string }[]
 ): SimplifiedTransfer[] {
   const nameMap = new Map<string, string>();
   participants.forEach((p) => nameMap.set(p.id, p.name));
@@ -353,8 +356,16 @@ export function simplifyDebts(
       }
     });
   } else {
-    netBalances.forEach((balance, id) => {
-      const name = nameMap.get(id) || "Participante";
+    netBalances.forEach((val: any, id: string) => {
+      const balance =
+        typeof val === "number"
+          ? val
+          : typeof val?.netBalanceCents === "number"
+          ? val.netBalanceCents
+          : typeof val?.net_balance_cents === "number"
+          ? val.net_balance_cents
+          : 0;
+      const name = nameMap.get(id) || val?.name || "Participante";
       if (balance < 0) {
         debtors.push({ id, name, amount: Math.abs(balance) });
       } else if (balance > 0) {
@@ -365,9 +376,15 @@ export function simplifyDebts(
 
   const transfers: SimplifiedTransfer[] = [];
 
-  // Sort debtors and creditors descending by amount
-  debtors.sort((a, b) => b.amount - a.amount);
-  creditors.sort((a, b) => b.amount - a.amount);
+  // Sort debtors and creditors descending by amount, with secondary sort by ID for 100% determinism
+  debtors.sort((a, b) => {
+    if (b.amount !== a.amount) return b.amount - a.amount;
+    return a.id.localeCompare(b.id);
+  });
+  creditors.sort((a, b) => {
+    if (b.amount !== a.amount) return b.amount - a.amount;
+    return a.id.localeCompare(b.id);
+  });
 
   let dIdx = 0;
   let cIdx = 0;

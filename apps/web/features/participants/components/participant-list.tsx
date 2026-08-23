@@ -141,20 +141,23 @@ export function ParticipantList({
         )}
 
         {participants.length === 0 ? (
-          <div className="text-center py-10 border border-dashed rounded-2xl p-6 bg-muted/20">
-            <User className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <h4 className="font-bold text-foreground text-sm">No hay participantes aún</h4>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Agrega a las personas de tu coro para poder anotar gastos y repartirlos.
+          <div className="text-center py-14 border border-dashed border-border/80 rounded-3xl p-6 bg-gradient-to-b from-muted/30 to-card shadow-xs">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary mx-auto mb-3 shadow-xs">
+              <Users className="h-8 w-8" />
+            </div>
+            <h4 className="font-extrabold text-foreground text-base">Aún no hay integrantes en el coro</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm mx-auto leading-relaxed">
+              Agrega a los amigos o familiares que participan en los gastos para comenzar a repartir las cuentas.
             </p>
-            {!isClosed && (
-              <Button size="sm" onClick={onAddClick} className="mt-4 gap-1.5 font-bold">
+            {!isClosed && !isReadOnly && (
+              <Button size="sm" onClick={onAddClick} className="mt-5 gap-2 font-extrabold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-sm px-4 h-10">
                 <PlusCircle className="h-4 w-4" />
-                <span>Agregar primer participante</span>
+                <span>Agregar Primer Integrante</span>
               </Button>
             )}
           </div>
         ) : filteredParticipants.length === 0 ? (
+
           <div className="text-center py-6 text-xs text-muted-foreground">
             No se encontró ningún participante que coincida con &quot;{search}&quot;.
           </div>

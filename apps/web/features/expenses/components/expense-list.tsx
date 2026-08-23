@@ -543,27 +543,29 @@ export function ExpenseList({
         )}
 
         {!hasAnyItems ? (
-          <div className="text-center py-10 border border-dashed rounded-2xl p-6 bg-muted/20">
-            <Receipt className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <h4 className="font-bold text-foreground text-sm">No hay movimientos registrados</h4>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Registra gastos grupales, transferencias directas o reembolsos al serrucho.
+          <div className="text-center py-14 border border-dashed border-border/80 rounded-3xl p-6 bg-gradient-to-b from-muted/30 to-card shadow-xs">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary mx-auto mb-3 shadow-xs">
+              <Receipt className="h-8 w-8" />
+            </div>
+            <h4 className="font-extrabold text-foreground text-base">Aún no hay gastos registrados</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm mx-auto leading-relaxed">
+              ¡Sé el primero en anotar los gastos del coro! Agrega lo que pagaste de la comida, bebidas, villa o transporte.
             </p>
             {!isClosed && !isReadOnly && (
-              <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-                <Button size="sm" onClick={onAddClick} className="gap-1.5 font-bold">
+              <div className="flex items-center justify-center gap-2.5 mt-5 flex-wrap">
+                <Button size="sm" onClick={onAddClick} className="gap-2 font-extrabold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-sm px-4 h-10">
                   <PlusCircle className="h-4 w-4" />
-                  <span>Registrar gasto</span>
+                  <span>Registrar Primer Gasto</span>
                 </Button>
                 {onAddTransferClick && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={onAddTransferClick}
-                    className="gap-1.5 font-bold"
+                    className="gap-1.5 font-bold rounded-xl h-10 border-border hover:bg-muted"
                   >
                     <ArrowRightLeft className="h-4 w-4" />
-                    <span>Transferir dinero</span>
+                    <span>Abonar Dinero</span>
                   </Button>
                 )}
                 {onAddIncomeClick && (
@@ -571,16 +573,17 @@ export function ExpenseList({
                     size="sm"
                     variant="outline"
                     onClick={onAddIncomeClick}
-                    className="gap-1.5 font-bold border-cyan-500/40 text-cyan-700 dark:text-cyan-300"
+                    className="gap-1.5 font-bold rounded-xl h-10 border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/30"
                   >
                     <Download className="h-4 w-4" />
-                    <span>Reembolso / Ingreso</span>
+                    <span>Reembolso</span>
                   </Button>
                 )}
               </div>
             )}
           </div>
         ) : !hasFilteredItems ? (
+
           <div className="text-center py-8 border rounded-2xl p-6 bg-muted/10">
             <Filter className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-40" />
             <p className="text-xs font-semibold text-muted-foreground">

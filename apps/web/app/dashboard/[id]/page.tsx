@@ -10,13 +10,13 @@ import {
   Receipt,
   TrendingUp,
   Share2,
-  Check,
   History,
   Eye,
   FileSpreadsheet,
   Trash2,
   Zap,
 } from "lucide-react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,8 +77,8 @@ export default function SerruchoWorkspacePage() {
   const [superModalOpen, setSuperModalOpen] = React.useState(false);
   const [isSuper, setIsSuper] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
-  const [copiedLink, setCopiedLink] = React.useState(false);
   const [myParticipantId, setMyParticipantId] = React.useState<string | null>(null);
+
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -313,59 +313,60 @@ export default function SerruchoWorkspacePage() {
           {!isClosed && !isReadOnly ? (
             <>
               <Button
-                variant="outline"
                 size="sm"
-                onClick={() => setAddPartOpen(true)}
-                className="gap-1.5 font-semibold text-xs"
+                onClick={() => setAddExpOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-white font-extrabold text-xs gap-1.5 shadow-sm rounded-xl px-3.5 h-9"
+                disabled={participants.length === 0}
               >
-                <Users className="h-3.5 w-3.5" />
-                <span>+ Participante</span>
+                <Receipt className="h-4 w-4" />
+                <span>+ Añadir Gasto</span>
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setAddIncomeOpen(true)}
-                className="gap-1.5 font-semibold text-xs border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/50"
-                disabled={participants.length === 0}
+                onClick={() => setAddPartOpen(true)}
+                className="gap-1.5 font-bold text-xs rounded-xl h-9 border-border hover:bg-muted"
               >
-                <TrendingUp className="h-3.5 w-3.5 text-cyan-600" />
-                <span>📥 Reembolso</span>
+                <Users className="h-3.5 w-3.5" />
+                <span>+ Integrante</span>
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setAddTransOpen(true)}
-                className="gap-1.5 font-semibold text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+                className="gap-1.5 font-bold text-xs rounded-xl h-9 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                 disabled={participants.length < 2}
               >
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-                <span>💸 Transferencia</span>
+                <span>Abonar</span>
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setAddExpOpen(true)}
-                className="gap-1.5 font-semibold text-xs"
+                onClick={() => setAddIncomeOpen(true)}
+                className="gap-1.5 font-bold text-xs rounded-xl h-9 border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/50"
                 disabled={participants.length === 0}
               >
-                <Receipt className="h-3.5 w-3.5" />
-                <span>+ Gasto</span>
+                <TrendingUp className="h-3.5 w-3.5 text-cyan-600" />
+                <span>Reembolso</span>
               </Button>
 
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => setCloseWizardOpen(true)}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs gap-1.5 shadow-sm"
+                className="border-red-300 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 font-bold text-xs gap-1.5 rounded-xl h-9"
                 disabled={participants.length === 0}
               >
                 <Lock className="h-3.5 w-3.5" />
-                <span>Cerrar Serrucho</span>
+                <span>Liquidar</span>
               </Button>
             </>
           ) : isClosed ? (
+
             <Badge variant="outline" className="text-xs font-bold py-1.5 px-3">
               Cuentas Inmutables
             </Badge>

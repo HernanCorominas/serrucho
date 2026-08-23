@@ -450,6 +450,20 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     } as Transfer;
   }
 
+  async updateTransfer(id: string, updates: Partial<Transfer>): Promise<Transfer> {
+    const { data, error } = await this.client
+      .from("transfers")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return {
+      ...data,
+      amount_cents: Number(data.amount_cents),
+    } as Transfer;
+  }
+
   async deleteTransfer(id: string): Promise<boolean> {
     const { error } = await this.client
       .from("transfers")
@@ -517,6 +531,39 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
         .from("income_participants")
         .insert(splitRows);
       if (splitError) throw splitError;
+    }
+
+    return {
+      ...income,
+      amount_cents: Number(income.amount_cents),
+    } as Income;
+  }
+
+  async updateIncomeWithSplits(
+    id: string,
+    updates: Partial<Income>,
+    splits?: Omit<IncomeParticipant, "income_id">[]
+  ): Promise<Income> {
+    const { data: income, error: incError } = await this.client
+      .from("incomes")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (incError) throw incError;
+
+    if (splits) {
+      await this.client.from("income_participants").delete().eq("income_id", id);
+      if (splits.length > 0) {
+        const splitRows = splits.map((s) => ({
+          ...s,
+          income_id: id,
+        }));
+        const { error: splitError } = await this.client
+          .from("income_participants")
+          .insert(splitRows);
+        if (splitError) throw splitError;
+      }
     }
 
     return {

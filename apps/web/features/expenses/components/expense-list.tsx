@@ -1,7 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { Receipt, Trash2, PlusCircle, Calendar, UserCheck, Search, Filter, ArrowRightLeft, CreditCard, Download } from "lucide-react";
+import {
+  Receipt,
+  Trash2,
+  Pencil,
+  PlusCircle,
+  Calendar,
+  UserCheck,
+  Search,
+  Filter,
+  ArrowRightLeft,
+  CreditCard,
+  Download,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDOP } from "@/lib/finance/math";
 import {
+  Participant,
   ExpenseWithSplits,
   ExpenseCategory,
   CATEGORY_INFO,
@@ -17,11 +30,15 @@ import {
   IncomeCategory,
   INCOME_CATEGORY_INFO,
 } from "@/lib/types/domain";
+import { EditExpenseDialog } from "./edit-expense-dialog";
+import { EditTransferDialog } from "@/features/transfers/components/edit-transfer-dialog";
+import { EditIncomeDialog } from "@/features/incomes/components/edit-income-dialog";
 
 interface ExpenseListProps {
   serruchoId: string;
   isClosed: boolean;
   expenses: ExpenseWithSplits[];
+  participants?: Participant[];
   transfers?: TransferWithParticipants[];
   incomes?: IncomeWithSplits[];
   onAddClick: () => void;
@@ -30,12 +47,16 @@ interface ExpenseListProps {
   onExpenseDeleted: () => void;
   onTransferDeleted?: () => void;
   onIncomeDeleted?: () => void;
+  onExpenseUpdated?: () => void;
+  onTransferUpdated?: () => void;
+  onIncomeUpdated?: () => void;
 }
 
 export function ExpenseList({
   serruchoId,
   isClosed,
   expenses,
+  participants = [],
   transfers = [],
   incomes = [],
   onAddClick,
@@ -44,12 +65,25 @@ export function ExpenseList({
   onExpenseDeleted,
   onTransferDeleted,
   onIncomeDeleted,
+  onExpenseUpdated,
+  onTransferUpdated,
+  onIncomeUpdated,
 }: ExpenseListProps) {
   const { toast } = useToast();
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("ALL");
   const [movementType, setMovementType] = React.useState<"ALL" | "EXPENSES" | "TRANSFERS" | "INCOMES">("ALL");
+
+  // Edit states
+  const [editingExpense, setEditingExpense] = React.useState<ExpenseWithSplits | null>(null);
+  const [editExpenseOpen, setEditExpenseOpen] = React.useState(false);
+
+  const [editingTransfer, setEditingTransfer] = React.useState<TransferWithParticipants | null>(null);
+  const [editTransferOpen, setEditTransferOpen] = React.useState(false);
+
+  const [editingIncome, setEditingIncome] = React.useState<IncomeWithSplits | null>(null);
+  const [editIncomeOpen, setEditIncomeOpen] = React.useState(false);
 
   const handleDeleteIncome = async (id: string, description: string) => {
     if (!confirm(`¿Estás seguro de eliminar el ingreso "${description}"?`)) {
@@ -487,16 +521,30 @@ export function ExpenseList({
                     </div>
 
                     {!isClosed && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                        onClick={() => handleDeleteIncome(inc.id, inc.description)}
-                        disabled={deletingId === inc.id}
-                        title="Eliminar ingreso"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-cyan-600"
+                          onClick={() => {
+                            setEditingIncome(inc);
+                            setEditIncomeOpen(true);
+                          }}
+                          title="Editar ingreso"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                          onClick={() => handleDeleteIncome(inc.id, inc.description)}
+                          disabled={deletingId === inc.id}
+                          title="Eliminar ingreso"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -551,16 +599,30 @@ export function ExpenseList({
                   </div>
 
                   {!isClosed && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                      onClick={() => handleDeleteTransfer(t.id)}
-                      disabled={deletingId === t.id}
-                      title="Eliminar transferencia"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-emerald-600"
+                        onClick={() => {
+                          setEditingTransfer(t);
+                          setEditTransferOpen(true);
+                        }}
+                        title="Editar transferencia"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                        onClick={() => handleDeleteTransfer(t.id)}
+                        disabled={deletingId === t.id}
+                        title="Eliminar transferencia"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -637,15 +699,30 @@ export function ExpenseList({
                     </div>
 
                     {!isClosed && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                        onClick={() => handleDelete(exp.id, exp.description)}
-                        disabled={deletingId === exp.id}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => {
+                            setEditingExpense(exp);
+                            setEditExpenseOpen(true);
+                          }}
+                          title="Editar gasto"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                          onClick={() => handleDelete(exp.id, exp.description)}
+                          disabled={deletingId === exp.id}
+                          title="Eliminar gasto"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -654,6 +731,42 @@ export function ExpenseList({
           </div>
         )}
       </CardContent>
+
+      {/* Edit Expense Dialog */}
+      <EditExpenseDialog
+        serruchoId={serruchoId}
+        expense={editingExpense}
+        participants={participants}
+        open={editExpenseOpen}
+        onOpenChange={setEditExpenseOpen}
+        onExpenseUpdated={() => {
+          if (onExpenseUpdated) onExpenseUpdated();
+        }}
+      />
+
+      {/* Edit Transfer Dialog */}
+      <EditTransferDialog
+        serruchoId={serruchoId}
+        transfer={editingTransfer}
+        participants={participants}
+        open={editTransferOpen}
+        onOpenChange={setEditTransferOpen}
+        onTransferUpdated={() => {
+          if (onTransferUpdated) onTransferUpdated();
+        }}
+      />
+
+      {/* Edit Income Dialog */}
+      <EditIncomeDialog
+        serruchoId={serruchoId}
+        income={editingIncome}
+        participants={participants}
+        open={editIncomeOpen}
+        onOpenChange={setEditIncomeOpen}
+        onIncomeUpdated={() => {
+          if (onIncomeUpdated) onIncomeUpdated();
+        }}
+      />
     </Card>
   );
 }

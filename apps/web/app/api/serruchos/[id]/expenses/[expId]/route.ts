@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ExpenseService } from "@/features/expenses/service";
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; expId: string }> }
+) {
+  try {
+    const { expId } = await params;
+    const body = await req.json();
+    const updated = await ExpenseService.update(expId, body);
+    return NextResponse.json(updated);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Error al actualizar gasto" }, { status: 400 });
+  }
+}
+
+export async function PUT(
+  req: NextRequest,
+  params: { params: Promise<{ id: string; expId: string }> }
+) {
+  return PATCH(req, params);
+}
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; expId: string }> }

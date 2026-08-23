@@ -159,6 +159,13 @@ export class ExpenseService {
         }[]
       | undefined;
 
+    if (input.paid_by_participant_id) {
+      const validParticipantIds = new Set(participants.map((p) => p.id));
+      if (!validParticipantIds.has(input.paid_by_participant_id)) {
+        throw new Error("El pagador no es un participante válido de este serrucho");
+      }
+    }
+
     if (input.splits) {
       if (splitMethod === "PERCENTAGE") {
         const percentageInput = input.splits.map((s) => ({
@@ -166,6 +173,28 @@ export class ExpenseService {
           basisPoints: Math.round((s.percentage || 0) * 100),
         }));
         const results = splitByPercentage(totalCents, percentageInput);
+        calculatedSplits = results.map((r) => ({
+          participant_id: r.participantId,
+          owed_cents: r.owedCents,
+          percentage_basis_points: r.percentageBasisPoints ?? null,
+        }));
+      } else if (splitMethod === "EXACT") {
+        const exactInput = input.splits.map((s) => ({
+          participantId: s.participant_id,
+          amountCents: toCents(s.amount || 0),
+        }));
+        const results = splitByExactAmounts(totalCents, exactInput);
+        calculatedSplits = results.map((r) => ({
+          participant_id: r.participantId,
+          owed_cents: r.owedCents,
+          percentage_basis_points: Math.round((r.owedCents / totalCents) * 10000),
+        }));
+      } else if (splitMethod === "SHARES") {
+        const sharesInput = input.splits.map((s) => ({
+          participantId: s.participant_id,
+          shares: s.shares || 1,
+        }));
+        const results = splitByShares(totalCents, sharesInput);
         calculatedSplits = results.map((r) => ({
           participant_id: r.participantId,
           owed_cents: r.owedCents,
@@ -179,6 +208,31 @@ export class ExpenseService {
           owed_cents: r.owedCents,
           percentage_basis_points: null,
         }));
+      }
+    } else if (input.amount !== undefined && input.amount !== existing.amount_cents / 100) {
+      // Re-evaluate current splits for new amount
+      const currentSplits = await repo.getExpenseSplits(expenseId);
+      if (currentSplits.length > 0) {
+        if (splitMethod === "PERCENTAGE") {
+          const percentageInput = currentSplits.map((s) => ({
+            participantId: s.participant_id,
+            basisPoints: s.percentage_basis_points || 0,
+          }));
+          const results = splitByPercentage(totalCents, percentageInput);
+          calculatedSplits = results.map((r) => ({
+            participant_id: r.participantId,
+            owed_cents: r.owedCents,
+            percentage_basis_points: r.percentageBasisPoints ?? null,
+          }));
+        } else {
+          const ids = currentSplits.map((s) => s.participant_id);
+          const results = splitEqually(totalCents, ids);
+          calculatedSplits = results.map((r) => ({
+            participant_id: r.participantId,
+            owed_cents: r.owedCents,
+            percentage_basis_points: null,
+          }));
+        }
       }
     }
 

@@ -485,6 +485,19 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return transfer;
   }
 
+  async updateTransfer(id: string, updates: Partial<Transfer>): Promise<Transfer> {
+    const existing = this.transfers.get(id);
+    if (!existing) throw new Error("Transferencia no encontrada");
+
+    const updated: Transfer = {
+      ...existing,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    this.transfers.set(id, updated);
+    return updated;
+  }
+
   async deleteTransfer(id: string): Promise<boolean> {
     return this.transfers.delete(id);
   }
@@ -526,6 +539,36 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     }
 
     return income;
+  }
+
+  async updateIncomeWithSplits(
+    id: string,
+    updates: Partial<Income>,
+    splits?: Omit<IncomeParticipant, "income_id">[]
+  ): Promise<Income> {
+    const existing = this.incomes.get(id);
+    if (!existing) throw new Error("Ingreso no encontrado");
+
+    const updated: Income = {
+      ...existing,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    this.incomes.set(id, updated);
+
+    if (splits) {
+      this.incomeParticipants = this.incomeParticipants.filter(
+        (ip) => ip.income_id !== id
+      );
+      for (const split of splits) {
+        this.incomeParticipants.push({
+          ...split,
+          income_id: id,
+        });
+      }
+    }
+
+    return updated;
   }
 
   async deleteIncome(id: string): Promise<boolean> {

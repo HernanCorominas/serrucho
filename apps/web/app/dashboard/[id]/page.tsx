@@ -378,6 +378,7 @@ export default function SerruchoWorkspacePage() {
             serruchoId={serrucho.id}
             isClosed={isClosed}
             expenses={expenses}
+            participants={participants}
             transfers={transfers}
             incomes={incomes}
             onAddClick={() => setAddExpOpen(true)}
@@ -386,6 +387,9 @@ export default function SerruchoWorkspacePage() {
             onExpenseDeleted={loadData}
             onTransferDeleted={loadData}
             onIncomeDeleted={loadData}
+            onExpenseUpdated={loadData}
+            onTransferUpdated={loadData}
+            onIncomeUpdated={loadData}
           />
         </TabsContent>
 

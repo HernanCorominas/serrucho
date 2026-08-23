@@ -56,6 +56,11 @@ export interface ISerruchoRepository {
     income: Omit<Income, "id" | "created_at" | "updated_at">,
     splits: Omit<IncomeParticipant, "income_id">[]
   ): Promise<Income>;
+  updateIncomeWithSplits(
+    id: string,
+    updates: Partial<Income>,
+    splits?: Omit<IncomeParticipant, "income_id">[]
+  ): Promise<Income>;
   deleteIncome(id: string): Promise<boolean>;
 
   // Settlement Snapshots & Items
@@ -87,6 +92,7 @@ export interface ISerruchoRepository {
   getTransfers(serruchoId: string): Promise<Transfer[]>;
   getTransferById(id: string): Promise<Transfer | null>;
   createTransfer(transfer: Omit<Transfer, "id" | "created_at" | "updated_at">): Promise<Transfer>;
+  updateTransfer(id: string, updates: Partial<Transfer>): Promise<Transfer>;
   deleteTransfer(id: string): Promise<boolean>;
 
   // Notification Logs

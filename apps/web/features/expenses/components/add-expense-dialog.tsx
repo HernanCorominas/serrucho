@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Receipt, AlertCircle, UtensilsCrossed, RefreshCw } from "lucide-react";
+import { Receipt, AlertCircle, UtensilsCrossed, RefreshCw, Search } from "lucide-react";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,7 @@ export function AddExpenseDialog({
   // Selected participants for split
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [percentages, setPercentages] = React.useState<Record<string, number>>({});
+  const [participantSearch, setParticipantSearch] = React.useState("");
 
   React.useEffect(() => {
     getExchangeRates().then((rates) => {
@@ -434,51 +435,105 @@ export function AddExpenseDialog({
                 </div>
               </div>
 
-              <div className="bg-muted/40 rounded-xl p-3 space-y-2 max-h-48 overflow-y-auto">
-                <div className="text-xs font-medium text-muted-foreground mb-1">
-                  Participantes incluidos en este gasto ({selectedIds.size} de {participants.length}):
+              <div className="bg-muted/40 rounded-xl p-3 space-y-2.5">
+                <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                  <div className="font-bold text-foreground">
+                    Dividir entre ({selectedIds.size} de {participants.length}):
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIds(new Set(participants.map((p) => p.id)))}
+                      className="text-[11px] font-bold text-primary hover:underline"
+                    >
+                      Todos
+                    </button>
+                    <span className="text-muted-foreground">•</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (participants.length > 0) {
+                          setSelectedIds(new Set([participants[0].id]));
+                        }
+                      }}
+                      className="text-[11px] font-bold text-muted-foreground hover:text-foreground"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
                 </div>
 
-                {participants.map((p) => {
-                  const isSelected = selectedIds.has(p.id);
-                  return (
-                    <div
-                      key={p.id}
-                      className={`flex items-center justify-between p-2 rounded-lg text-sm transition-colors border ${
-                        isSelected
-                          ? "bg-card border-border shadow-xs"
-                          : "bg-background/50 border-transparent opacity-60"
-                      }`}
-                    >
-                      <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleParticipant(p.id)}
-                          className="rounded border-input text-primary focus:ring-primary h-4 w-4"
-                        />
-                        <span className="font-semibold text-xs sm:text-sm">{p.name}</span>
-                      </label>
+                {/* Search Bar when more than 3 participants */}
+                {participants.length > 3 && (
+                  <div className="relative">
+                    <Search className="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Buscar persona..."
+                      value={participantSearch}
+                      onChange={(e) => setParticipantSearch(e.target.value)}
+                      className="pl-8 h-8 text-xs bg-background"
+                    />
+                  </div>
+                )}
 
-                      {splitMethod === "PERCENTAGE" && isSelected && (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="100"
-                            className="h-8 w-20 text-right text-xs py-1 px-2"
-                            value={percentages[p.id] ?? 0}
-                            onChange={(e) =>
-                              handlePercentageChange(p.id, parseFloat(e.target.value))
-                            }
-                          />
-                          <span className="text-xs text-muted-foreground font-bold">%</span>
+                {/* Quota Per Person Preview */}
+                {splitMethod === "EQUAL" && selectedIds.size > 0 && parseFloat(amount) > 0 && (
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-black">
+                    <span>Cuota estimada por persona:</span>
+                    <span>
+                      RD$ {((currency === "DOP" ? parseFloat(amount) : convertedDOPAmount) / selectedIds.size).toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u
+                    </span>
+                  </div>
+                )}
+
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {participants
+                    .filter((p) =>
+                      p.name.toLowerCase().includes(participantSearch.toLowerCase())
+                    )
+                    .map((p) => {
+                      const isSelected = selectedIds.has(p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          className={`flex items-center justify-between p-2 rounded-lg text-sm transition-colors border ${
+                            isSelected
+                              ? "bg-card border-border shadow-xs"
+                              : "bg-background/50 border-transparent opacity-60"
+                          }`}
+                        >
+                          <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleParticipant(p.id)}
+                              className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                            />
+                            <span className="font-semibold text-xs sm:text-sm">{p.name}</span>
+                          </label>
+
+                          {splitMethod === "PERCENTAGE" && isSelected && (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                className="h-8 w-20 text-right text-xs py-1 px-2"
+                                value={percentages[p.id] ?? 0}
+                                onChange={(e) =>
+                                  handlePercentageChange(p.id, parseFloat(e.target.value))
+                                }
+                              />
+                              <span className="text-xs text-muted-foreground font-bold">%</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                </div>
               </div>
 
               {splitMethod === "PERCENTAGE" && (

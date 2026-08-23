@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { FeedbackWidget } from "@/components/feedback-modal";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineBanner } from "@/components/offline-banner";
+import { AuthProvider } from "@/lib/hooks/use-auth";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -51,15 +52,18 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen flex-col bg-background font-sans text-foreground antialiased selection:bg-orange-100 selection:text-orange-900 transition-colors duration-200">
         <ThemeProvider>
-          <ToastProvider>
-            <OfflineBanner />
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <FeedbackWidget />
-          </ToastProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <OfflineBanner />
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <FeedbackWidget />
+            </ToastProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

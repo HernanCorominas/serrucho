@@ -192,9 +192,28 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return Array.from(this.serruchos.values()).filter((s) => s.owner_id === ownerId);
   }
 
+  async getSerruchosByUser(userId: string): Promise<Serrucho[]> {
+    if (!userId) return [];
+    const owned = Array.from(this.serruchos.values()).filter((s) => s.owner_id === userId);
+    const participantSerruchoIds = new Set(
+      Array.from(this.participants.values())
+        .filter((p) => p.user_id === userId)
+        .map((p) => p.serrucho_id)
+    );
+    const participated = Array.from(this.serruchos.values()).filter((s) =>
+      participantSerruchoIds.has(s.id)
+    );
+
+    const map = new Map<string, Serrucho>();
+    owned.forEach((s) => map.set(s.id, s));
+    participated.forEach((s) => map.set(s.id, s));
+    return Array.from(map.values()).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+
   async getSerruchoById(id: string): Promise<Serrucho | null> {
     return this.serruchos.get(id) || null;
   }
+
 
   async getSerruchoByReadOnlyToken(token: string): Promise<Serrucho | null> {
     if (!token || token.trim().length === 0) return null;
@@ -240,7 +259,13 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
     return Array.from(this.participants.values()).filter((p) => p.serrucho_id === serruchoId);
   }
 
+  async getParticipantsByUser(userId: string): Promise<Participant[]> {
+    if (!userId) return [];
+    return Array.from(this.participants.values()).filter((p) => p.user_id === userId);
+  }
+
   async getParticipantById(id: string): Promise<Participant | null> {
+
     return this.participants.get(id) || null;
   }
 

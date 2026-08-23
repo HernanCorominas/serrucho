@@ -56,6 +56,39 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
     return data as Serrucho[];
   }
 
+  async getSerruchosByUser(userId: string): Promise<Serrucho[]> {
+    if (!userId) return [];
+    // 1. Serruchos created by user
+    const { data: owned, error: err1 } = await this.client
+      .from("serruchos")
+      .select("*")
+      .eq("owner_id", userId);
+    if (err1) throw err1;
+
+    // 2. Serruchos where user is a participant
+    const { data: participations, error: err2 } = await this.client
+      .from("participants")
+      .select("serrucho_id")
+      .eq("user_id", userId);
+    if (err2) throw err2;
+
+    const participatedIds = (participations || []).map((p: any) => p.serrucho_id);
+    let participated: Serrucho[] = [];
+    if (participatedIds.length > 0) {
+      const { data: partData, error: err3 } = await this.client
+        .from("serruchos")
+        .select("*")
+        .in("id", participatedIds);
+      if (err3) throw err3;
+      participated = (partData || []) as Serrucho[];
+    }
+
+    const map = new Map<string, Serrucho>();
+    (owned || []).forEach((s: any) => map.set(s.id, s as Serrucho));
+    participated.forEach((s) => map.set(s.id, s));
+    return Array.from(map.values()).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+
   async getSerruchoById(id: string): Promise<Serrucho | null> {
     const { data, error } = await this.client
       .from("serruchos")
@@ -113,6 +146,16 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       .select("*")
       .eq("serrucho_id", serruchoId)
       .order("created_at", { ascending: true });
+    if (error) throw error;
+    return data as Participant[];
+  }
+
+  async getParticipantsByUser(userId: string): Promise<Participant[]> {
+    if (!userId) return [];
+    const { data, error } = await this.client
+      .from("participants")
+      .select("*")
+      .eq("user_id", userId);
     if (error) throw error;
     return data as Participant[];
   }

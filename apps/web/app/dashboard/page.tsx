@@ -28,6 +28,8 @@ import {
   subscribeToConnectivity,
 } from "@/lib/store/offline-store";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { AuthModal } from "@/features/auth/components/auth-modal";
 
 interface DashboardStats {
   totalSerruchos: number;
@@ -147,11 +149,14 @@ function StatsRow({ stats }: { stats: DashboardStats }) {
 
 function DashboardContent() {
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const { recents, removeRecent } = useRecentSerruchos();
   const [serruchos, setSerruchos] = React.useState<Serrucho[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isOffline, setIsOffline] = React.useState(!isOnline());
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [authModalOpen, setAuthModalOpen] = React.useState(false);
+  const [showSyncBanner, setShowSyncBanner] = React.useState(true);
 
   const fetchSerruchos = React.useCallback(async () => {
     try {
@@ -166,7 +171,9 @@ function DashboardContent() {
         return;
       }
 
-      const res = await fetch("/api/serruchos");
+      // Fetch user-associated serruchos if authenticated, else general list
+      const url = user ? `/api/user/serruchos?userId=${user.id}` : "/api/serruchos";
+      const res = await fetch(url);
       if (res.ok) {
         const data: Serrucho[] = await res.json();
         setSerruchos(data);
@@ -181,7 +188,8 @@ function DashboardContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
+
 
   React.useEffect(() => {
     fetchSerruchos();
@@ -251,6 +259,41 @@ function DashboardContent() {
             <span>Nuevo Serrucho</span>
           </Button>
         </div>
+
+        {/* Multi-Device Sync Banner for Guests */}
+        {!user && showSyncBanner && (
+          <div className="rounded-2xl p-4 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-200 dark:border-orange-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📱</span>
+              <div>
+                <h4 className="font-extrabold text-sm text-foreground">
+                  ¿Quieres acceder a tus serruchos desde cualquier celular o PC?
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Crea tu cuenta gratis en 1 paso para sincronizar tus gastos sin perder nada si cambias de dispositivo.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <Button
+                size="sm"
+                onClick={() => setAuthModalOpen(true)}
+                className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white font-bold text-xs h-9 rounded-xl shadow-xs gap-1.5"
+              >
+                <span>Crear Cuenta Gratis</span>
+              </Button>
+              <button
+                type="button"
+                onClick={() => setShowSyncBanner(false)}
+                className="text-muted-foreground hover:text-foreground p-1 text-xs"
+                title="Descartar"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
 
         {/* Stats */}
         {serruchos.length > 0 && !loading && <StatsRow stats={stats} />}
@@ -370,7 +413,13 @@ function DashboardContent() {
           open={createOpen}
           onOpenChange={setCreateOpen}
         />
+
+        <AuthModal
+          open={authModalOpen}
+          onOpenChange={setAuthModalOpen}
+        />
       </div>
+
     </PullToRefresh>
   );
 }

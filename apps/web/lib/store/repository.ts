@@ -22,6 +22,7 @@ export interface ISerruchoRepository {
 
   // Serruchos
   getSerruchosByOwner(ownerId: string): Promise<Serrucho[]>;
+  getSerruchosByUser(userId: string): Promise<Serrucho[]>;
   getSerruchoById(id: string): Promise<Serrucho | null>;
   getSerruchoByReadOnlyToken(token: string): Promise<Serrucho | null>;
   createSerrucho(serrucho: Omit<Serrucho, "id" | "created_at" | "updated_at" | "closed_at">): Promise<Serrucho>;
@@ -30,7 +31,9 @@ export interface ISerruchoRepository {
 
   // Participants
   getParticipants(serruchoId: string): Promise<Participant[]>;
+  getParticipantsByUser(userId: string): Promise<Participant[]>;
   getParticipantById(id: string): Promise<Participant | null>;
+
   createParticipant(participant: Omit<Participant, "id" | "created_at" | "updated_at">): Promise<Participant>;
   updateParticipant(id: string, updates: Partial<Participant>): Promise<Participant>;
   deleteParticipant(id: string): Promise<boolean>;

@@ -1,55 +1,91 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { PlusCircle, LayoutDashboard, Calculator } from "lucide-react";
+import { PlusCircle, LayoutDashboard, Calculator, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { AuthModal } from "@/features/auth/components/auth-modal";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export function Navbar() {
+  const { user } = useAuth();
+  const [authOpen, setAuthOpen] = React.useState(false);
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 no-print">
-      <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-[1.02]">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 shadow-md shadow-orange-500/20 text-white font-black text-xl">
-            🪚
+    <>
+      <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 no-print">
+        <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-[1.02]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 shadow-md shadow-orange-500/20 text-white font-black text-xl">
+              🪚
+            </div>
+            <div>
+              <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                SERRUCHO
+              </span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground block -mt-1 tracking-wider">
+                Reparto Inteligente 🇩🇴
+              </span>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link href="/calculadora" aria-label="Calculadora de Cuenta">
+              <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm">
+                <Calculator className="h-4 w-4 text-primary" />
+                <span className="hidden sm:inline">Calculadora</span>
+              </Button>
+            </Link>
+
+            <Link href="/dashboard" aria-label="Mis Serruchos">
+              <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm" aria-label="Mis Serruchos">
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden md:inline">Mis Serruchos</span>
+              </Button>
+            </Link>
+
+            <ThemeToggle />
+
+            <NotificationBell />
+
+            {/* Account Button */}
+            <Button
+              variant={user ? "outline" : "ghost"}
+              size="sm"
+              onClick={() => setAuthOpen(true)}
+              className="gap-1.5 font-semibold text-xs sm:text-sm"
+              title={user ? `Cuenta: ${user.name}` : "Iniciar Sesión"}
+            >
+              {user ? (
+                <>
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-primary font-bold text-[10px] uppercase">
+                    {user.name.slice(0, 1)}
+                  </div>
+                  <span className="hidden lg:inline max-w-[100px] truncate">{user.name}</span>
+                </>
+              ) : (
+                <>
+                  <User className="h-4 w-4" />
+                  <span className="hidden lg:inline">Cuenta</span>
+                </>
+              )}
+            </Button>
+
+            <Link href="/dashboard?new=true">
+              <Button size="sm" className="gap-1.5 shadow-sm font-bold bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm">
+                <PlusCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Nuevo Serrucho</span>
+                <span className="sm:hidden">Nuevo</span>
+              </Button>
+            </Link>
           </div>
-          <div>
-            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-              SERRUCHO
-            </span>
-            <span className="text-[10px] uppercase font-bold text-muted-foreground block -mt-1 tracking-wider">
-              Reparto Inteligente 🇩🇴
-            </span>
-          </div>
-        </Link>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Link href="/calculadora" aria-label="Calculadora de Cuenta">
-            <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm">
-              <Calculator className="h-4 w-4 text-primary" />
-              <span className="hidden sm:inline">Calculadora</span>
-            </Button>
-          </Link>
-
-          <Link href="/dashboard" aria-label="Mis Serruchos">
-            <Button variant="ghost" size="sm" className="gap-1.5 font-semibold text-xs sm:text-sm" aria-label="Mis Serruchos">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden md:inline">Mis Serruchos</span>
-            </Button>
-          </Link>
-
-          <ThemeToggle />
-
-          <NotificationBell />
-
-          <Link href="/dashboard?new=true">
-            <Button size="sm" className="gap-1.5 shadow-sm font-bold bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm">
-              <PlusCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Nuevo Serrucho</span>
-              <span className="sm:hidden">Nuevo</span>
-            </Button>
-          </Link>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
+    </>
   );
 }
+

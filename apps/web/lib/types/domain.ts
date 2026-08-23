@@ -55,6 +55,7 @@ export interface Participant {
   email: string | null;
   phone: string | null;
   preferred_channel: PreferredChannel;
+  default_shares?: number;
   user_id?: string | null;
   is_active?: boolean;
   created_at: string;

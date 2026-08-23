@@ -70,6 +70,30 @@ export function ParticipantList({
     }
   };
 
+  const handleUpdateShares = async (pId: string, shares: number) => {
+    try {
+      const res = await fetch(`/api/serruchos/${serruchoId}/participants/${pId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ default_shares: shares }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Error al actualizar cuotas");
+      }
+
+      toast({
+        type: "success",
+        title: "Cuotas actualizadas",
+        message: `Se configuraron ${shares} cuotas por defecto para este participante.`,
+      });
+      onParticipantDeleted(); // re-fetch participants list
+    } catch (err: any) {
+      toast({ type: "error", message: err.message });
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
@@ -133,47 +157,74 @@ export function ParticipantList({
           </div>
         ) : (
           <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-            {filteredParticipants.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm">
-                    {p.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-sm text-foreground">{p.name}</h5>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {p.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" /> {p.email}
-                        </span>
-                      )}
-                      {p.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" /> {p.phone}
-                        </span>
-                      )}
-                      {!p.email && !p.phone && <span>Sin datos de contacto</span>}
+            {filteredParticipants.map((p) => {
+              const defShares = p.default_shares ?? 1;
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm">
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h5 className="font-bold text-sm text-foreground">{p.name}</h5>
+                        {defShares !== 1 ? (
+                          <Badge variant="secondary" className="text-[10px] font-bold px-1.5 py-0">
+                            {defShares}x {defShares === 2 ? "Pareja" : defShares === 0.5 ? "Niño" : defShares === 3 ? "Familia" : "Cuotas"}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        {p.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" /> {p.email}
+                          </span>
+                        )}
+                        {p.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" /> {p.phone}
+                          </span>
+                        )}
+                        {!p.email && !p.phone && <span>Sin datos de contacto</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {!isClosed && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(p.id, p.name)}
-                    disabled={deletingId === p.id}
-                    className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 p-2 h-8 w-8"
-                    title={`Eliminar a ${p.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
+                  <div className="flex items-center gap-1">
+                    {!isClosed && (
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={defShares}
+                          onChange={(e) => handleUpdateShares(p.id, parseFloat(e.target.value))}
+                          title="¿Cómo reparte normalmente los gastos?"
+                          className="text-[11px] font-bold bg-muted/60 border border-border rounded-md px-1.5 py-1 text-foreground cursor-pointer"
+                        >
+                          <option value="1">1x (Normal)</option>
+                          <option value="2">2x (Pareja)</option>
+                          <option value="0.5">0.5x (Niño)</option>
+                          <option value="3">3x (Familia 3p)</option>
+                          <option value="4">4x (Familia 4p)</option>
+                        </select>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(p.id, p.name)}
+                          disabled={deletingId === p.id}
+                          className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 p-2 h-8 w-8"
+                          title={`Eliminar a ${p.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>

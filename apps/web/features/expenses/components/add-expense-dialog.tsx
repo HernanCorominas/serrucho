@@ -75,7 +75,7 @@ export function AddExpenseDialog({
       const sMap: Record<string, number> = {};
       participants.forEach((p) => {
         pMap[p.id] = equalPct;
-        sMap[p.id] = 1;
+        sMap[p.id] = p.default_shares ?? 1;
       });
       setPercentages(pMap);
       setShares(sMap);

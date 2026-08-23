@@ -30,6 +30,7 @@ export function AddParticipantDialog({
     email: "",
     phone: "",
     preferred_channel: "EMAIL" as "EMAIL" | "WHATSAPP",
+    default_shares: 1,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,6 +65,7 @@ export function AddParticipantDialog({
         email: "",
         phone: "",
         preferred_channel: "EMAIL",
+        default_shares: 1,
       });
       onOpenChange(false);
       onParticipantAdded();
@@ -92,7 +94,7 @@ export function AddParticipantDialog({
             <Label htmlFor="part_name">Nombre completo o apodo *</Label>
             <Input
               id="part_name"
-              placeholder="Ej. Juan Pérez, María, Primo Carlos"
+              placeholder="Ej. Juan Pérez, María, Familia Gómez"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
@@ -137,6 +139,52 @@ export function AddParticipantDialog({
               <option value="EMAIL">Correo Electrónico (Recomendado)</option>
               <option value="WHATSAPP">WhatsApp</option>
             </Select>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-border">
+            <Label htmlFor="default_shares" className="font-bold text-xs uppercase text-muted-foreground">
+              ¿Cómo quieres repartir normalmente los gastos para esta persona?
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Define cuántas cuotas o partes asume por defecto en cada gasto.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex gap-1">
+                {[
+                  { label: "1x (Normal)", val: 1 },
+                  { label: "2x (Pareja)", val: 2 },
+                  { label: "0.5x (Niño)", val: 0.5 },
+                  { label: "3x (Familia)", val: 3 },
+                ].map((sOpt) => (
+                  <button
+                    key={sOpt.val}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, default_shares: sOpt.val })}
+                    className={`px-2 py-1 rounded-md text-xs font-bold border transition-colors ${
+                      formData.default_shares === sOpt.val
+                        ? "bg-primary text-white border-primary"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {sOpt.label}
+                  </button>
+                ))}
+              </div>
+              <Input
+                id="default_shares"
+                type="number"
+                step="0.5"
+                min="0.1"
+                className="w-16 text-center text-xs font-bold"
+                value={formData.default_shares}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    default_shares: parseFloat(e.target.value) || 1,
+                  })
+                }
+              />
+            </div>
           </div>
         </div>
 

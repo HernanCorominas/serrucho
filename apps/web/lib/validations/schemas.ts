@@ -32,9 +32,10 @@ export const participantSchema = z.object({
     .or(z.literal(""))
     .nullable(),
   preferred_channel: z.enum(["EMAIL", "WHATSAPP"]).default("EMAIL"),
+  default_shares: z.number().positive("Las cuotas / shares deben ser mayores a 0").optional().default(1),
 });
 
-export type ParticipantInput = z.infer<typeof participantSchema>;
+export type ParticipantInput = z.input<typeof participantSchema>;
 
 export const expenseParticipantSplitSchema = z.object({
   participant_id: z.string().min(1, "ID de participante requerido"),

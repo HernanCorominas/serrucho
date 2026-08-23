@@ -29,6 +29,7 @@ export class ParticipantService {
       email: validated.email ? validated.email.trim().toLowerCase() : null,
       phone: validated.phone ? validated.phone.trim() : null,
       preferred_channel: validated.preferred_channel || "EMAIL",
+      default_shares: validated.default_shares ?? 1,
     });
   }
 
@@ -49,6 +50,7 @@ export class ParticipantService {
         : {}),
       ...(input.phone !== undefined ? { phone: input.phone ? input.phone.trim() : null } : {}),
       ...(input.preferred_channel ? { preferred_channel: input.preferred_channel } : {}),
+      ...(input.default_shares !== undefined ? { default_shares: input.default_shares } : {}),
     });
   }
 

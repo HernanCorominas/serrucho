@@ -28,6 +28,7 @@ import {
   calculateParticipantBalances,
   CATEGORY_INFO,
   generateSerruchoInviteMessage,
+  generateSerruchoCollectionMessage,
   buildWhatsAppShareUrl,
   type Serrucho,
   type Participant,
@@ -453,7 +454,14 @@ export default function SerruchoDetailScreen() {
               const isCreditor = p.net_balance_cents > 0;
               const isDebtor = p.net_balance_cents < 0;
 
-              const whatsappCobroMsg = `Hola ${p.name}! 🪚 En el serrucho *"${serrucho.name}"* te toca pagar *${formatDOP(Math.abs(p.net_balance_cents))}*.\n\nInstrucciones:\n${serrucho.payment_instructions || "Por favor transferir a la cuenta habitual."}\n\n¡Gracias! 🇩🇴`;
+              const whatsappCobroMsg = isDebtor
+                ? generateSerruchoCollectionMessage({
+                    serruchoName: serrucho.name,
+                    debtorName: p.name,
+                    amountFormatted: formatDOP(Math.abs(p.net_balance_cents)),
+                    paymentInstructions: serrucho.payment_instructions,
+                  })
+                : "";
 
               return (
                 <Card key={p.id} style={styles.balanceCard}>

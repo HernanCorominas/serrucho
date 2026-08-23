@@ -8,11 +8,14 @@ import {
   TrendingUp,
   Users,
   Share2,
+  Receipt,
+  PlusCircle,
+  MessageCircle,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatDOP } from "@/lib/finance/math";
+import { formatDOP, buildWhatsAppShareUrl, generateSerruchoCollectionMessage } from "@serrucho/core";
 import { ParticipantFinancials, Expense } from "@/lib/types/domain";
 import { DebtSimplificationCard } from "./debt-simplification-card";
 import { CategoryBreakdownCard } from "./category-breakdown-card";
@@ -27,6 +30,8 @@ interface BalanceOverviewProps {
   serruchoName?: string;
   paymentInstructions?: string | null;
   currency?: string;
+  myParticipantId?: string | null;
+  onAddExpenseClick?: () => void;
 }
 
 export function BalanceOverview({
@@ -35,14 +40,97 @@ export function BalanceOverview({
   totalExpensesCents,
   serruchoName = "Serrucho",
   paymentInstructions,
+  myParticipantId,
+  onAddExpenseClick,
 }: BalanceOverviewProps) {
   const [summaryOpen, setSummaryOpen] = React.useState(false);
 
   const creditors = participants.filter((p) => p.net_balance_cents > 0);
   const debtors = participants.filter((p) => p.net_balance_cents < 0);
 
+  // My Personal Financial Status (5-second clarity)
+  const myFinancials = myParticipantId
+    ? participants.find((p) => p.id === myParticipantId)
+    : null;
+
   return (
     <div className="space-y-6">
+      {/* My Personal Status Hero Card (5-Second Financial Clarity) */}
+      {myFinancials && (
+        <Card
+          className={`p-5 rounded-2xl border-2 transition-all duration-300 shadow-sm ${
+            myFinancials.net_balance_cents > 0
+              ? "bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border-emerald-500/40 dark:border-emerald-500/30"
+              : myFinancials.net_balance_cents < 0
+              ? "bg-gradient-to-r from-red-500/15 via-amber-500/10 to-red-500/15 border-red-500/40 dark:border-red-500/30"
+              : "bg-gradient-to-r from-blue-500/15 via-sky-500/10 to-blue-500/15 border-blue-500/40 dark:border-blue-500/30"
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                  Tu Estado Personal
+                </span>
+                <Badge
+                  variant={
+                    myFinancials.net_balance_cents > 0
+                      ? "success"
+                      : myFinancials.net_balance_cents < 0
+                      ? "destructive"
+                      : "secondary"
+                  }
+                  className="font-bold text-xs"
+                >
+                  {myFinancials.net_balance_cents > 0
+                    ? "A TU FAVOR"
+                    : myFinancials.net_balance_cents < 0
+                    ? "TIENES QUE PAGAR"
+                    : "ESTÁS AL DÍA"}
+                </Badge>
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-black text-foreground">
+                {myFinancials.net_balance_cents > 0 ? (
+                  <span className="text-emerald-700 dark:text-emerald-400">
+                    Te deben {formatDOP(myFinancials.net_balance_cents)} 🎉
+                  </span>
+                ) : myFinancials.net_balance_cents < 0 ? (
+                  <span className="text-red-700 dark:text-red-400">
+                    Te toca transferir {formatDOP(Math.abs(myFinancials.net_balance_cents))} ⚠️
+                  </span>
+                ) : (
+                  <span className="text-blue-700 dark:text-blue-400">
+                    ¡Estás a mano! No debes ni te deben ✨
+                  </span>
+                )}
+              </h3>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
+                <span>
+                  Pagaste en total: <strong className="text-foreground">{formatDOP(myFinancials.total_paid_cents)}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  Tu consumo en gastos: <strong className="text-foreground">{formatDOP(myFinancials.total_owed_cents)}</strong>
+                </span>
+              </div>
+            </div>
+
+            {onAddExpenseClick && (
+              <Button
+                size="sm"
+                onClick={onAddExpenseClick}
+                className="bg-primary hover:bg-primary/90 text-white font-bold text-xs gap-1.5 h-10 px-4 rounded-xl shrink-0"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span>+ Agregar lo que pagué</span>
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* Collection Progress Ring — shown when there are debtors */}
       {participants.length > 0 && (
         <CollectionProgressRing
@@ -50,7 +138,8 @@ export function BalanceOverview({
           totalExpensesCents={totalExpensesCents}
           serruchoName={serruchoName}
         />
-      )}  
+      )}
+
       {/* Top summary metric cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card className="border-orange-200/60 bg-gradient-to-br from-orange-50/70 to-card dark:from-orange-950/20 dark:border-orange-900/40">
@@ -168,6 +257,17 @@ export function BalanceOverview({
                 const isDebtor = p.net_balance_cents < 0;
                 const isSettled = p.net_balance_cents === 0;
 
+                const debtorMsg = isDebtor
+                  ? generateSerruchoCollectionMessage({
+                      serruchoName,
+                      debtorName: p.name,
+                      amountFormatted: formatDOP(Math.abs(p.net_balance_cents)),
+                      paymentInstructions,
+                    })
+                  : "";
+
+                const waUrl = isDebtor ? buildWhatsAppShareUrl(debtorMsg, p.phone) : "";
+
                 return (
                   <div
                     key={p.id}
@@ -185,28 +285,42 @@ export function BalanceOverview({
                           {p.name}
                         </h4>
                         <span className="text-xs text-muted-foreground">
-                          {p.email || p.phone || "Sin contacto directo"}
+                          {p.phone ? `📱 ${p.phone}` : p.email ? `✉️ ${p.email}` : "Sin contacto directo"}
                         </span>
                       </div>
 
-                      {isCreditor && (
-                        <Badge variant="success" className="gap-1 font-bold text-xs">
-                          <ArrowUpRight className="h-3 w-3" />
-                          Debe Recibir
-                        </Badge>
-                      )}
-                      {isDebtor && (
-                        <Badge variant="destructive" className="gap-1 font-bold text-xs">
-                          <ArrowDownRight className="h-3 w-3" />
-                          Debe Pagar
-                        </Badge>
-                      )}
-                      {isSettled && (
-                        <Badge variant="secondary" className="gap-1 font-bold text-xs">
-                          <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
-                          Al día
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isCreditor && (
+                          <Badge variant="success" className="gap-1 font-bold text-xs">
+                            <ArrowUpRight className="h-3 w-3" />
+                            Debe Recibir
+                          </Badge>
+                        )}
+                        {isDebtor && (
+                          <>
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-xs transition-colors"
+                              title={`Cobrar ${formatDOP(Math.abs(p.net_balance_cents))} a ${p.name} por WhatsApp`}
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                              <span>Cobrar</span>
+                            </a>
+                            <Badge variant="destructive" className="gap-1 font-bold text-xs">
+                              <ArrowDownRight className="h-3 w-3" />
+                              Debe Pagar
+                            </Badge>
+                          </>
+                        )}
+                        {isSettled && (
+                          <Badge variant="secondary" className="gap-1 font-bold text-xs">
+                            <CheckCircle2 className="h-3 w-3 text-muted-foreground" />
+                            Al día
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">

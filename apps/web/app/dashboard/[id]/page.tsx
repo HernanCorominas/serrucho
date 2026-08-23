@@ -13,6 +13,7 @@ import {
   Check,
   History,
   Eye,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import { AddExpenseDialog } from "@/features/expenses/components/add-expense-dia
 import { AddTransferDialog } from "@/features/transfers/components/add-transfer-dialog";
 import { AddIncomeDialog } from "@/features/incomes/components/add-income-dialog";
 import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serrucho-dialog";
+import { ExportSerruchoDialog } from "@/features/export/components/export-dialog";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
 import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
 import { ClosedSettlementView } from "@/features/settlements/components/closed-settlement-view";
@@ -65,6 +67,7 @@ export default function SerruchoWorkspacePage() {
   const [addTransOpen, setAddTransOpen] = React.useState(false);
   const [addIncomeOpen, setAddIncomeOpen] = React.useState(false);
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [exportOpen, setExportOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
   const [copiedLink, setCopiedLink] = React.useState(false);
@@ -247,12 +250,23 @@ export default function SerruchoWorkspacePage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setExportOpen(true)}
+            className="gap-1.5 font-semibold text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Exportar</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShareOpen(true)}
             className="gap-1.5 font-semibold text-xs"
           >
             <Share2 className="h-3.5 w-3.5 text-primary" />
             <span>Compartir</span>
           </Button>
+
 
           {!isClosed && !isReadOnly ? (
             <>
@@ -574,6 +588,15 @@ export default function SerruchoWorkspacePage() {
         serruchoId={serrucho.id}
         readOnlyToken={serrucho.read_only_token}
       />
+
+      {/* Export Serrucho Dialog */}
+      <ExportSerruchoDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        serruchoId={serrucho.id}
+        serruchoName={serrucho.name}
+      />
+
 
 
       {/* Close Serrucho Wizard Dialog */}

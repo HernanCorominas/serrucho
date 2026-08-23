@@ -13,6 +13,8 @@ import {
   NotificationLog,
   Profile,
   ActivityEvent,
+  SerruchoEntitlement,
+  PaymentTransaction,
 } from "@/lib/types/domain";
 import { ISerruchoRepository } from "./repository";
 
@@ -29,6 +31,9 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
   public settlementItems: Map<string, SettlementItem> = new Map();
   public notificationLogs: Map<string, NotificationLog> = new Map();
   public activityEvents: Map<string, ActivityEvent> = new Map();
+  public entitlements: Map<string, SerruchoEntitlement> = new Map(); // keyed by serrucho_id
+  public paymentTransactions: Map<string, PaymentTransaction> = new Map(); // keyed by id
+
 
   constructor() {
     this.seedDemoData();
@@ -727,4 +732,51 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, limit);
   }
+
+  // Monetization & Entitlements (Super Serrucho)
+  async getEntitlementBySerrucho(serruchoId: string): Promise<SerruchoEntitlement | null> {
+    return this.entitlements.get(serruchoId) || null;
+  }
+
+  async saveEntitlement(entitlement: SerruchoEntitlement): Promise<SerruchoEntitlement> {
+    const updated: SerruchoEntitlement = {
+      ...entitlement,
+      updated_at: new Date().toISOString(),
+    };
+    this.entitlements.set(entitlement.serrucho_id, updated);
+    return updated;
+  }
+
+  async createPaymentTransaction(tx: PaymentTransaction): Promise<PaymentTransaction> {
+    this.paymentTransactions.set(tx.id, tx);
+    return tx;
+  }
+
+  async getPaymentTransactionByOrderId(orderId: string): Promise<PaymentTransaction | null> {
+    return (
+      Array.from(this.paymentTransactions.values()).find((t) => t.order_id === orderId) || null
+    );
+  }
+
+  async getPaymentTransactionsBySerrucho(serruchoId: string): Promise<PaymentTransaction[]> {
+    return Array.from(this.paymentTransactions.values())
+      .filter((t) => t.serrucho_id === serruchoId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  async updatePaymentTransaction(
+    id: string,
+    updates: Partial<PaymentTransaction>
+  ): Promise<PaymentTransaction> {
+    const existing = this.paymentTransactions.get(id);
+    if (!existing) throw new Error("Transacción no encontrada");
+    const updated: PaymentTransaction = {
+      ...existing,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    this.paymentTransactions.set(id, updated);
+    return updated;
+  }
 }
+

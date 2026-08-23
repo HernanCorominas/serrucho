@@ -14,6 +14,8 @@ import {
   NotificationLog,
   Profile,
   ActivityEvent,
+  SerruchoEntitlement,
+  PaymentTransaction,
 } from "@/lib/types/domain";
 import { ISerruchoRepository } from "./repository";
 
@@ -673,8 +675,72 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       .eq("serrucho_id", serruchoId)
       .order("created_at", { ascending: false })
       .limit(limit);
+    if (error) return [];
+    return (data || []) as ActivityEvent[];
+  }
 
-    if (error || !data) return [];
-    return data as ActivityEvent[];
+  // Monetization & Entitlements (Super Serrucho)
+  async getEntitlementBySerrucho(serruchoId: string): Promise<SerruchoEntitlement | null> {
+    const { data, error } = await this.client
+      .from("serrucho_entitlements")
+      .select("*")
+      .eq("serrucho_id", serruchoId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as SerruchoEntitlement;
+  }
+
+  async saveEntitlement(entitlement: SerruchoEntitlement): Promise<SerruchoEntitlement> {
+    const { data, error } = await this.client
+      .from("serrucho_entitlements")
+      .upsert(entitlement)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as SerruchoEntitlement;
+  }
+
+  async createPaymentTransaction(tx: PaymentTransaction): Promise<PaymentTransaction> {
+    const { data, error } = await this.client
+      .from("payment_transactions")
+      .insert(tx)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as PaymentTransaction;
+  }
+
+  async getPaymentTransactionByOrderId(orderId: string): Promise<PaymentTransaction | null> {
+    const { data, error } = await this.client
+      .from("payment_transactions")
+      .select("*")
+      .eq("order_id", orderId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as PaymentTransaction;
+  }
+
+  async getPaymentTransactionsBySerrucho(serruchoId: string): Promise<PaymentTransaction[]> {
+    const { data, error } = await this.client
+      .from("payment_transactions")
+      .select("*")
+      .eq("serrucho_id", serruchoId)
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return (data || []) as PaymentTransaction[];
+  }
+
+  async updatePaymentTransaction(
+    id: string,
+    updates: Partial<PaymentTransaction>
+  ): Promise<PaymentTransaction> {
+    const { data, error } = await this.client
+      .from("payment_transactions")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as PaymentTransaction;
   }
 }

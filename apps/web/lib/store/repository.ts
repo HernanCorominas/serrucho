@@ -13,6 +13,8 @@ import {
   NotificationLog,
   Profile,
   ActivityEvent,
+  SerruchoEntitlement,
+  PaymentTransaction,
 } from "@/lib/types/domain";
 
 export interface ISerruchoRepository {
@@ -109,4 +111,13 @@ export interface ISerruchoRepository {
   // Activity / Audit Trail
   createActivityEvent(event: Omit<ActivityEvent, "id" | "created_at">): Promise<ActivityEvent>;
   getActivityEvents(serruchoId: string, limit?: number): Promise<ActivityEvent[]>;
+
+  // Monetization & Entitlements (Super Serrucho)
+  getEntitlementBySerrucho(serruchoId: string): Promise<SerruchoEntitlement | null>;
+  saveEntitlement(entitlement: SerruchoEntitlement): Promise<SerruchoEntitlement>;
+  createPaymentTransaction(tx: PaymentTransaction): Promise<PaymentTransaction>;
+  getPaymentTransactionByOrderId(orderId: string): Promise<PaymentTransaction | null>;
+  getPaymentTransactionsBySerrucho(serruchoId: string): Promise<PaymentTransaction[]>;
+  updatePaymentTransaction(id: string, updates: Partial<PaymentTransaction>): Promise<PaymentTransaction>;
 }
+

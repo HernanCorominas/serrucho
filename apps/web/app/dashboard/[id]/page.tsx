@@ -15,6 +15,7 @@ import {
   Eye,
   FileSpreadsheet,
   Trash2,
+  Zap,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import { AddIncomeDialog } from "@/features/incomes/components/add-income-dialog
 import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serrucho-dialog";
 import { DeleteSerruchoDialog } from "@/features/serruchos/components/delete-serrucho-dialog";
 import { ExportSerruchoDialog } from "@/features/export/components/export-dialog";
+import { SuperSerruchoModal } from "@/features/monetization/components/super-serrucho-modal";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
 import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
 import { ClosedSettlementView } from "@/features/settlements/components/closed-settlement-view";
@@ -72,6 +74,8 @@ export default function SerruchoWorkspacePage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
+  const [superModalOpen, setSuperModalOpen] = React.useState(false);
+  const [isSuper, setIsSuper] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
   const [copiedLink, setCopiedLink] = React.useState(false);
   const [myParticipantId, setMyParticipantId] = React.useState<string | null>(null);
@@ -131,12 +135,13 @@ export default function SerruchoWorkspacePage() {
     if (!serruchoId) return;
     try {
       setLoading(true);
-      const [detailRes, settleRes, expRes, transRes, incRes] = await Promise.all([
+      const [detailRes, settleRes, expRes, transRes, incRes, entRes] = await Promise.all([
         fetch(`/api/serruchos/${serruchoId}`),
         fetch(`/api/serruchos/${serruchoId}/settlement`),
         fetch(`/api/serruchos/${serruchoId}/expenses`),
         fetch(`/api/serruchos/${serruchoId}/transfers`),
         fetch(`/api/serruchos/${serruchoId}/incomes`),
+        fetch(`/api/serruchos/${serruchoId}/entitlements`),
       ]);
 
       if (!detailRes.ok) throw new Error("Serrucho no encontrado");
@@ -146,6 +151,12 @@ export default function SerruchoWorkspacePage() {
       setParticipants(detailData.participants);
       setSnapshots(detailData.snapshots || []);
       setLogs(detailData.logs || []);
+
+      if (entRes.ok) {
+        const entData = await entRes.json();
+        setIsSuper(entData.isSuper || false);
+      }
+
 
       if (detailData.serrucho) {
         saveRecent({
@@ -240,6 +251,21 @@ export default function SerruchoWorkspacePage() {
                   <span>Solo Lectura</span>
                 </Badge>
               )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSuperModalOpen(true)}
+                className={`gap-1 font-bold text-[10px] h-6 px-2 rounded-md transition-all ${
+                  isSuper
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700/50 shadow-sm"
+                    : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-amber-500/10 border-border"
+                }`}
+                title={isSuper ? "Super Serrucho Activo" : "Mejorar a Super Serrucho"}
+              >
+                <Zap className={`h-3 w-3 ${isSuper ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                <span>{isSuper ? "Super ⚡" : "Super ⚡"}</span>
+              </Button>
             </div>
             {serrucho.description && (
               <p className="text-xs text-muted-foreground mt-0.5 max-w-md line-clamp-1">
@@ -620,6 +646,17 @@ export default function SerruchoWorkspacePage() {
         serruchoId={serrucho.id}
         serruchoName={serrucho.name}
       />
+
+      {/* Super Serrucho Modal */}
+      <SuperSerruchoModal
+        open={superModalOpen}
+        onOpenChange={setSuperModalOpen}
+        serruchoId={serrucho.id}
+        serruchoName={serrucho.name}
+        isSuperAlready={isSuper}
+        onUnlocked={loadData}
+      />
+
 
 
 

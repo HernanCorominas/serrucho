@@ -449,3 +449,71 @@ export interface ActivityEvent {
   created_at: string;
 }
 
+// ─── Super Serrucho & Monetization Models ────────────────────────────────────
+
+export type CurrencyCode = "DOP" | "USD" | "EUR" | string;
+
+export type SerruchoTier = "FREE" | "SUPER_SERRUCHO";
+
+
+export type SuperSerruchoFeature =
+  | "UNLIMITED_PARTICIPANTS"
+  | "ADVANCED_MULTI_CURRENCY"
+  | "UNLIMITED_RECEIPTS"
+  | "CUSTOM_EXCEL_TEMPLATES"
+  | "EXPANDED_AUDIT_HISTORY"
+  | "EXPANDED_AI_RECEIPTS";
+
+export interface SerruchoEntitlement {
+  id: string;
+  serrucho_id: string;
+  tier: SerruchoTier;
+  status: "ACTIVE" | "EXPIRED" | "REVOKED";
+  features: SuperSerruchoFeature[];
+  buyer_user_id?: string | null;
+  buyer_email?: string | null;
+  order_id?: string | null;
+  amount_cents?: number;
+  currency?: CurrencyCode;
+  granted_at: string;
+  expires_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PaymentProvider =
+  | "MOCK_RD"
+  | "CARIBBEAN_PAY"
+  | "AZUL"
+  | "CARNET"
+  | "STRIPE"
+  | "MANUAL_TRANSFER";
+
+export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
+
+export interface PaymentTransaction {
+  id: string;
+  serrucho_id: string;
+  order_id: string;
+  buyer_user_id?: string | null;
+  buyer_email?: string | null;
+  amount_cents: number;
+  currency: CurrencyCode;
+  provider: PaymentProvider;
+  status: PaymentStatus;
+  provider_tx_id?: string | null;
+  metadata?: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SuperSerruchoPlan {
+  id: string;
+  name: string;
+  description: string;
+  amount_cents: number;
+  currency: CurrencyCode;
+  features: SuperSerruchoFeature[];
+}
+
+

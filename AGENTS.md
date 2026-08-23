@@ -23,3 +23,10 @@ Orden recomendado para ciclo de mejoras:
 8. Vercel (`Agents/07-VERCEL-DEPLOY.md`): Despliegue en la nube.
 
 Regla de oro: No declares DONE si no pasa lint, typecheck, tests y build.
+
+## Regla de Ejecución de Prompts (Serrucho_Implementation_Prompts_RD)
+- Ejecutar los archivos en orden numérico estricto, uno por uno (01, 02, 03...).
+- **NUNCA** pasar al siguiente archivo/prompt sin antes preguntar y recibir la confirmación explícita del usuario.
+- No saltar al siguiente hasta que el actual esté 100% implementado, probado y estable.
+- Reutilizar lo existente y respetar la adaptación a República Dominicana (DOP/RD$, WhatsApp, $0 costo).
+

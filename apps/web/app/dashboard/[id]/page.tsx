@@ -54,6 +54,25 @@ export default function SerruchoWorkspacePage() {
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
   const [copiedLink, setCopiedLink] = React.useState(false);
+  const [myParticipantId, setMyParticipantId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (serruchoId && typeof window !== "undefined") {
+      const stored = localStorage.getItem(`serrucho_my_id_${serruchoId}`);
+      if (stored) setMyParticipantId(stored);
+    }
+  }, [serruchoId]);
+
+  const handleSelectMyIdentity = (pId: string | null) => {
+    setMyParticipantId(pId);
+    if (serruchoId && typeof window !== "undefined") {
+      if (pId) {
+        localStorage.setItem(`serrucho_my_id_${serruchoId}`, pId);
+      } else {
+        localStorage.removeItem(`serrucho_my_id_${serruchoId}`);
+      }
+    }
+  };
 
   const loadData = React.useCallback(async () => {
     if (!serruchoId) return;
@@ -220,6 +239,68 @@ export default function SerruchoWorkspacePage() {
           )}
         </div>
       </div>
+
+      {/* Promo Banner for Web Guests */}
+      <div className="rounded-2xl p-4 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-200 dark:border-orange-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">📱</span>
+          <div>
+            <h4 className="font-extrabold text-sm text-foreground">
+              ¿Quieres organizar tus propios viajes y coros?
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Crea tu cuenta gratis o descarga la app de Serrucho en tu celular para tener siempre tus gastos al día.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link href="/" className="w-full sm:w-auto">
+            <Button
+              size="sm"
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white font-bold text-xs h-9 rounded-xl shadow-xs gap-1.5"
+            >
+              <span>Crear mi Serrucho ➔</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Guest Identity Selector */}
+      {participants.length > 0 && (
+        <Card className="bg-card/60 backdrop-blur-xs border-border/80 p-3.5 rounded-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">👋</span>
+              <span className="text-xs font-bold text-foreground">
+                {myParticipantId
+                  ? `Viendo como: ${participants.find((p) => p.id === myParticipantId)?.name || "Invitado"}`
+                  : "¿Quién eres tú en este serrucho?"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                variant={myParticipantId === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleSelectMyIdentity(null)}
+                className="text-xs h-7 px-2.5 rounded-lg"
+              >
+                Ver todo el grupo
+              </Button>
+              {participants.map((p) => (
+                <Button
+                  key={p.id}
+                  variant={myParticipantId === p.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleSelectMyIdentity(p.id)}
+                  className="text-xs h-7 px-2.5 rounded-lg font-medium"
+                >
+                  {p.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

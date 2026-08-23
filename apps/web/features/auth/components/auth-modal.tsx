@@ -14,9 +14,16 @@ interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: "auth" | "profile";
+  onAuthenticated?: () => void;
 }
 
-export function AuthModal({ open, onOpenChange, defaultTab = "auth" }: AuthModalProps) {
+export function AuthModal({
+  open,
+  onOpenChange,
+  defaultTab = "auth",
+  onAuthenticated,
+}: AuthModalProps) {
+
   const { user, profile, signIn, signUp, signOut, updateProfile, linkDeviceSessions } = useAuth();
   const { toast } = useToast();
 

@@ -14,11 +14,13 @@ import {
   TrendingUp,
   Sparkles,
   WifiOff,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreateSerruchoDialog } from "@/features/serruchos/components/create-serrucho-dialog";
+import { ImportSerruchoDialog } from "@/features/import/components/import-dialog";
 import { useRecentSerruchos } from "@/lib/hooks/use-recent-serruchos";
 import { Serrucho } from "@/lib/types/domain";
 import {
@@ -155,6 +157,7 @@ function DashboardContent() {
   const [loading, setLoading] = React.useState(true);
   const [isOffline, setIsOffline] = React.useState(!isOnline());
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [authModalOpen, setAuthModalOpen] = React.useState(false);
   const [showSyncBanner, setShowSyncBanner] = React.useState(true);
 
@@ -251,13 +254,25 @@ function DashboardContent() {
             </p>
           </div>
 
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 self-start sm:self-auto shadow-sm"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>Nuevo Serrucho</span>
-          </Button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+              className="font-semibold text-xs border-border hover:bg-muted gap-1.5 h-10"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              <span>Importar Splitwise / CSV</span>
+            </Button>
+
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 shadow-sm h-10"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>Nuevo Serrucho</span>
+            </Button>
+          </div>
+
         </div>
 
         {/* Multi-Device Sync Banner for Guests */}
@@ -417,6 +432,13 @@ function DashboardContent() {
         <AuthModal
           open={authModalOpen}
           onOpenChange={setAuthModalOpen}
+          onAuthenticated={() => fetchSerruchos()}
+        />
+
+        <ImportSerruchoDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          onImportSuccess={() => fetchSerruchos()}
         />
       </div>
 

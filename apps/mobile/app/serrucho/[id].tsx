@@ -63,113 +63,49 @@ export default function SerruchoDetailScreen() {
     const cached = await mobileStorage.getSerruchoDetail(id);
     if (cached) {
       setSerrucho(cached.serrucho);
-      setParticipants(cached.participants);
-      setExpenses(cached.expenses);
-      setBalances(cached.balances);
+      setParticipants(cached.participants || []);
+      setExpenses(cached.expenses || []);
+      setBalances(cached.balances || calculateParticipantBalances(cached.participants || [], cached.expenses || []));
     } else {
-      // Demo fallback for previewing in Expo Go
-      const demoSerrucho: Serrucho = {
-        id,
-        owner_id: "demo-user",
-        name: id === "las-terrenas-2025" ? "Villa en Las Terrenas 🌴" : "Serrucho del Coro",
-        description: "Gastos compartidos del viaje",
-        currency: "DOP",
-        event_date: "2025-03-15",
-        status: "OPEN",
-        payment_instructions: "Transferir al BHD 829-555-0199 o tPago",
-        payment_deadline: "2025-03-20",
-        closed_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const demoParticipants: Participant[] = [
-        {
-          id: "p1",
-          serrucho_id: id,
-          name: "Braulio (Tú)",
-          email: "braulio@email.com",
-          phone: "8295550199",
-          preferred_channel: "WHATSAPP",
+      // Look up serrucho in list
+      const list = await mobileStorage.getSerruchos();
+      const existing = list.find((s) => s.id === id);
+      if (existing) {
+        setSerrucho(existing);
+        setParticipants([]);
+        setExpenses([]);
+        setBalances([]);
+        await mobileStorage.saveSerruchoDetail(id, {
+          serrucho: existing,
+          participants: [],
+          expenses: [],
+          balances: [],
+        });
+      } else {
+        // Fresh new Serrucho
+        const fresh: Serrucho = {
+          id,
+          owner_id: "user-local",
+          name: "Nuevo Serrucho",
+          description: null,
+          event_date: null,
+          currency: "DOP",
+          status: "OPEN",
+          payment_instructions: "",
+          payment_deadline: null,
+          closed_at: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        },
-        {
-          id: "p2",
-          serrucho_id: id,
-          name: "Camila",
-          email: "camila@email.com",
-          phone: "8095550122",
-          preferred_channel: "WHATSAPP",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: "p3",
-          serrucho_id: id,
-          name: "Manuel",
-          email: "manuel@email.com",
-          phone: "8495550133",
-          preferred_channel: "WHATSAPP",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ];
+        };
 
-      const demoExpenses: ExpenseWithSplits[] = [
-        {
-          id: "e1",
-          serrucho_id: id,
-          paid_by_participant_id: "p1",
-          paid_by_name: "Tú (Organizador)",
-          description: "Alquiler de la Villa",
-          amount_cents: 3600000, // RD$ 36,000
-          split_method: "EQUAL",
-          category: "LODGING",
-          expense_date: "2025-03-15",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          splits: [
-            { expense_id: "e1", participant_id: "p1", participant_name: "Tú (Organizador)", owed_cents: 1200000, percentage_basis_points: 3334 },
-            { expense_id: "e1", participant_id: "p2", participant_name: "Carlos Matos", owed_cents: 1200000, percentage_basis_points: 3333 },
-            { expense_id: "e1", participant_id: "p3", participant_name: "Laura Gómez", owed_cents: 1200000, percentage_basis_points: 3333 },
-          ],
-        },
-        {
-          id: "e2",
-          serrucho_id: id,
-          paid_by_participant_id: "p2",
-          paid_by_name: "Carlos Matos",
-          description: "Supermercado Nacional & Bebidas",
-          amount_cents: 1500000, // RD$ 15,000
-          split_method: "EQUAL",
-          category: "FOOD_GROCERIES",
-          expense_date: "2025-03-16",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          splits: [
-            { expense_id: "e2", participant_id: "p1", participant_name: "Tú (Organizador)", owed_cents: 500000, percentage_basis_points: 3334 },
-            { expense_id: "e2", participant_id: "p2", participant_name: "Carlos Matos", owed_cents: 500000, percentage_basis_points: 3333 },
-            { expense_id: "e2", participant_id: "p3", participant_name: "Laura Gómez", owed_cents: 500000, percentage_basis_points: 3333 },
-          ],
-        },
-      ];
-
-      const calculatedBalances = calculateParticipantBalances(demoParticipants, demoExpenses);
-
-      setSerrucho(demoSerrucho);
-      setParticipants(demoParticipants);
-      setExpenses(demoExpenses);
-      setBalances(calculatedBalances);
-
-      await mobileStorage.saveSerruchoDetail(id, {
-        serrucho: demoSerrucho,
-        participants: demoParticipants,
-        expenses: demoExpenses,
-        balances: calculatedBalances,
-      });
+        setSerrucho(fresh);
+        setParticipants([]);
+        setExpenses([]);
+        setBalances([]);
+      }
     }
   }, [id]);
+
 
   useEffect(() => {
     loadData();
@@ -450,83 +386,97 @@ export default function SerruchoDetailScreen() {
         {/* Tab 1: Balances & WhatsApp Collections */}
         {activeTab === "balances" && (
           <View style={styles.tabContent}>
-            {balances.map((p) => {
-              const isCreditor = p.net_balance_cents > 0;
-              const isDebtor = p.net_balance_cents < 0;
+            {balances.length === 0 ? (
+              <Card style={styles.emptyTabCard}>
+                <View style={styles.emptyIconCircle}>
+                  <Ionicons name="scale-outline" size={28} color={colors.primary} />
+                </View>
+                <Text style={[styles.emptyTabTitle, { color: theme.text }]}>
+                  Sin balances calculados aún
+                </Text>
+                <Text style={[styles.emptyTabSubtitle, { color: theme.textMuted }]}>
+                  Agrega amigos y registra los primeros gastos para ver quién debe a quién con la menor cantidad de transferencias.
+                </Text>
+              </Card>
+            ) : (
+              balances.map((p) => {
+                const isCreditor = p.net_balance_cents > 0;
+                const isDebtor = p.net_balance_cents < 0;
 
-              const whatsappCobroMsg = isDebtor
-                ? generateSerruchoCollectionMessage({
-                    serruchoName: serrucho.name,
-                    debtorName: p.name,
-                    amountFormatted: formatDOP(Math.abs(p.net_balance_cents)),
-                    paymentInstructions: serrucho.payment_instructions,
-                  })
-                : "";
+                const whatsappCobroMsg = isDebtor
+                  ? generateSerruchoCollectionMessage({
+                      serruchoName: serrucho.name,
+                      debtorName: p.name,
+                      amountFormatted: formatDOP(Math.abs(p.net_balance_cents)),
+                      paymentInstructions: serrucho.payment_instructions,
+                    })
+                  : "";
 
-              return (
-                <Card key={p.id} style={styles.balanceCard}>
-                  <View style={styles.balanceHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.participantName, { color: theme.text }]}>
-                        {p.name}
-                      </Text>
-                      <Text style={[styles.participantContact, { color: theme.textMuted }]}>
-                        {p.phone || p.email || "Sin contacto"}
-                      </Text>
-                    </View>
-                    <Badge
-                      label={isCreditor ? "DEBE RECIBIR" : isDebtor ? "DEBE PAGAR" : "AL DÍA"}
-                      variant={isCreditor ? "success" : isDebtor ? "danger" : "neutral"}
-                    />
-                  </View>
-
-                  <View style={[styles.balanceGrid, { borderTopColor: theme.border }]}>
-                    <View>
-                      <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Pagó</Text>
-                      <Text style={[styles.gridVal, { color: theme.text }]}>
-                        {formatDOP(p.total_paid_cents)}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Le toca</Text>
-                      <Text style={[styles.gridVal, { color: theme.text }]}>
-                        {formatDOP(p.total_owed_cents)}
-                      </Text>
-                    </View>
-                    <View style={{ alignItems: "flex-end" }}>
-                      <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Balance</Text>
-                      <Text
-                        style={[
-                          styles.gridVal,
-                          {
-                            color: isCreditor
-                              ? colors.success
-                              : isDebtor
-                              ? colors.danger
-                              : theme.textMuted,
-                            fontWeight: "900",
-                          },
-                        ]}
-                      >
-                        {formatDOP(p.net_balance_cents, true)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* 1-Click WhatsApp Cobro for Debtors */}
-                  {isDebtor && (
-                    <View style={styles.cobroAction}>
-                      <WhatsAppShareButton
-                        phone={p.phone}
-                        message={whatsappCobroMsg}
-                        title={`Cobrar ${formatDOP(Math.abs(p.net_balance_cents))} por WhatsApp`}
-                        size="sm"
+                return (
+                  <Card key={p.id} style={styles.balanceCard}>
+                    <View style={styles.balanceHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.participantName, { color: theme.text }]}>
+                          {p.name}
+                        </Text>
+                        <Text style={[styles.participantContact, { color: theme.textMuted }]}>
+                          {p.phone || p.email || "Sin contacto"}
+                        </Text>
+                      </View>
+                      <Badge
+                        label={isCreditor ? "DEBE RECIBIR" : isDebtor ? "DEBE PAGAR" : "AL DÍA"}
+                        variant={isCreditor ? "success" : isDebtor ? "danger" : "neutral"}
                       />
                     </View>
-                  )}
-                </Card>
-              );
-            })}
+
+                    <View style={[styles.balanceGrid, { borderTopColor: theme.border }]}>
+                      <View>
+                        <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Pagó</Text>
+                        <Text style={[styles.gridVal, { color: theme.text }]}>
+                          {formatDOP(p.total_paid_cents)}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Le toca</Text>
+                        <Text style={[styles.gridVal, { color: theme.text }]}>
+                          {formatDOP(p.total_owed_cents)}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Balance</Text>
+                        <Text
+                          style={[
+                            styles.gridVal,
+                            {
+                              color: isCreditor
+                                ? colors.success
+                                : isDebtor
+                                ? colors.danger
+                                : theme.textMuted,
+                              fontWeight: "900",
+                            },
+                          ]}
+                        >
+                          {formatDOP(p.net_balance_cents, true)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* 1-Click WhatsApp Cobro for Debtors */}
+                    {isDebtor && (
+                      <View style={styles.cobroAction}>
+                        <WhatsAppShareButton
+                          phone={p.phone}
+                          message={whatsappCobroMsg}
+                          title={`Cobrar ${formatDOP(Math.abs(p.net_balance_cents))} por WhatsApp`}
+                          size="sm"
+                        />
+                      </View>
+                    )}
+                  </Card>
+                );
+              })
+            )}
           </View>
         )}
 
@@ -535,7 +485,27 @@ export default function SerruchoDetailScreen() {
           <View style={styles.tabContent}>
             {expenses.length === 0 ? (
               <Card style={styles.emptyTabCard}>
-                <Text style={styles.emptyText}>No hay gastos registrados aún.</Text>
+                <View style={styles.emptyIconCircle}>
+                  <Ionicons name="receipt-outline" size={28} color={colors.primary} />
+                </View>
+                <Text style={[styles.emptyTabTitle, { color: theme.text }]}>
+                  Aún no hay gastos registrados
+                </Text>
+                <Text style={[styles.emptyTabSubtitle, { color: theme.textMuted }]}>
+                  ¡Sé el primero en anotar los gastos del coro! Agrega lo que pagaste de la comida, bebidas o villa.
+                </Text>
+                {serrucho.status === "OPEN" && (
+                  <Button
+                    title="+ Registrar Primer Gasto"
+                    onPress={() => {
+                      triggerHaptic("medium");
+                      router.push(`/serrucho/add-expense?serruchoId=${id}`);
+                    }}
+                    variant="primary"
+                    size="sm"
+                    style={{ marginTop: 14, borderRadius: 12 }}
+                  />
+                )}
               </Card>
             ) : (
               expenses.map((e) => {
@@ -546,7 +516,7 @@ export default function SerruchoDetailScreen() {
                   <Card key={e.id} style={styles.expenseCard}>
                     <View style={styles.expenseRow}>
                       <View style={styles.emojiBox}>
-                        <Text style={{ fontSize: 24 }}>{category.emoji}</Text>
+                        <Text style={{ fontSize: 24 }}>{category?.emoji || "🧾"}</Text>
                       </View>
                       <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={[styles.expenseTitle, { color: theme.text }]}>
@@ -579,57 +549,84 @@ export default function SerruchoDetailScreen() {
                 }}
                 variant="primary"
                 size="md"
-                style={{ marginBottom: 12 }}
+                style={{ marginBottom: 12, borderRadius: 12 }}
                 icon={<Ionicons name="person-add" size={16} color="#ffffff" />}
               />
             )}
 
-            {participants.map((p, idx) => {
-              const isOwner = idx === 0 || p.name.includes("Organizador") || p.name.includes("Tú");
-              return (
-                <Card key={p.id} style={styles.participantCard}>
-                  <View style={styles.participantRow}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{p.name.charAt(0).toUpperCase()}</Text>
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <Text style={[styles.pName, { color: theme.text }]}>{p.name}</Text>
-                        {isOwner && <Badge label="ORGANIZADOR" variant="warning" size="sm" />}
+            {participants.length === 0 ? (
+              <Card style={styles.emptyTabCard}>
+                <View style={styles.emptyIconCircle}>
+                  <Ionicons name="people-outline" size={28} color={colors.primary} />
+                </View>
+                <Text style={[styles.emptyTabTitle, { color: theme.text }]}>
+                  Aún no hay integrantes
+                </Text>
+                <Text style={[styles.emptyTabSubtitle, { color: theme.textMuted }]}>
+                  Agrega a los amigos o familiares que participan en los gastos para comenzar a repartir las cuentas.
+                </Text>
+                {serrucho.status === "OPEN" && (
+                  <Button
+                    title="+ Agregar Primer Integrante"
+                    onPress={() => {
+                      triggerHaptic("light");
+                      setShowAddModal(true);
+                    }}
+                    variant="primary"
+                    size="sm"
+                    style={{ marginTop: 14, borderRadius: 12 }}
+                  />
+                )}
+              </Card>
+            ) : (
+              participants.map((p, idx) => {
+                const isOwner = idx === 0 || p.name.includes("Organizador") || p.name.includes("Tú");
+                return (
+                  <Card key={p.id} style={styles.participantCard}>
+                    <View style={styles.participantRow}>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>{p.name.charAt(0).toUpperCase()}</Text>
                       </View>
-                      <Text style={[styles.pPhone, { color: theme.textMuted }]}>
-                        {p.phone ? `📱 ${p.phone}` : p.email ? `✉️ ${p.email}` : "Sin teléfono registrado"}
-                      </Text>
-                    </View>
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text style={[styles.pName, { color: theme.text }]}>{p.name}</Text>
+                          {isOwner && <Badge label="ORGANIZADOR" variant="warning" size="sm" />}
+                        </View>
+                        <Text style={[styles.pPhone, { color: theme.textMuted }]}>
+                          {p.phone ? `📱 ${p.phone}` : p.email ? `✉️ ${p.email}` : "Sin teléfono registrado"}
+                        </Text>
+                      </View>
 
-                    {serrucho.status === "OPEN" && (
-                      <View style={{ flexDirection: "row", gap: 6 }}>
-                        <TouchableOpacity
-                          onPress={() => {
-                            triggerHaptic("light");
-                            setEditingP(p);
-                          }}
-                          style={[styles.iconActionBtn, { backgroundColor: theme.border }]}
-                        >
-                          <Ionicons name="pencil" size={14} color={theme.text} />
-                        </TouchableOpacity>
-
-                        {!isOwner && (
+                      {serrucho.status === "OPEN" && (
+                        <View style={{ flexDirection: "row", gap: 6 }}>
                           <TouchableOpacity
-                            onPress={() => handleDeleteParticipant(p.id, p.name)}
-                            style={[styles.iconActionBtn, { backgroundColor: colors.danger + "20" }]}
+                            onPress={() => {
+                              triggerHaptic("light");
+                              setEditingP(p);
+                            }}
+                            style={[styles.iconActionBtn, { backgroundColor: theme.border }]}
                           >
-                            <Ionicons name="trash-outline" size={14} color={colors.danger} />
+                            <Ionicons name="pencil" size={14} color={theme.text} />
                           </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                </Card>
-              );
-            })}
+
+                          {!isOwner && (
+                            <TouchableOpacity
+                              onPress={() => handleDeleteParticipant(p.id, p.name)}
+                              style={[styles.iconActionBtn, { backgroundColor: colors.danger + "20" }]}
+                            >
+                              <Ionicons name="trash-outline" size={14} color={colors.danger} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  </Card>
+                );
+              })
+            )}
           </View>
         )}
+
       </ScrollView>
 
       {/* Modal: Add Participant */}
@@ -938,13 +935,33 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   emptyTabCard: {
-    paddingVertical: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     alignItems: "center",
+    borderRadius: 20,
   },
-  emptyText: {
-    fontSize: 13,
-    color: "#94a3b8",
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: "#fff7ed",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
+  emptyTabTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  emptyTabSubtitle: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 17,
+    paddingHorizontal: 10,
+  },
+
   bottomBar: {
     position: "absolute",
     bottom: 0,

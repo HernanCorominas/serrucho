@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
   useColorScheme,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,48 +27,18 @@ export default function DashboardScreen() {
   const [serruchos, setSerruchos] = useState<Serrucho[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"OPEN" | "CLOSED">("OPEN");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadData = useCallback(async () => {
-    // Load cached first
+    // Load genuine saved data from local storage
     const cached = await mobileStorage.getSerruchos();
-    if (cached && cached.length > 0) {
-      setSerruchos(cached);
-    }
-
-    // Attempt to load from API if configured, else default to demo serruchos
-    if (cached.length === 0) {
-      const demoData: Serrucho[] = [
-        {
-          id: "las-terrenas-2025",
-          owner_id: "demo-user",
-          name: "Villa en Las Terrenas 🌴",
-          description: "Fin de semana largo en la playa con el coro",
-          currency: "DOP",
-          event_date: "2025-03-15",
-          status: "OPEN",
-          payment_instructions: "Transferencia BHD o Banreservas al 829-555-0199",
-          payment_deadline: "2025-03-20",
-          closed_at: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: "cena-cumple-carlos",
-          owner_id: "demo-user",
-          name: "Cena Cumpleaños Carlos 🎂",
-          description: "Restaurante en Piantini",
-          currency: "DOP",
-          event_date: "2025-02-10",
-          status: "CLOSED",
-          payment_instructions: "tPago al 809-555-0144",
-          payment_deadline: "2025-02-12",
-          closed_at: "2025-02-12T18:00:00Z",
-          created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-          updated_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-        },
-      ];
-      setSerruchos(demoData);
-      await mobileStorage.saveSerruchos(demoData);
+    // Filter out any legacy mock demo serruchos if they were previously saved
+    const cleanList = (cached || []).filter(
+      (s) => s.id !== "las-terrenas-2025" && s.id !== "cena-cumple-carlos" && s.id !== "serrucho-demo-1"
+    );
+    setSerruchos(cleanList);
+    if (cleanList.length !== (cached || []).length) {
+      await mobileStorage.saveSerruchos(cleanList);
     }
   }, []);
 
@@ -82,8 +53,6 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const [searchQuery, setSearchQuery] = useState("");
-
   const filtered = serruchos.filter((s) => {
     const matchesStatus = s.status === activeTab;
     const matchesQuery =
@@ -92,138 +61,195 @@ export default function DashboardScreen() {
       (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesStatus && matchesQuery;
   });
+
   const openCount = serruchos.filter((s) => s.status === "OPEN").length;
   const closedCount = serruchos.filter((s) => s.status === "CLOSED").length;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-        />
-      }
-    >
-      {/* Top CTA Banner */}
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.greeting, { color: theme.text }]}>¡Hola, Coro! 👋</Text>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-            {openCount} {openCount === 1 ? "serrucho activo" : "serruchos activos"} en curso
-          </Text>
-        </View>
-        <Button
-          title="Crear"
-          onPress={() => router.push("/serrucho/create")}
-          size="sm"
-          icon={<Ionicons name="add-circle" size={16} color="#ffffff" />}
-        />
-      </View>
-
-      {/* Search Bar */}
-      <Input
-        placeholder="Buscar serrucho por nombre o lugar..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        leftIcon={<Ionicons name="search" size={16} color={theme.textMuted} />}
-        style={{ height: 40 }}
-      />
-
-      {/* Tabs */}
-      <View style={[styles.tabBar, { backgroundColor: theme.inputBg, marginTop: 8 }]}>
-        <Button
-          title={`En Curso (${openCount})`}
-          variant={activeTab === "OPEN" ? "primary" : "ghost"}
-          size="sm"
-          onPress={() => {
-            triggerHaptic("light");
-            setActiveTab("OPEN");
-          }}
-          style={styles.tabButton}
-        />
-        <Button
-          title={`Cerrados (${closedCount})`}
-          variant={activeTab === "CLOSED" ? "primary" : "ghost"}
-          size="sm"
-          onPress={() => {
-            triggerHaptic("light");
-            setActiveTab("CLOSED");
-          }}
-          style={styles.tabButton}
-        />
-      </View>
-
-      {/* List */}
-      {filtered.length === 0 ? (
-        <Card style={styles.emptyCard}>
-          <Text style={styles.emptyEmoji}>🪚</Text>
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>
-            No hay serruchos {activeTab === "OPEN" ? "activos" : "cerrados"}
-          </Text>
-          <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
-            {activeTab === "OPEN"
-              ? "Crea tu primer serrucho para organizar las cuentas del próximo viaje o salida."
-              : "Los serruchos liquidados se guardarán aquí."}
-          </Text>
-          {activeTab === "OPEN" && (
-            <Button
-              title="Crear mi primer serrucho"
-              onPress={() => router.push("/serrucho/create")}
-              style={{ marginTop: 12 }}
-            />
-          )}
-        </Card>
-      ) : (
-        filtered.map((s) => (
-          <Card
-            key={s.id}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        {/* Top Header Row with Brand Identity */}
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.brandRow}>
+              <View style={styles.logoBadge}>
+                <Text style={styles.logoEmoji}>🪚</Text>
+              </View>
+              <View>
+                <Text style={[styles.brandTitle, { color: theme.text }]}>SERRUCHO</Text>
+                <Text style={[styles.brandSubtitle, { color: theme.textMuted }]}>
+                  REPARTO INTELIGENTE 🇩🇴
+                </Text>
+              </View>
+            </View>
+          </View>
+          <Button
+            title="+ Crear"
             onPress={() => {
               triggerHaptic("light");
-              router.push(`/serrucho/${s.id}`);
+              router.push("/serrucho/create");
             }}
-            variant={s.status === "OPEN" ? "default" : "muted"}
+            size="sm"
+            style={styles.createBtnTop}
+          />
+        </View>
+
+        {/* Quick Stats Cards */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{serruchos.length}</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>Total</Text>
+          </View>
+          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.statValue, { color: colors.success }]}>{openCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>Activos</Text>
+          </View>
+          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.statValue, { color: theme.textMuted }]}>{closedCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textMuted }]}>Liquidados</Text>
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        {serruchos.length > 0 && (
+          <Input
+            placeholder="Buscar serrucho..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            leftIcon={<Ionicons name="search" size={16} color={theme.textMuted} />}
+            style={{ height: 42, marginBottom: 12 }}
+          />
+        )}
+
+        {/* Segmented Tab Bar */}
+        <View style={[styles.tabBar, { backgroundColor: theme.inputBg }]}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerHaptic("light");
+              setActiveTab("OPEN");
+            }}
+            style={[
+              styles.tabButton,
+              activeTab === "OPEN" && { backgroundColor: colors.primary },
+            ]}
           >
-            <View style={styles.cardHeader}>
-              <Text style={[styles.serruchoTitle, { color: theme.text }]}>{s.name}</Text>
-              <Badge
-                label={s.status === "OPEN" ? "EN CURSO" : "CERRADO"}
-                variant={s.status === "OPEN" ? "success" : "neutral"}
-                size="sm"
+            <Text
+              style={[
+                styles.tabButtonText,
+                { color: activeTab === "OPEN" ? "#ffffff" : theme.textMuted },
+              ]}
+            >
+              En Curso ({openCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              triggerHaptic("light");
+              setActiveTab("CLOSED");
+            }}
+            style={[
+              styles.tabButton,
+              activeTab === "CLOSED" && { backgroundColor: colors.primary },
+            ]}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                { color: activeTab === "CLOSED" ? "#ffffff" : theme.textMuted },
+              ]}
+            >
+              Liquidados ({closedCount})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* List of Serruchos or Clean Empty State */}
+        {filtered.length === 0 ? (
+          <Card style={styles.emptyCard}>
+            <View style={styles.emptyIconCircle}>
+              <Text style={styles.emptyEmoji}>🪚</Text>
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>
+              {activeTab === "OPEN"
+                ? "No tienes ningún serrucho activo"
+                : "No hay serruchos archivados"}
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
+              {activeTab === "OPEN"
+                ? "Crea tu primer serrucho para organizar las cuentas de tu próxima salida, viaje o coro."
+                : "Los serruchos cerrados y liquidados aparecerán aquí."}
+            </Text>
+            {activeTab === "OPEN" && (
+              <Button
+                title="+ Crear mi primer serrucho"
+                onPress={() => {
+                  triggerHaptic("light");
+                  router.push("/serrucho/create");
+                }}
+                style={styles.emptyCta}
               />
-            </View>
-
-            {s.description ? (
-              <Text
-                style={[styles.serruchoDesc, { color: theme.textMuted }]}
-                numberOfLines={2}
-              >
-                {s.description}
-              </Text>
-            ) : null}
-
-            <View style={[styles.cardFooter, { borderTopColor: theme.border }]}>
-              <View style={styles.footerInfo}>
-                <Ionicons name="calendar-outline" size={14} color={theme.textMuted} />
-                <Text style={[styles.footerText, { color: theme.textMuted }]}>
-                  {s.event_date || new Date(s.created_at).toLocaleDateString("es-DO")}
-                </Text>
-              </View>
-
-              <View style={styles.footerAction}>
-                <Text style={styles.enterText}>
-                  {s.status === "OPEN" ? "Entrar al Serrucho" : "Ver Cuentas"}
-                </Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-              </View>
-            </View>
+            )}
           </Card>
-        ))
-      )}
-    </ScrollView>
+        ) : (
+          filtered.map((s) => (
+            <Card
+              key={s.id}
+              onPress={() => {
+                triggerHaptic("light");
+                router.push(`/serrucho/${s.id}`);
+              }}
+              variant={s.status === "OPEN" ? "default" : "muted"}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={[styles.serruchoTitle, { color: theme.text }]}>{s.name}</Text>
+                <Badge
+                  label={s.status === "OPEN" ? "EN CURSO" : "CERRADO"}
+                  variant={s.status === "OPEN" ? "success" : "neutral"}
+                  size="sm"
+                />
+              </View>
+
+              {s.description ? (
+                <Text
+                  style={[styles.serruchoDesc, { color: theme.textMuted }]}
+                  numberOfLines={2}
+                >
+                  {s.description}
+                </Text>
+              ) : null}
+
+              <View style={[styles.cardFooter, { borderTopColor: theme.border }]}>
+                <View style={styles.footerInfo}>
+                  <Ionicons name="calendar-outline" size={14} color={theme.textMuted} />
+                  <Text style={[styles.footerText, { color: theme.textMuted }]}>
+                    {s.event_date || new Date(s.created_at).toLocaleDateString("es-DO")}
+                  </Text>
+                </View>
+
+                <View style={styles.footerAction}>
+                  <Text style={styles.enterText}>
+                    {s.status === "OPEN" ? "Entrar al Serrucho" : "Ver Cuentas"}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                </View>
+              </View>
+            </Card>
+          ))
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -233,7 +259,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
   headerRow: {
     flexDirection: "row",
@@ -241,14 +267,58 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  greeting: {
-    fontSize: 22,
-    fontWeight: "900",
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  subtitle: {
-    fontSize: 13,
-    marginTop: 2,
-    fontWeight: "500",
+  logoBadge: {
+    height: 38,
+    width: 38,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoEmoji: {
+    fontSize: 18,
+  },
+  brandTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
+  brandSubtitle: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    marginTop: -1,
+  },
+  createBtnTop: {
+    borderRadius: 12,
+    paddingHorizontal: 14,
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  statBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: "900",
+    lineHeight: 22,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   tabBar: {
     flexDirection: "row",
@@ -259,6 +329,13 @@ const styles = StyleSheet.create({
   tabButton: {
     flex: 1,
     borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
   },
   cardHeader: {
     flexDirection: "row",
@@ -267,15 +344,15 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   serruchoTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "800",
     flex: 1,
     marginRight: 8,
   },
   serruchoDesc: {
-    fontSize: 13,
-    marginBottom: 12,
-    lineHeight: 18,
+    fontSize: 12,
+    marginBottom: 10,
+    lineHeight: 17,
   },
   cardFooter: {
     flexDirection: "row",
@@ -306,22 +383,37 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     alignItems: "center",
-    paddingVertical: 32,
-    marginTop: 12,
+    paddingVertical: 36,
+    marginTop: 8,
+    borderRadius: 24,
+  },
+  emptyIconCircle: {
+    height: 64,
+    width: 64,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
   emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: 32,
   },
   emptyTitle: {
     fontSize: 17,
     fontWeight: "800",
     marginBottom: 6,
+    textAlign: "center",
   },
   emptySubtitle: {
     fontSize: 13,
     textAlign: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     lineHeight: 18,
+  },
+  emptyCta: {
+    marginTop: 18,
+    borderRadius: 14,
+    paddingHorizontal: 20,
   },
 });

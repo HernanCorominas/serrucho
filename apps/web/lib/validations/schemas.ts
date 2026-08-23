@@ -87,6 +87,8 @@ export const expenseSchema = z
     splits: z
       .array(expenseParticipantSplitSchema)
       .min(1, "Debe incluir al menos un participante en el reparto"),
+    receipt_url: z.string().url().optional().nullable(),
+    receipt_urls: z.array(z.string()).max(3).optional(),
   })
   .refine(
     (data) => {
@@ -190,6 +192,7 @@ export const transferSchema = z
     notes: z.string().max(300, "La nota no puede exceder 300 caracteres").optional().nullable(),
     payment_method: paymentMethodSchema.optional().nullable(),
     receipt_url: z.string().url().optional().nullable().or(z.literal("")),
+    receipt_urls: z.array(z.string()).max(3).optional(),
   })
   .refine(
     (data) => data.sender_participant_id !== data.receiver_participant_id,
@@ -230,6 +233,7 @@ export const incomeSchema = z
     split_method: splitMethodSchema.default("EQUAL"),
     category: incomeCategorySchema.default("OTHER_INCOME"),
     receipt_url: z.string().url().optional().nullable().or(z.literal("")),
+    receipt_urls: z.array(z.string()).max(3).optional(),
     splits: z
       .array(incomeSplitItemSchema)
       .min(1, "Debe haber al menos 1 participante beneficiado"),

@@ -146,6 +146,27 @@ export interface Participant {
   updated_at: string;
 }
 
+export interface ReceiptAttachment {
+  id: string;
+  url: string;
+  thumbnail_url?: string;
+  filename?: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+}
+
+export const MAX_RECEIPTS_PER_TRANSACTION = 3;
+export const MAX_RECEIPT_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_RECEIPT_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+];
+
 export interface Expense {
   id: string;
   serrucho_id: string;
@@ -155,6 +176,8 @@ export interface Expense {
   expense_date: string;
   split_method: SplitMethod;
   category: ExpenseCategory;
+  receipt_url?: string | null;
+  receipt_urls?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -218,6 +241,7 @@ export interface Transfer {
   notes: string | null;
   payment_method?: PaymentMethod | null;
   receipt_url?: string | null;
+  receipt_urls?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -237,6 +261,7 @@ export interface Income {
   split_method: SplitMethod;
   category: IncomeCategory;
   receipt_url?: string | null;
+  receipt_urls?: string[];
   created_at: string;
   updated_at: string;
 }

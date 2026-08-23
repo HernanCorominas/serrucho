@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Participant, PaymentMethod } from "@/lib/types/domain";
 import { hapticSuccess } from "@/lib/utils/haptics";
+import { ReceiptGallery } from "@/features/receipts/components/receipt-gallery";
 
 interface AddTransferDialogProps {
   serruchoId: string;
@@ -38,6 +39,7 @@ export function AddTransferDialog({
   const [transferDate, setTransferDate] = React.useState(new Date().toISOString().split("T")[0]);
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("TRANSFER_POPULAR");
   const [notes, setNotes] = React.useState("");
+  const [receiptUrls, setReceiptUrls] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (participants.length >= 2) {
@@ -87,6 +89,8 @@ export function AddTransferDialog({
           transfer_date: transferDate,
           payment_method: paymentMethod,
           notes: notes.trim() || undefined,
+          receipt_urls: receiptUrls.length > 0 ? receiptUrls : undefined,
+          receipt_url: receiptUrls[0] || null,
         }),
       });
 
@@ -104,6 +108,7 @@ export function AddTransferDialog({
 
       setAmount("");
       setNotes("");
+      setReceiptUrls([]);
       onOpenChange(false);
       onTransferAdded();
     } catch (err: any) {
@@ -233,6 +238,15 @@ export function AddTransferDialog({
           <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 text-xs">
             💡 <strong>Movimiento directo:</strong> Esta transferencia modifica exclusivamente el balance entre estas dos personas sin alterar los gastos ni la cuota de los demás.
           </div>
+          {/* Receipt Attachments */}
+          <div className="pt-1">
+            <ReceiptGallery
+              urls={receiptUrls}
+              onChange={setReceiptUrls}
+              label="Comprobante de pago (opcional)"
+            />
+          </div>
+
         </div>
 
         <DialogFooter>

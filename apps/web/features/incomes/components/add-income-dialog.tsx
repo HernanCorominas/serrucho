@@ -33,6 +33,7 @@ import {
 } from "@/lib/types/domain";
 import { formatDOP, toCents, fromCents } from "@/lib/finance/math";
 import { hapticSuccess } from "@/lib/utils/haptics";
+import { ReceiptGallery } from "@/features/receipts/components/receipt-gallery";
 
 interface AddIncomeDialogProps {
   serruchoId: string;
@@ -69,6 +70,7 @@ export function AddIncomeDialog({
   const [percentages, setPercentages] = React.useState<Record<string, string>>({});
   const [exactAmounts, setExactAmounts] = React.useState<Record<string, string>>({});
   const [shares, setShares] = React.useState<Record<string, string>>({});
+  const [receiptUrls, setReceiptUrls] = React.useState<string[]>([]);
 
   // Initialize
   React.useEffect(() => {
@@ -210,6 +212,8 @@ export function AddIncomeDialog({
           category,
           split_method: splitMethod,
           splits: splitPayload,
+          receipt_urls: receiptUrls.length > 0 ? receiptUrls : undefined,
+          receipt_url: receiptUrls[0] || null,
         }),
       });
 
@@ -227,6 +231,7 @@ export function AddIncomeDialog({
 
       setDescription("");
       setAmount("");
+      setReceiptUrls([]);
       onOpenChange(false);
       onIncomeAdded();
     } catch (err: any) {
@@ -516,6 +521,14 @@ export function AddIncomeDialog({
           {/* Educational Note */}
           <div className="p-2.5 rounded-xl bg-cyan-50 text-cyan-900 border border-cyan-200 dark:bg-cyan-950/50 dark:text-cyan-300 dark:border-cyan-800 text-xs">
             💡 <strong>Efecto en balances:</strong> El dinero recibido en mano se acredita automáticamente a los beneficiarios, reduciendo el costo que debe aportar cada uno.
+          </div>
+          {/* Receipt Attachments */}
+          <div className="pt-1">
+            <ReceiptGallery
+              urls={receiptUrls}
+              onChange={setReceiptUrls}
+              label="Comprobante del reembolso (opcional)"
+            />
           </div>
         </div>
 

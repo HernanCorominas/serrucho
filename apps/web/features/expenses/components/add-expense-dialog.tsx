@@ -12,6 +12,7 @@ import { Participant, ExpenseCategory, CATEGORY_INFO } from "@/lib/types/domain"
 import { hapticSuccess, hapticLight } from "@/lib/utils/haptics";
 import { getExchangeRates, convertToDOPCents, SupportedCurrency, ExchangeRates } from "@/lib/finance/currency";
 import { ItemizedExpenseDialog } from "./itemized-expense-dialog";
+import { ReceiptGallery } from "@/features/receipts/components/receipt-gallery";
 
 interface AddExpenseDialogProps {
   serruchoId: string;
@@ -51,6 +52,7 @@ export function AddExpenseDialog({
   const [exactAmounts, setExactAmounts] = React.useState<Record<string, number>>({});
   const [shares, setShares] = React.useState<Record<string, number>>({});
   const [participantSearch, setParticipantSearch] = React.useState("");
+  const [receiptUrls, setReceiptUrls] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     getExchangeRates().then((rates) => {
@@ -255,6 +257,8 @@ export function AddExpenseDialog({
           category,
           split_method: splitMethod,
           splits: splitsPayload,
+          receipt_urls: receiptUrls.length > 0 ? receiptUrls : undefined,
+          receipt_url: receiptUrls[0] || null,
         }),
       });
 
@@ -273,6 +277,7 @@ export function AddExpenseDialog({
       setDescription("");
       setAmount("");
       setCurrency("DOP");
+      setReceiptUrls([]);
       onOpenChange(false);
       onExpenseAdded();
     } catch (err: any) {
@@ -764,6 +769,15 @@ export function AddExpenseDialog({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Receipt Attachments */}
+          <div className="px-1 pb-2">
+            <ReceiptGallery
+              urls={receiptUrls}
+              onChange={setReceiptUrls}
+              label="Fotos y comprobantes (opcional)"
+            />
           </div>
 
           <DialogFooter>

@@ -115,9 +115,12 @@ export class ExpenseService {
         expense_date: validated.expense_date,
         split_method: validated.split_method,
         category: validated.category || "OTHER",
+        receipt_url: validated.receipt_url || null,
+        receipt_urls: validated.receipt_urls || [],
       },
       calculatedSplits
     );
+
 
     const participantMap = new Map(participants.map((p) => [p.id, p.name]));
     const splits = await repo.getExpenseSplits(created.id);

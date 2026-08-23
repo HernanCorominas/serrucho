@@ -240,11 +240,11 @@ export function AddExpenseDialog({
         shares: splitMethod === "SHARES" ? (shares[id] || 1) : undefined,
       }));
 
-      // Append currency note if foreign currency
-      const finalDesc =
-        currency !== "DOP"
-          ? `${description.trim()} (${currency === "USD" ? "$" : "€"}${rawParsed.toFixed(2)} ${currency} @ ${customRate})`
-          : description.trim();
+      // Use clean description (no embedded currency note) — currency is stored separately
+      const finalDesc = description.trim();
+
+      const isForeignCurrency = currency !== "DOP";
+      const effectiveRate = customRate ? parseFloat(customRate) : undefined;
 
       const res = await fetch(`/api/serruchos/${serruchoId}/expenses`, {
         method: "POST",
@@ -259,6 +259,14 @@ export function AddExpenseDialog({
           splits: splitsPayload,
           receipt_urls: receiptUrls.length > 0 ? receiptUrls : undefined,
           receipt_url: receiptUrls[0] || null,
+          // Multi-currency traceability
+          ...(isForeignCurrency && {
+            original_currency: currency,
+            original_amount: rawParsed,
+            exchange_rate_used: effectiveRate,
+            rate_adjusted_by: effectiveRate ? "manual" : undefined,
+            rate_adjusted_at: effectiveRate ? new Date().toISOString() : undefined,
+          }),
         }),
       });
 

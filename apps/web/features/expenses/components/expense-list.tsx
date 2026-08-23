@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDOP } from "@/lib/finance/math";
+import { formatForeignAmount } from "@/lib/finance/currency";
 import {
   Participant,
   ExpenseWithSplits,
@@ -802,6 +803,17 @@ export function ExpenseList({
                           ? "Montos Fijos"
                           : "Equitativo"}
                       </Badge>
+                      {exp.original_currency && exp.original_currency !== "DOP" && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                          <span>🌐 {exp.original_currency}</span>
+                          {exp.exchange_rate_used && (
+                            <span className="opacity-80">(@ {exp.exchange_rate_used.toFixed(2)})</span>
+                          )}
+                          {exp.rate_adjusted_by && (
+                            <span className="text-[9px] font-medium opacity-75">✍️ manual</span>
+                          )}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -838,6 +850,11 @@ export function ExpenseList({
                       <span className="text-lg font-black text-foreground">
                         {formatDOP(exp.amount_cents)}
                       </span>
+                      {exp.original_currency && exp.original_currency !== "DOP" && exp.original_amount_cents && (
+                        <span className="text-[11px] font-semibold text-muted-foreground block">
+                          {formatForeignAmount(exp.original_amount_cents, exp.original_currency)}
+                        </span>
+                      )}
                     </div>
 
                     {!isClosed && (

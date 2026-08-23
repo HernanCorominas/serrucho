@@ -106,6 +106,8 @@ export class ExpenseService {
       }));
     }
 
+    const isForeignCurrency = validated.original_currency && validated.original_currency !== "DOP";
+
     const created = await repo.createExpenseWithSplits(
       {
         serrucho_id: serruchoId,
@@ -117,6 +119,14 @@ export class ExpenseService {
         category: validated.category || "OTHER",
         receipt_url: validated.receipt_url || null,
         receipt_urls: validated.receipt_urls || [],
+        // Multi-currency traceability
+        original_currency: isForeignCurrency ? validated.original_currency : null,
+        original_amount_cents: isForeignCurrency && validated.original_amount
+          ? Math.round(validated.original_amount * 100)
+          : null,
+        exchange_rate_used: isForeignCurrency ? (validated.exchange_rate_used || null) : null,
+        rate_adjusted_by: validated.rate_adjusted_by || null,
+        rate_adjusted_at: validated.rate_adjusted_at || null,
       },
       calculatedSplits
     );
@@ -266,9 +276,28 @@ export class ExpenseService {
         ...(input.expense_date ? { expense_date: input.expense_date } : {}),
         ...(input.split_method ? { split_method: input.split_method } : {}),
         ...(input.category ? { category: input.category } : {}),
+        ...(input.receipt_url !== undefined ? { receipt_url: input.receipt_url } : {}),
+        ...(input.receipt_urls !== undefined ? { receipt_urls: input.receipt_urls } : {}),
+        ...(input.original_currency !== undefined ? { original_currency: input.original_currency } : {}),
+        ...(input.original_amount !== undefined
+          ? {
+              original_amount_cents:
+                input.original_amount !== null ? Math.round(input.original_amount * 100) : null,
+            }
+          : {}),
+        ...(input.exchange_rate_used !== undefined
+          ? { exchange_rate_used: input.exchange_rate_used }
+          : {}),
+        ...(input.rate_adjusted_by !== undefined
+          ? { rate_adjusted_by: input.rate_adjusted_by }
+          : {}),
+        ...(input.rate_adjusted_at !== undefined
+          ? { rate_adjusted_at: input.rate_adjusted_at }
+          : {}),
       },
       calculatedSplits
     );
+
 
     const splits = await repo.getExpenseSplits(updated.id);
     const paidByName = participantMap.get(updated.paid_by_participant_id) || "Alguien";

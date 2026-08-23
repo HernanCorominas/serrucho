@@ -89,6 +89,12 @@ export const expenseSchema = z
       .min(1, "Debe incluir al menos un participante en el reparto"),
     receipt_url: z.string().url().optional().nullable(),
     receipt_urls: z.array(z.string()).max(3).optional(),
+    // Multi-currency traceability
+    original_currency: z.string().max(3).optional().nullable(),
+    original_amount: z.number().positive().optional().nullable(),
+    exchange_rate_used: z.number().positive().optional().nullable(),
+    rate_adjusted_by: z.string().max(100).optional().nullable(),
+    rate_adjusted_at: z.string().optional().nullable(),
   })
   .refine(
     (data) => {

@@ -176,6 +176,13 @@ export interface Expense {
   expense_date: string;
   split_method: SplitMethod;
   category: ExpenseCategory;
+  // Multi-currency traceability
+  original_currency?: string | null;        // e.g. "USD", "EUR" — null means DOP
+  original_amount_cents?: number | null;    // amount in original currency × 100
+  exchange_rate_used?: number | null;       // 1 original_currency = X DOP
+  rate_adjusted_by?: string | null;        // name of who set manual rate
+  rate_adjusted_at?: string | null;        // ISO timestamp of manual override
+  // Attachments
   receipt_url?: string | null;
   receipt_urls?: string[];
   created_at: string;

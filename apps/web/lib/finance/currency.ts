@@ -97,3 +97,27 @@ export function convertToDOPCents(
 
   return Math.round(amount * 100);
 }
+
+export const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
+  DOP: "RD$",
+  USD: "$",
+  EUR: "€",
+};
+
+export const CURRENCY_LABELS: Record<SupportedCurrency, string> = {
+  DOP: "Peso Dominicano (DOP)",
+  USD: "Dólar Estadounidense (USD)",
+  EUR: "Euro (EUR)",
+};
+
+/**
+ * Formats a foreign amount with its currency symbol and code.
+ */
+export function formatForeignAmount(amountCents: number, currency: string): string {
+  const symbol = CURRENCY_SYMBOLS[currency as SupportedCurrency] || currency;
+  const val = (amountCents / 100).toLocaleString("es-DO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${symbol} ${val} ${currency}`;
+}

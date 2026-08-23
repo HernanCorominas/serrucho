@@ -4,6 +4,8 @@ import {
   Expense,
   ExpenseParticipant,
   Transfer,
+  Income,
+  IncomeParticipant,
   SettlementSnapshot,
   SettlementItem,
   NotificationLog,
@@ -18,6 +20,8 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
   public expenses: Map<string, Expense> = new Map();
   public expenseParticipants: ExpenseParticipant[] = [];
   public transfers: Map<string, Transfer> = new Map();
+  public incomes: Map<string, Income> = new Map();
+  public incomeParticipants: IncomeParticipant[] = [];
   public settlementSnapshots: Map<string, SettlementSnapshot> = new Map();
   public settlementItems: Map<string, SettlementItem> = new Map();
   public notificationLogs: Map<string, NotificationLog> = new Map();
@@ -467,5 +471,52 @@ export class MemorySerruchoRepository implements ISerruchoRepository {
 
   async deleteTransfer(id: string): Promise<boolean> {
     return this.transfers.delete(id);
+  }
+
+  // Incomes & Refunds
+  async getIncomes(serruchoId: string): Promise<Income[]> {
+    return Array.from(this.incomes.values()).filter(
+      (inc) => inc.serrucho_id === serruchoId
+    );
+  }
+
+  async getIncomeById(id: string): Promise<Income | null> {
+    return this.incomes.get(id) || null;
+  }
+
+  async getIncomeSplits(incomeId: string): Promise<IncomeParticipant[]> {
+    return this.incomeParticipants.filter((ip) => ip.income_id === incomeId);
+  }
+
+  async createIncome(
+    incomeData: Omit<Income, "id" | "created_at" | "updated_at">,
+    splits: Omit<IncomeParticipant, "income_id">[]
+  ): Promise<Income> {
+    const id = `inc-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const now = new Date().toISOString();
+    const income: Income = {
+      ...incomeData,
+      id,
+      created_at: now,
+      updated_at: now,
+    };
+    this.incomes.set(id, income);
+
+    for (const split of splits) {
+      this.incomeParticipants.push({
+        ...split,
+        income_id: id,
+      });
+    }
+
+    return income;
+  }
+
+  async deleteIncome(id: string): Promise<boolean> {
+    const existed = this.incomes.delete(id);
+    this.incomeParticipants = this.incomeParticipants.filter(
+      (ip) => ip.income_id !== id
+    );
+    return existed;
   }
 }

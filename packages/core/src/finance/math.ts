@@ -249,7 +249,7 @@ export interface ParticipantFinancialSummary {
 }
 
 /**
- * Computes the complete net balance summary for all participants given expenses, allocations, and direct transfers.
+ * Computes the complete net balance summary for all participants given expenses, allocations, direct transfers, and incomes/refunds.
  */
 export function calculateNetBalances(
   participantIds: string[],
@@ -262,6 +262,11 @@ export function calculateNetBalances(
     senderParticipantId: string;
     receiverParticipantId: string;
     amountCents: number;
+  }[] = [],
+  incomes: {
+    receivedByParticipantId: string;
+    amountCents: number;
+    splits: { participantId: string; creditCents: number }[];
   }[] = []
 ): Map<string, ParticipantFinancialSummary> {
   const summaryMap = new Map<string, ParticipantFinancialSummary>();
@@ -303,6 +308,23 @@ export function calculateNetBalances(
     const receiver = summaryMap.get(tr.receiverParticipantId);
     if (receiver) {
       receiver.totalOwedCents += tr.amountCents;
+    }
+  }
+
+  // Aggregate group incomes & refunds (e.g. deposit return, supplier refund)
+  for (const inc of incomes) {
+    // The participant who received the income in hand owes that amount to the group
+    const receiver = summaryMap.get(inc.receivedByParticipantId);
+    if (receiver) {
+      receiver.totalOwedCents += inc.amountCents;
+    }
+
+    // Each beneficiary gets a credit reducing their net cost / increasing their balance
+    for (const split of inc.splits) {
+      const beneficiary = summaryMap.get(split.participantId);
+      if (beneficiary) {
+        beneficiary.totalPaidCents += split.creditCents;
+      }
     }
   }
 

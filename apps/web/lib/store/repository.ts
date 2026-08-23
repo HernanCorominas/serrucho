@@ -4,6 +4,8 @@ import {
   Expense,
   ExpenseParticipant,
   Transfer,
+  Income,
+  IncomeParticipant,
   SettlementSnapshot,
   SettlementItem,
   NotificationLog,
@@ -43,6 +45,16 @@ export interface ISerruchoRepository {
     splits?: Omit<ExpenseParticipant, "expense_id">[]
   ): Promise<Expense>;
   deleteExpense(id: string): Promise<boolean>;
+
+  // Incomes & Refunds
+  getIncomes(serruchoId: string): Promise<Income[]>;
+  getIncomeById(id: string): Promise<Income | null>;
+  getIncomeSplits(incomeId: string): Promise<IncomeParticipant[]>;
+  createIncome(
+    income: Omit<Income, "id" | "created_at" | "updated_at">,
+    splits: Omit<IncomeParticipant, "income_id">[]
+  ): Promise<Income>;
+  deleteIncome(id: string): Promise<boolean>;
 
   // Settlement Snapshots & Items
   getSnapshotsBySerrucho(serruchoId: string): Promise<SettlementSnapshot[]>;

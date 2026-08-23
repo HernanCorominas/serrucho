@@ -44,6 +44,9 @@ export const expenseParticipantSplitSchema = z.object({
   shares: z.number().positive("Las cuotas / shares deben ser mayores a 0").optional(),
 });
 
+export const splitMethodSchema = z.enum(["EQUAL", "PERCENTAGE", "EXACT", "SHARES", "ITEMIZED"]);
+export type SplitMethodInput = z.infer<typeof splitMethodSchema>;
+
 export const expenseCategorySchema = z.enum([
   "LODGING",
   "FOOD_GROCERIES",
@@ -65,7 +68,7 @@ export const expenseSchema = z
       .positive("El monto debe ser mayor a 0"),
     paid_by_participant_id: z.string().min(1, "Selecciona quién pagó este gasto"),
     expense_date: z.string().min(1, "Fecha de gasto requerida"),
-    split_method: z.enum(["EQUAL", "PERCENTAGE", "EXACT", "SHARES", "ITEMIZED"]).default("EQUAL"),
+    split_method: splitMethodSchema.default("EQUAL"),
     category: expenseCategorySchema.default("OTHER"),
     splits: z
       .array(expenseParticipantSplitSchema)
@@ -149,3 +152,65 @@ export const transferSchema = z
   );
 
 export type TransferInput = z.infer<typeof transferSchema>;
+
+export const incomeCategorySchema = z.enum([
+  "DEPOSIT_RETURN",
+  "SUPPLIER_REFUND",
+  "HOTEL_REFUND",
+  "EXTERNAL_SPONSORSHIP",
+  "OTHER_INCOME",
+]);
+
+export const incomeSplitItemSchema = z.object({
+  participant_id: z.string().min(1, "Participante requerido"),
+  percentage: z.number().min(0).max(100).optional(),
+  amount: z.number().min(0).optional(),
+  shares: z.number().min(0).optional(),
+});
+
+export const incomeSchema = z
+  .object({
+    description: z
+      .string()
+      .min(2, "La descripción debe tener al menos 2 caracteres")
+      .max(100, "La descripción no puede exceder 100 caracteres"),
+    amount: z
+      .number({ invalid_type_error: "Ingresa un monto válido" })
+      .positive("El monto debe ser mayor a 0"),
+    received_by_participant_id: z.string().min(1, "Indica quién recibió el dinero"),
+    income_date: z.string().min(1, "Fecha de ingreso requerida"),
+    split_method: splitMethodSchema.default("EQUAL"),
+    category: incomeCategorySchema.default("OTHER_INCOME"),
+    receipt_url: z.string().url().optional().nullable().or(z.literal("")),
+    splits: z
+      .array(incomeSplitItemSchema)
+      .min(1, "Debe haber al menos 1 participante beneficiado"),
+  })
+  .refine(
+    (data) => {
+      if (data.split_method === "PERCENTAGE") {
+        const totalPct = data.splits.reduce((acc, s) => acc + (s.percentage || 0), 0);
+        return Math.abs(totalPct - 100) < 0.01;
+      }
+      if (data.split_method === "EXACT") {
+        const totalAmount = data.splits.reduce((acc, s) => acc + (s.amount || 0), 0);
+        return Math.abs(totalAmount - data.amount) < 0.01;
+      }
+      if (data.split_method === "SHARES") {
+        const totalShares = data.splits.reduce((acc, s) => acc + (s.shares || 0), 0);
+        return totalShares > 0 && data.splits.every((s) => (s.shares || 0) > 0);
+      }
+      return true;
+    },
+    (data) => ({
+      message:
+        data.split_method === "PERCENTAGE"
+          ? "La suma de los porcentajes de beneficio debe ser exactamente 100%"
+          : data.split_method === "EXACT"
+          ? "La suma de los montos acreditados debe ser exactamente igual al monto total del ingreso"
+          : "Cada participante beneficiado debe tener al menos 0.1 cuotas / shares",
+      path: ["splits"],
+    })
+  );
+
+export type IncomeInput = z.input<typeof incomeSchema>;

@@ -26,6 +26,24 @@ export const CATEGORY_INFO: Record<
   OTHER: { label: "Otros Gastos", emoji: "📦", color: "bg-slate-500/10 text-slate-600 border-slate-200 dark:border-slate-800" },
 };
 
+export type IncomeCategory =
+  | "DEPOSIT_RETURN"
+  | "SUPPLIER_REFUND"
+  | "HOTEL_REFUND"
+  | "EXTERNAL_SPONSORSHIP"
+  | "OTHER_INCOME";
+
+export const INCOME_CATEGORY_INFO: Record<
+  IncomeCategory,
+  { label: string; emoji: string; color: string }
+> = {
+  DEPOSIT_RETURN: { label: "Devolución de Depósito", emoji: "🏠", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800" },
+  SUPPLIER_REFUND: { label: "Reembolso de Proveedor", emoji: "🛒", color: "bg-cyan-500/10 text-cyan-600 border-cyan-200 dark:border-cyan-800" },
+  HOTEL_REFUND: { label: "Reembolso Hotel / Vuelo / Airbnb", emoji: "🏨", color: "bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-800" },
+  EXTERNAL_SPONSORSHIP: { label: "Aporte Externo / Patrocinio", emoji: "🎁", color: "bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800" },
+  OTHER_INCOME: { label: "Otro Ingreso", emoji: "💵", color: "bg-slate-500/10 text-slate-600 border-slate-200 dark:border-slate-800" },
+};
+
 export interface Profile {
   id: string;
   email: string;
@@ -107,6 +125,32 @@ export interface Transfer {
 export interface TransferWithParticipants extends Transfer {
   sender_name: string;
   receiver_name: string;
+}
+
+export interface Income {
+  id: string;
+  serrucho_id: string;
+  description: string;
+  amount_cents: number;
+  received_by_participant_id: string;
+  income_date: string;
+  split_method: SplitMethod;
+  category: IncomeCategory;
+  receipt_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IncomeParticipant {
+  income_id: string;
+  participant_id: string;
+  percentage_basis_points: number | null;
+  credit_cents: number;
+}
+
+export interface IncomeWithSplits extends Income {
+  received_by_name: string;
+  splits: (IncomeParticipant & { participant_name: string })[];
 }
 
 export interface SettlementSnapshot {

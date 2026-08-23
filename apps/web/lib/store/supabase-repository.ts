@@ -5,6 +5,8 @@ import {
   Expense,
   ExpenseParticipant,
   Transfer,
+  Income,
+  IncomeParticipant,
   SettlementSnapshot,
   SettlementItem,
   NotificationLog,
@@ -429,6 +431,79 @@ export class SupabaseSerruchoRepository implements ISerruchoRepository {
       .from("transfers")
       .delete()
       .eq("id", id);
+    return !error;
+  }
+
+  // Incomes & Refunds
+  async getIncomes(serruchoId: string): Promise<Income[]> {
+    const { data, error } = await this.client
+      .from("incomes")
+      .select("*")
+      .eq("serrucho_id", serruchoId)
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return (data || []).map((inc) => ({
+      ...inc,
+      amount_cents: Number(inc.amount_cents),
+    })) as Income[];
+  }
+
+  async getIncomeById(id: string): Promise<Income | null> {
+    const { data, error } = await this.client
+      .from("incomes")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error || !data) return null;
+    return {
+      ...data,
+      amount_cents: Number(data.amount_cents),
+    } as Income;
+  }
+
+  async getIncomeSplits(incomeId: string): Promise<IncomeParticipant[]> {
+    const { data, error } = await this.client
+      .from("income_participants")
+      .select("*")
+      .eq("income_id", incomeId);
+    if (error) return [];
+    return (data || []).map((ip) => ({
+      ...ip,
+      credit_cents: Number(ip.credit_cents),
+    })) as IncomeParticipant[];
+  }
+
+  async createIncome(
+    incomeData: Omit<Income, "id" | "created_at" | "updated_at">,
+    splits: Omit<IncomeParticipant, "income_id">[]
+  ): Promise<Income> {
+    const { data: income, error: incError } = await this.client
+      .from("incomes")
+      .insert(incomeData)
+      .select()
+      .single();
+    if (incError) throw incError;
+
+    if (splits.length > 0) {
+      const splitRows = splits.map((s) => ({
+        ...s,
+        income_id: income.id,
+      }));
+      const { error: splitError } = await this.client
+        .from("income_participants")
+        .insert(splitRows);
+      if (splitError) throw splitError;
+    }
+
+    return {
+      ...income,
+      amount_cents: Number(income.amount_cents),
+    } as Income;
+  }
+
+  async deleteIncome(id: string): Promise<boolean> {
+    await this.client.from("income_participants").delete().eq("income_id", id);
+    const { error } = await this.client.from("incomes").delete().eq("id", id);
     return !error;
   }
 }

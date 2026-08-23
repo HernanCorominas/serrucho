@@ -1,24 +1,35 @@
 "use client";
 
 import * as React from "react";
-import { Receipt, Trash2, PlusCircle, Calendar, UserCheck, Search, Filter, ArrowRightLeft, CreditCard } from "lucide-react";
+import { Receipt, Trash2, PlusCircle, Calendar, UserCheck, Search, Filter, ArrowRightLeft, CreditCard, Download } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { formatDOP } from "@/lib/finance/math";
-import { ExpenseWithSplits, ExpenseCategory, CATEGORY_INFO, TransferWithParticipants } from "@/lib/types/domain";
+import {
+  ExpenseWithSplits,
+  ExpenseCategory,
+  CATEGORY_INFO,
+  TransferWithParticipants,
+  IncomeWithSplits,
+  IncomeCategory,
+  INCOME_CATEGORY_INFO,
+} from "@/lib/types/domain";
 
 interface ExpenseListProps {
   serruchoId: string;
   isClosed: boolean;
   expenses: ExpenseWithSplits[];
   transfers?: TransferWithParticipants[];
+  incomes?: IncomeWithSplits[];
   onAddClick: () => void;
   onAddTransferClick?: () => void;
+  onAddIncomeClick?: () => void;
   onExpenseDeleted: () => void;
   onTransferDeleted?: () => void;
+  onIncomeDeleted?: () => void;
 }
 
 export function ExpenseList({
@@ -26,16 +37,48 @@ export function ExpenseList({
   isClosed,
   expenses,
   transfers = [],
+  incomes = [],
   onAddClick,
   onAddTransferClick,
+  onAddIncomeClick,
   onExpenseDeleted,
   onTransferDeleted,
+  onIncomeDeleted,
 }: ExpenseListProps) {
   const { toast } = useToast();
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("ALL");
-  const [movementType, setMovementType] = React.useState<"ALL" | "EXPENSES" | "TRANSFERS">("ALL");
+  const [movementType, setMovementType] = React.useState<"ALL" | "EXPENSES" | "TRANSFERS" | "INCOMES">("ALL");
+
+  const handleDeleteIncome = async (id: string, description: string) => {
+    if (!confirm(`¿Estás seguro de eliminar el ingreso "${description}"?`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      const res = await fetch(`/api/serruchos/${serruchoId}/incomes/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "No se pudo eliminar el ingreso");
+      }
+
+      toast({
+        type: "success",
+        title: "Ingreso eliminado",
+        message: `Se ha borrado "${description}" del serrucho.`,
+      });
+      if (onIncomeDeleted) onIncomeDeleted();
+    } catch (err: any) {
+      toast({ type: "error", message: err.message });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleDeleteTransfer = async (id: string) => {
     if (!confirm("¿Estás seguro de eliminar esta transferencia?")) {
@@ -95,9 +138,9 @@ export function ExpenseList({
     }
   };
 
-  // Filter expenses and transfers based on search, category and movement type
+  // Filter expenses, transfers and incomes based on search, category and movement type
   const filteredExpenses = React.useMemo(() => {
-    if (movementType === "TRANSFERS") return [];
+    if (movementType === "TRANSFERS" || movementType === "INCOMES") return [];
     return expenses.filter((exp) => {
       const matchesSearch =
         exp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -111,7 +154,7 @@ export function ExpenseList({
   }, [expenses, searchQuery, selectedCategory, movementType]);
 
   const filteredTransfers = React.useMemo(() => {
-    if (movementType === "EXPENSES" || selectedCategory !== "ALL") return [];
+    if (movementType === "EXPENSES" || movementType === "INCOMES" || selectedCategory !== "ALL") return [];
     return transfers.filter((t) => {
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
@@ -123,7 +166,22 @@ export function ExpenseList({
     });
   }, [transfers, searchQuery, movementType, selectedCategory]);
 
+  const filteredIncomes = React.useMemo(() => {
+    if (movementType === "EXPENSES" || movementType === "TRANSFERS" || selectedCategory !== "ALL") return [];
+    return incomes.filter((inc) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        inc.description.toLowerCase().includes(q) ||
+        inc.received_by_name.toLowerCase().includes(q) ||
+        inc.splits.some((s) => s.participant_name.toLowerCase().includes(q))
+      );
+    });
+  }, [incomes, searchQuery, movementType, selectedCategory]);
+
   const totalCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
+  const totalIncomesCents = incomes.reduce((sum, inc) => sum + inc.amount_cents, 0);
+  const totalMovementsCount = expenses.length + transfers.length + incomes.length;
 
   const paymentMethodLabel = (method?: string | null) => {
     switch (method) {
@@ -142,8 +200,9 @@ export function ExpenseList({
     }
   };
 
-  const hasAnyItems = expenses.length > 0 || transfers.length > 0;
-  const hasFilteredItems = filteredExpenses.length > 0 || filteredTransfers.length > 0;
+  const hasAnyItems = totalMovementsCount > 0;
+  const hasFilteredItems =
+    filteredExpenses.length > 0 || filteredTransfers.length > 0 || filteredIncomes.length > 0;
 
   return (
     <Card>
@@ -151,18 +210,33 @@ export function ExpenseList({
         <div>
           <CardTitle className="text-lg flex items-center gap-2">
             <Receipt className="h-5 w-5 text-primary" />
-            <span>Movimientos ({expenses.length + transfers.length})</span>
+            <span>Movimientos ({totalMovementsCount})</span>
           </CardTitle>
           <CardDescription>
-            Gastos acumulados: <strong className="text-foreground">{formatDOP(totalCents)}</strong>
+            Gastos: <strong className="text-foreground">{formatDOP(totalCents)}</strong>
+            {totalIncomesCents > 0 && (
+              <span> • Reembolsos: <strong className="text-cyan-600 dark:text-cyan-400">-{formatDOP(totalIncomesCents)}</strong></span>
+            )}
             {transfers.length > 0 && (
-              <span> • {transfers.length} {transfers.length === 1 ? "transferencia directa" : "transferencias directas"}</span>
+              <span> • {transfers.length} {transfers.length === 1 ? "transferencia" : "transferencias"}</span>
             )}
           </CardDescription>
         </div>
 
         {!isClosed && (
           <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            {onAddIncomeClick && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onAddIncomeClick}
+                className="gap-1.5 font-bold border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/50"
+              >
+                <Download className="h-4 w-4" />
+                <span>Reembolso</span>
+              </Button>
+            )}
+
             {onAddTransferClick && (
               <Button
                 size="sm"
@@ -199,22 +273,22 @@ export function ExpenseList({
               </div>
 
               {/* Movement Type Switcher */}
-              <div className="flex items-center bg-muted p-0.5 rounded-lg text-xs font-semibold shrink-0">
+              <div className="flex items-center bg-muted p-0.5 rounded-lg text-xs font-semibold shrink-0 overflow-x-auto">
                 <button
                   type="button"
                   onClick={() => setMovementType("ALL")}
-                  className={`px-2.5 py-1 rounded-md transition-all ${
+                  className={`px-2.5 py-1 rounded-md transition-all shrink-0 ${
                     movementType === "ALL"
                       ? "bg-card text-foreground shadow-xs font-bold"
                       : "text-muted-foreground"
                   }`}
                 >
-                  Todos ({expenses.length + transfers.length})
+                  Todos ({totalMovementsCount})
                 </button>
                 <button
                   type="button"
                   onClick={() => setMovementType("EXPENSES")}
-                  className={`px-2.5 py-1 rounded-md transition-all ${
+                  className={`px-2.5 py-1 rounded-md transition-all shrink-0 ${
                     movementType === "EXPENSES"
                       ? "bg-card text-foreground shadow-xs font-bold"
                       : "text-muted-foreground"
@@ -225,7 +299,7 @@ export function ExpenseList({
                 <button
                   type="button"
                   onClick={() => setMovementType("TRANSFERS")}
-                  className={`px-2.5 py-1 rounded-md transition-all ${
+                  className={`px-2.5 py-1 rounded-md transition-all shrink-0 ${
                     movementType === "TRANSFERS"
                       ? "bg-card text-foreground shadow-xs font-bold"
                       : "text-muted-foreground"
@@ -233,11 +307,22 @@ export function ExpenseList({
                 >
                   Transferencias ({transfers.length})
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setMovementType("INCOMES")}
+                  className={`px-2.5 py-1 rounded-md transition-all shrink-0 ${
+                    movementType === "INCOMES"
+                      ? "bg-card text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Reembolsos ({incomes.length})
+                </button>
               </div>
             </div>
 
             {/* Category Filter Pills (when showing expenses) */}
-            {movementType !== "TRANSFERS" && expenses.length > 0 && (
+            {movementType === "EXPENSES" && expenses.length > 0 && (
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
                 <button
                   type="button"
@@ -282,10 +367,10 @@ export function ExpenseList({
             <Receipt className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
             <h4 className="font-bold text-foreground text-sm">No hay movimientos registrados</h4>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Registra gastos grupales o transferencias directas entre los participantes.
+              Registra gastos grupales, transferencias directas o reembolsos al serrucho.
             </p>
             {!isClosed && (
-              <div className="flex items-center justify-center gap-2 mt-4">
+              <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
                 <Button size="sm" onClick={onAddClick} className="gap-1.5 font-bold">
                   <PlusCircle className="h-4 w-4" />
                   <span>Registrar gasto</span>
@@ -299,6 +384,17 @@ export function ExpenseList({
                   >
                     <ArrowRightLeft className="h-4 w-4" />
                     <span>Transferir dinero</span>
+                  </Button>
+                )}
+                {onAddIncomeClick && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onAddIncomeClick}
+                    className="gap-1.5 font-bold border-cyan-500/40 text-cyan-700 dark:text-cyan-300"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Reembolso / Ingreso</span>
                   </Button>
                 )}
               </div>
@@ -325,6 +421,88 @@ export function ExpenseList({
           </div>
         ) : (
           <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+            {/* Incomes & Refunds List */}
+            {filteredIncomes.map((inc) => {
+              const catInfo =
+                INCOME_CATEGORY_INFO[inc.category] || INCOME_CATEGORY_INFO.OTHER_INCOME;
+
+              return (
+                <div
+                  key={inc.id}
+                  className="p-4 hover:bg-cyan-500/5 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-cyan-500/[0.02]"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base" title={catInfo.label}>
+                        {catInfo.emoji}
+                      </span>
+                      <h5 className="font-bold text-base text-foreground">{inc.description}</h5>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold border ${catInfo.color}`}
+                      >
+                        {catInfo.label}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold border-cyan-500/40 text-cyan-700 dark:text-cyan-300"
+                      >
+                        📥 Reembolso / Ingreso
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <UserCheck className="h-3 w-3 text-cyan-600" /> Recibió en mano:{" "}
+                        <strong className="text-foreground">{inc.received_by_name}</strong>
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {inc.income_date}
+                      </span>
+                      <span>•</span>
+                      <span>Beneficia a {inc.splits.length} personas</span>
+                    </div>
+
+                    {/* Beneficiaries credit preview pills */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {inc.splits.map((s) => (
+                        <span
+                          key={s.participant_id}
+                          className="inline-flex items-center rounded-md bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 px-2 py-0.5 text-[11px] font-medium text-cyan-900 dark:text-cyan-200"
+                        >
+                          {s.participant_name}: -{formatDOP(s.credit_cents)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 self-end sm:self-center">
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-cyan-700 dark:text-cyan-400 block">
+                        Reembolsado
+                      </span>
+                      <span className="text-lg font-black text-cyan-700 dark:text-cyan-400">
+                        +{formatDOP(inc.amount_cents)}
+                      </span>
+                    </div>
+
+                    {!isClosed && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                        onClick={() => handleDeleteIncome(inc.id, inc.description)}
+                        disabled={deletingId === inc.id}
+                        title="Eliminar ingreso"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
             {/* Transfers List */}
             {filteredTransfers.map((t) => (
               <div

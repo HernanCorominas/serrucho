@@ -13,6 +13,8 @@ import { SettlementNotification } from "@/features/notifications/types";
 export interface LiveSettlementData {
   serruchoId: string;
   totalExpensesCents: number;
+  totalIncomesCents?: number;
+  netExpensesCents?: number;
   participants: ParticipantFinancials[];
   creditors: ParticipantFinancials[];
   debtors: ParticipantFinancials[];
@@ -36,10 +38,11 @@ export class SettlementService {
    */
   static async calculateLiveSettlement(serruchoId: string): Promise<LiveSettlementData> {
     const repo = getRepository();
-    const [participants, expenses, transfers] = await Promise.all([
+    const [participants, expenses, transfers, incomes] = await Promise.all([
       repo.getParticipants(serruchoId),
       repo.getExpenses(serruchoId),
       repo.getTransfers(serruchoId),
+      repo.getIncomes(serruchoId),
     ]);
 
     const participantIds = participants.map((p) => p.id);
@@ -64,8 +67,24 @@ export class SettlementService {
       amountCents: t.amount_cents,
     }));
 
-    const netMap = calculateNetBalances(participantIds, expenseDetails, transferDetails);
+    const incomeDetails = await Promise.all(
+      incomes.map(async (inc) => {
+        const splits = await repo.getIncomeSplits(inc.id);
+        return {
+          receivedByParticipantId: inc.received_by_participant_id,
+          amountCents: inc.amount_cents,
+          splits: splits.map((s) => ({
+            participantId: s.participant_id,
+            creditCents: s.credit_cents,
+          })),
+        };
+      })
+    );
+
+    const netMap = calculateNetBalances(participantIds, expenseDetails, transferDetails, incomeDetails);
     const totalExpensesCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
+    const totalIncomesCents = incomes.reduce((sum, i) => sum + i.amount_cents, 0);
+    const netExpensesCents = Math.max(0, totalExpensesCents - totalIncomesCents);
 
     const enrichedParticipants: ParticipantFinancials[] = participants.map((p) => {
       const fin = netMap.get(p.id) || {
@@ -84,6 +103,8 @@ export class SettlementService {
     return {
       serruchoId,
       totalExpensesCents,
+      totalIncomesCents,
+      netExpensesCents,
       participants: enrichedParticipants,
       creditors: enrichedParticipants.filter((p) => p.net_balance_cents > 0),
       debtors: enrichedParticipants.filter((p) => p.net_balance_cents < 0),

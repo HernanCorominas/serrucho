@@ -22,6 +22,7 @@ import { AddParticipantDialog } from "@/features/participants/components/add-par
 import { ExpenseList } from "@/features/expenses/components/expense-list";
 import { AddExpenseDialog } from "@/features/expenses/components/add-expense-dialog";
 import { AddTransferDialog } from "@/features/transfers/components/add-transfer-dialog";
+import { AddIncomeDialog } from "@/features/incomes/components/add-income-dialog";
 import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serrucho-dialog";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
 import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
@@ -31,6 +32,7 @@ import {
   Participant,
   ExpenseWithSplits,
   TransferWithParticipants,
+  IncomeWithSplits,
   SettlementSnapshot,
   NotificationLog,
 } from "@/lib/types/domain";
@@ -48,6 +50,7 @@ export default function SerruchoWorkspacePage() {
   const [participants, setParticipants] = React.useState<Participant[]>([]);
   const [expenses, setExpenses] = React.useState<ExpenseWithSplits[]>([]);
   const [transfers, setTransfers] = React.useState<TransferWithParticipants[]>([]);
+  const [incomes, setIncomes] = React.useState<IncomeWithSplits[]>([]);
   const [settlement, setSettlement] = React.useState<LiveSettlementData | null>(null);
   const [snapshots, setSnapshots] = React.useState<SettlementSnapshot[]>([]);
   const [logs, setLogs] = React.useState<NotificationLog[]>([]);
@@ -56,6 +59,7 @@ export default function SerruchoWorkspacePage() {
   const [addPartOpen, setAddPartOpen] = React.useState(false);
   const [addExpOpen, setAddExpOpen] = React.useState(false);
   const [addTransOpen, setAddTransOpen] = React.useState(false);
+  const [addIncomeOpen, setAddIncomeOpen] = React.useState(false);
   const [shareOpen, setShareOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("balance");
@@ -84,11 +88,12 @@ export default function SerruchoWorkspacePage() {
     if (!serruchoId) return;
     try {
       setLoading(true);
-      const [detailRes, settleRes, expRes, transRes] = await Promise.all([
+      const [detailRes, settleRes, expRes, transRes, incRes] = await Promise.all([
         fetch(`/api/serruchos/${serruchoId}`),
         fetch(`/api/serruchos/${serruchoId}/settlement`),
         fetch(`/api/serruchos/${serruchoId}/expenses`),
         fetch(`/api/serruchos/${serruchoId}/transfers`),
+        fetch(`/api/serruchos/${serruchoId}/incomes`),
       ]);
 
       if (!detailRes.ok) throw new Error("Serrucho no encontrado");
@@ -121,6 +126,11 @@ export default function SerruchoWorkspacePage() {
       if (transRes.ok) {
         const transData = await transRes.json();
         setTransfers(transData);
+      }
+
+      if (incRes.ok) {
+        const incData = await incRes.json();
+        setIncomes(incData);
       }
     } catch (err: any) {
       toast({ type: "error", message: err.message || "Error cargando serrucho" });
@@ -155,51 +165,47 @@ export default function SerruchoWorkspacePage() {
   }
 
   const isClosed = serrucho.status === "CLOSED";
-  const totalCents = settlement?.totalExpensesCents || 0;
+  const totalCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
 
   return (
-    <div className="container max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Top Breadcrumb & Action Header */}
+    <div className="container max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
+      {/* Header & Quick Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mb-1"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Volver a Mis Serruchos</span>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
           </Link>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-              {serrucho.name}
-            </h1>
-            {isClosed ? (
-              <Badge variant="secondary" className="gap-1 font-bold text-xs">
-                <Lock className="h-3 w-3" />
-                Cerrado 🔒
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-foreground">
+                {serrucho.name}
+              </h1>
+              <Badge
+                variant={isClosed ? "destructive" : "success"}
+                className="text-[10px] font-bold uppercase tracking-wider"
+              >
+                {isClosed ? "Cerrado" : "Abierto"}
               </Badge>
-            ) : (
-              <Badge variant="success" className="font-bold text-xs">
-                En Curso
-              </Badge>
+            </div>
+            {serrucho.description && (
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-md line-clamp-1">
+                {serrucho.description}
+              </p>
             )}
           </div>
-          {serrucho.description && (
-            <p className="text-xs sm:text-sm text-muted-foreground">{serrucho.description}</p>
-          )}
         </div>
 
-        {/* Action Header Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShareOpen(true)}
-            className="gap-1.5 font-bold text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-            title="Compartir enlace con amigos por WhatsApp, QR o Copiar Link"
+            className="gap-1.5 font-semibold text-xs"
           >
-            <Share2 className="h-3.5 w-3.5" />
-            <span>Compartir Coro 🇩🇴</span>
+            <Share2 className="h-3.5 w-3.5 text-primary" />
+            <span>Compartir</span>
           </Button>
 
           {!isClosed ? (
@@ -212,6 +218,17 @@ export default function SerruchoWorkspacePage() {
               >
                 <Users className="h-3.5 w-3.5" />
                 <span>+ Participante</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAddIncomeOpen(true)}
+                className="gap-1.5 font-semibold text-xs border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/50"
+                disabled={participants.length === 0}
+              >
+                <TrendingUp className="h-3.5 w-3.5 text-cyan-600" />
+                <span>📥 Reembolso</span>
               </Button>
 
               <Button
@@ -360,10 +377,13 @@ export default function SerruchoWorkspacePage() {
             isClosed={isClosed}
             expenses={expenses}
             transfers={transfers}
+            incomes={incomes}
             onAddClick={() => setAddExpOpen(true)}
             onAddTransferClick={() => setAddTransOpen(true)}
+            onAddIncomeClick={() => setAddIncomeOpen(true)}
             onExpenseDeleted={loadData}
             onTransferDeleted={loadData}
+            onIncomeDeleted={loadData}
           />
         </TabsContent>
 
@@ -444,6 +464,15 @@ export default function SerruchoWorkspacePage() {
         open={addTransOpen}
         onOpenChange={setAddTransOpen}
         onTransferAdded={loadData}
+      />
+
+      {/* Add Income Dialog */}
+      <AddIncomeDialog
+        serruchoId={serrucho.id}
+        participants={participants}
+        open={addIncomeOpen}
+        onOpenChange={setAddIncomeOpen}
+        onIncomeAdded={loadData}
       />
 
       {/* Share Serrucho Dialog */}

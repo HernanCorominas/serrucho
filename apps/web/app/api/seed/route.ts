@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { SerruchoService } from "@/features/serruchos/service";
 import { ParticipantService } from "@/features/participants/service";
 import { ExpenseService } from "@/features/expenses/service";
@@ -75,7 +75,7 @@ export async function POST() {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   // Support triggering seed with GET for easy browser testing
-  return POST(req);
+  return POST();
 }

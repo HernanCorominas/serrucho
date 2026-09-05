@@ -32,7 +32,7 @@ export class SerruchoService {
     await repo.createParticipant({
       serrucho_id: serrucho.id,
       name: creatorName,
-      email: null,
+      email: validated.creator_email ? validated.creator_email.trim().toLowerCase() : null,
       phone: null,
       preferred_channel: "EMAIL",
       user_id: isRegistered ? ownerId : null,

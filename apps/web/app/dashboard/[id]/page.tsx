@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   Trash2,
   Zap,
+  Settings,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import { AddTransferDialog } from "@/features/transfers/components/add-transfer-
 import { AddIncomeDialog } from "@/features/incomes/components/add-income-dialog";
 import { ShareSerruchoDialog } from "@/features/serruchos/components/share-serrucho-dialog";
 import { DeleteSerruchoDialog } from "@/features/serruchos/components/delete-serrucho-dialog";
+import { SerruchoSettingsDialog } from "@/features/serruchos/components/serrucho-settings-dialog";
 import { ExportSerruchoDialog } from "@/features/export/components/export-dialog";
 import { SuperSerruchoModal } from "@/features/monetization/components/super-serrucho-modal";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
@@ -73,6 +75,7 @@ export default function SerruchoWorkspacePage() {
   const [shareOpen, setShareOpen] = React.useState(false);
   const [exportOpen, setExportOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [superModalOpen, setSuperModalOpen] = React.useState(false);
   const [isSuper, setIsSuper] = React.useState(false);
@@ -297,15 +300,27 @@ export default function SerruchoWorkspacePage() {
           </Button>
 
           {!isReadOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDeleteOpen(true)}
-              className="font-semibold text-xs border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 h-8 px-2.5"
-              title="Eliminar Serrucho"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSettingsOpen(true)}
+                className="font-semibold text-xs border-border hover:bg-muted h-8 px-2.5"
+                title="Configuración del Serrucho (RF-006)"
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteOpen(true)}
+                className="font-semibold text-xs border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 h-8 px-2.5"
+                title="Eliminar Serrucho"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </>
           )}
 
 
@@ -646,6 +661,14 @@ export default function SerruchoWorkspacePage() {
         onOpenChange={setDeleteOpen}
         serruchoId={serrucho.id}
         serruchoName={serrucho.name}
+      />
+
+      {/* Serrucho Settings Dialog (Screen 16 / RF-006) */}
+      <SerruchoSettingsDialog
+        serrucho={serrucho}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onUpdated={loadData}
       />
 
       {/* Super Serrucho Modal */}

@@ -1,20 +1,33 @@
 "use client";
 
 import * as React from "react";
-import { User, Trash2, Mail, Phone, PlusCircle, Users, Search } from "lucide-react";
+import {
+  User,
+  Trash2,
+  Mail,
+  Phone,
+  PlusCircle,
+  Users,
+  Search,
+  RotateCcw,
+  CheckCircle2,
+  Clock,
+  Shield,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { Participant, ACCESS_STATUS_INFO } from "@/lib/types/domain";
-import { hapticLight, hapticImpact } from "@/lib/utils/haptics";
+import { hapticLight, hapticImpact, hapticSuccess } from "@/lib/utils/haptics";
 
 interface ParticipantListProps {
   serruchoId: string;
   isClosed: boolean;
   isReadOnly?: boolean;
   participants: Participant[];
+  ownerId?: string;
   onAddClick: () => void;
   onParticipantDeleted: () => void;
 }
@@ -24,12 +37,14 @@ export function ParticipantList({
   isClosed,
   isReadOnly = false,
   participants,
+  ownerId,
   onAddClick,
   onParticipantDeleted,
 }: ParticipantListProps) {
   const { toast } = useToast();
   const [search, setSearch] = React.useState("");
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [resettingId, setResettingId] = React.useState<string | null>(null);
 
   const filteredParticipants = React.useMemo(() => {
     if (!search.trim()) return participants;
@@ -42,7 +57,17 @@ export function ParticipantList({
     );
   }, [participants, search]);
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string, isOwner = false) => {
+    // RN-002: El Owner nunca puede eliminarse a sí mismo
+    if (isOwner) {
+      toast({
+        type: "error",
+        title: "Acción no permitida",
+        message: "El organizador / Owner no puede eliminarse del serrucho (RN-002).",
+      });
+      return;
+    }
+
     if (!confirm(`¿Estás seguro de eliminar a ${name} del serrucho?`)) {
       return;
     }
@@ -72,6 +97,36 @@ export function ParticipantList({
     }
   };
 
+  const handleResetAccess = async (id: string, name: string) => {
+    if (!confirm(`¿Deseas reiniciar el acceso de ${name}? Quedará libre para volverse a vincular.`)) {
+      return;
+    }
+
+    try {
+      setResettingId(id);
+      const res = await fetch(`/api/serruchos/${serruchoId}/participants/${id}/reset-access`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "No se pudo reiniciar el acceso");
+      }
+
+      hapticSuccess();
+      toast({
+        type: "success",
+        title: "Acceso reiniciado",
+        message: `El estado de ${name} ahora es Invitado (Decisión #3).`,
+      });
+      onParticipantDeleted();
+    } catch (err: any) {
+      toast({ type: "error", message: err.message });
+    } finally {
+      setResettingId(null);
+    }
+  };
+
   const handleUpdateShares = async (pId: string, shares: number) => {
     try {
       const res = await fetch(`/api/serruchos/${serruchoId}/participants/${pId}`, {
@@ -90,7 +145,7 @@ export function ParticipantList({
         title: "Cuotas actualizadas",
         message: `Se configuraron ${shares} cuotas por defecto para este participante.`,
       });
-      onParticipantDeleted(); // re-fetch participants list
+      onParticipantDeleted();
     } catch (err: any) {
       toast({ type: "error", message: err.message });
     }
@@ -105,7 +160,7 @@ export function ParticipantList({
             <span>Participantes ({participants.length})</span>
           </CardTitle>
           <CardDescription>
-            Personas incluidas en la división de gastos del serrucho
+            Integrantes del coro y su estado de acceso al serrucho (RF-017)
           </CardDescription>
         </div>
 
@@ -116,17 +171,16 @@ export function ParticipantList({
               hapticLight();
               onAddClick();
             }}
-            className="gap-1.5 font-bold self-start sm:self-auto"
+            className="gap-1.5 font-bold self-start sm:self-auto bg-primary hover:bg-primary/90 text-white"
           >
             <PlusCircle className="h-4 w-4" />
-            <span>Agregar</span>
+            <span>Agregar Integrante</span>
           </Button>
         )}
-
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {/* Search Bar when more than 3 participants */}
+        {/* Search Bar */}
         {participants.length > 3 && (
           <div className="relative">
             <Search className="h-3.5 w-3.5 absolute left-3 top-3 text-muted-foreground" />
@@ -157,51 +211,64 @@ export function ParticipantList({
             )}
           </div>
         ) : filteredParticipants.length === 0 ? (
-
           <div className="text-center py-6 text-xs text-muted-foreground">
             No se encontró ningún participante que coincida con &quot;{search}&quot;.
           </div>
         ) : (
           <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-            {filteredParticipants.map((p) => {
+            {filteredParticipants.map((p, idx) => {
+              const isOwner = idx === 0 || (ownerId && p.user_id === ownerId);
               const defShares = p.default_shares ?? 1;
               const accessStatus = p.access_status || "INVITED";
               const statusInfo = ACCESS_STATUS_INFO[accessStatus];
+              const hasAccessed = accessStatus !== "INVITED";
 
               return (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-colors"
+                  className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-colors gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm shrink-0">
                       {p.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h5 className="font-bold text-sm text-foreground">{p.name}</h5>
-                        {defShares !== 1 ? (
-                          <Badge variant="secondary" className="text-[10px] font-bold px-1.5 py-0">
-                            {defShares}x {defShares === 2 ? "Pareja" : defShares === 0.5 ? "Niño" : defShares === 3 ? "Familia" : "Cuotas"}
+                        <h5 className="font-bold text-sm text-foreground truncate">{p.name}</h5>
+                        {isOwner && (
+                          <Badge variant="outline" className="text-[10px] font-extrabold border-primary/40 text-primary px-1.5 py-0 gap-1">
+                            <Shield className="h-2.5 w-2.5" />
+                            <span>Owner</span>
                           </Badge>
-                        ) : null}
+                        )}
+                        {defShares !== 1 && (
+                          <Badge variant="secondary" className="text-[10px] font-bold px-1.5 py-0">
+                            {defShares}x {defShares === 2 ? "Pareja" : defShares === 0.5 ? "Niño" : "Cuotas"}
+                          </Badge>
+                        )}
+
+                        {/* Visual Access State (RF-012 & Screen 5) */}
                         <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusInfo.color}`}
-                          title={p.last_seen_at ? `Visto: ${new Date(p.last_seen_at).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit", day: "numeric", month: "short" })}` : statusInfo.description}
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            hasAccessed
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-300 dark:border-emerald-800"
+                              : "bg-muted text-muted-foreground border-border"
+                          }`}
+                          title={hasAccessed ? "✓ Participante accedió al serrucho" : "✗ Aún no ha accedido"}
                         >
-                          <span>{statusInfo.emoji}</span>
-                          <span>{statusInfo.label}</span>
+                          <span>{hasAccessed ? "✓ Accedió" : "✗ No ha accedido"}</span>
                         </span>
                       </div>
+
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         {p.email && (
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" /> {p.email}
+                          <span className="flex items-center gap-1 truncate">
+                            <Mail className="h-3 w-3 shrink-0" /> {p.email}
                           </span>
                         )}
                         {p.phone && (
                           <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" /> {p.phone}
+                            <Phone className="h-3 w-3 shrink-0" /> {p.phone}
                           </span>
                         )}
                         {!p.email && !p.phone && <span>Sin datos de contacto</span>}
@@ -209,9 +276,7 @@ export function ParticipantList({
                           <>
                             <span>•</span>
                             <span className="text-[11px] text-muted-foreground/80">
-                              {accessStatus === "INVITED"
-                                ? "Invitación enviada"
-                                : `Abrió ${new Date(p.last_seen_at).toLocaleDateString("es-DO", { day: "numeric", month: "short" })}`}
+                              Visto: {new Date(p.last_seen_at).toLocaleDateString("es-DO", { day: "numeric", month: "short" })}
                             </span>
                           </>
                         )}
@@ -219,36 +284,52 @@ export function ParticipantList({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {!isClosed && !isReadOnly && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
+                        {/* Reset access button (Decisión #3) */}
+                        {hasAccessed && !isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResetAccess(p.id, p.name)}
+                            disabled={resettingId === p.id}
+                            className="h-8 px-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground gap-1"
+                            title="Reiniciar acceso de este participante si se equivocó de identidad"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Reiniciar</span>
+                          </Button>
+                        )}
+
                         <select
                           value={defShares}
                           onChange={(e) => handleUpdateShares(p.id, parseFloat(e.target.value))}
-                          title="¿Cómo reparte normalmente los gastos?"
+                          title="Cuotas por defecto para repartir"
                           className="text-[11px] font-bold bg-muted/60 border border-border rounded-md px-1.5 py-1 text-foreground cursor-pointer"
                         >
                           <option value="1">1x (Normal)</option>
                           <option value="2">2x (Pareja)</option>
                           <option value="0.5">0.5x (Niño)</option>
-                          <option value="3">3x (Familia 3p)</option>
-                          <option value="4">4x (Familia 4p)</option>
+                          <option value="3">3x (Familia)</option>
                         </select>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(p.id, p.name)}
-                          disabled={deletingId === p.id}
-                          className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 p-2 h-8 w-8"
-                          title={`Eliminar a ${p.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {/* Delete button (Owner cannot delete himself RN-002) */}
+                        {!isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(p.id, p.name, Boolean(isOwner))}
+                            disabled={deletingId === p.id}
+                            className="text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 p-2 h-8 w-8"
+                            title={`Eliminar a ${p.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
-
                 </div>
               );
             })}

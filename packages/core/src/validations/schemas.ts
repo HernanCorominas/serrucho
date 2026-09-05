@@ -9,6 +9,7 @@ export const serruchoSchema = z.object({
   currency: z.enum(["DOP", "USD", "EUR"]).default("DOP"),
   event_date: z.string().optional().nullable(),
   creator_name: z.string().max(100).optional().nullable(),
+  creator_email: z.string().optional().nullable(),
   initial_participants: z.array(z.string()).optional(),
 });
 
@@ -32,6 +33,10 @@ export const participantSchema = z.object({
     .or(z.literal(""))
     .nullable(),
   preferred_channel: z.enum(["EMAIL", "WHATSAPP"]).default("EMAIL"),
+  default_shares: z.number().positive().optional().default(1),
+  access_status: z.enum(["INVITED", "ACCESSED", "IDENTIFIED", "LINKED_ACCOUNT"]).optional(),
+  user_id: z.string().optional().nullable(),
+  last_seen_at: z.string().optional().nullable(),
 });
 
 export type ParticipantInput = z.infer<typeof participantSchema>;

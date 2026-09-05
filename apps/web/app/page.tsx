@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   ArrowRight,
@@ -11,17 +12,53 @@ import {
   MessageCircle,
   LayoutDashboard,
   PlusCircle,
+  Link as LinkIcon,
+  LogIn,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 import { CreateSerruchoDialog } from "@/features/serruchos/components/create-serrucho-dialog";
 import { QuickSplitCalculator } from "@/features/calculator/components/quick-split-calculator";
 import { BrandLogo } from "@/components/brand-logo";
 import { BRAND_CONFIG } from "@/lib/brand-config";
+import { hapticImpact, hapticLight } from "@/lib/utils/haptics";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [inviteUrlOrToken, setInviteUrlOrToken] = React.useState("");
+
+  const handleOpenInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = inviteUrlOrToken.trim();
+    if (!raw) {
+      toast({
+        type: "error",
+        message: "Pega el enlace o código de invitación de tu serrucho",
+      });
+      return;
+    }
+
+    hapticLight();
+    // Parse URL if full link was pasted
+    let token = raw;
+    try {
+      if (raw.includes("/")) {
+        const parts = raw.split("/").filter(Boolean);
+        token = parts[parts.length - 1];
+      }
+    } catch {
+      token = raw;
+    }
+
+    // Redirect to join screen
+    router.push(`/join/${encodeURIComponent(token)}`);
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -47,6 +84,7 @@ export default function HomePage() {
             La forma más rápida de anotar quién pagó la villa, las compras, las frías o la gasolina. Optimiza con <strong>Menos Transferencias</strong>, cobra por <strong>WhatsApp en 1 toque</strong> y salda cuentas en paz.
           </p>
 
+          {/* Primary Action Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 max-w-md mx-auto sm:max-w-none">
             <Button
               size="lg"
@@ -70,8 +108,38 @@ export default function HomePage() {
             </Link>
           </div>
 
+          {/* Join with invitation link/code (Screen 1 Feature) */}
+          <div className="mt-8 max-w-xl mx-auto">
+            <Card className="border-border/80 bg-card/80 backdrop-blur-xs shadow-md rounded-2xl">
+              <CardContent className="p-4 sm:p-5">
+                <form onSubmit={handleOpenInvite} className="space-y-2 text-left">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-foreground">
+                    <LinkIcon className="h-3.5 w-3.5 text-primary" />
+                    <span>¿Te invitaron a un serrucho? Pega el enlace aquí:</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      placeholder="Ej. https://serrucho.app/join/... o código del serrucho"
+                      value={inviteUrlOrToken}
+                      onChange={(e) => setInviteUrlOrToken(e.target.value)}
+                      className="text-xs sm:text-sm h-10 rounded-xl"
+                    />
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      className="font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shrink-0 gap-1.5 bg-muted hover:bg-muted/80 text-foreground"
+                    >
+                      <LogIn className="h-4 w-4 text-primary" />
+                      <span>Entrar</span>
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Value Highlights Cards */}
-          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 text-left max-w-4xl mx-auto">
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 text-left max-w-4xl mx-auto">
             <div className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 transition-colors">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-600 mb-2">
                 <Zap className="h-5 w-5" />
@@ -85,7 +153,7 @@ export default function HomePage() {
                 <MessageCircle className="h-5 w-5" />
               </div>
               <div className="font-extrabold text-sm text-foreground">Cobro por WhatsApp</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Mensaje cordial con link y monto personalizado</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Mensaje cordial con link y monto en RD$</div>
             </div>
 
             <div className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 transition-colors">
@@ -100,14 +168,14 @@ export default function HomePage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 mb-2">
                 <Lock className="h-5 w-5" />
               </div>
-              <div className="font-extrabold text-sm text-foreground">Cierre Inmutable</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Cuentas transparentes y congeladas sin alteración</div>
+              <div className="font-extrabold text-sm text-foreground">Sin Registro Forzado</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Participa al instante identificándote con tu nombre</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How it works (Kittysplit 3-Step Experience) */}
+      {/* How it works (3-Step Experience) */}
       <section className="py-16 md:py-20 border-b border-border/60 bg-background">
         <div className="container px-4 sm:px-6 max-w-5xl mx-auto">
           <div className="text-center mb-12 space-y-2">
@@ -129,7 +197,7 @@ export default function HomePage() {
               </div>
               <h3 className="font-black text-lg text-foreground">Arma el grupo</h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Crea tu serrucho en 10 segundos y añade a tus amigos con su nombre y teléfono dominicano.
+                Crea tu serrucho en segundos y añade a tus amigos con su nombre. El enlace único les permite entrar al instante.
               </p>
             </div>
 
@@ -139,7 +207,7 @@ export default function HomePage() {
               </div>
               <h3 className="font-black text-lg text-foreground">Anota los gastos</h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Registra quién pagó qué y cómo se divide (partes iguales, montos fijos o cuotas familiares).
+                Registra quién pagó qué y cómo se divide (partes iguales, porcentajes o cuotas proporcionales).
               </p>
             </div>
 
@@ -149,7 +217,7 @@ export default function HomePage() {
               </div>
               <h3 className="font-black text-lg text-foreground">Saldar cuentas</h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                El sistema simplifica las deudas. Comparte por WhatsApp los datos de transferencia y listo.
+                El sistema simplifica las deudas. Comparte por WhatsApp los datos de transferencia y marca como pagado.
               </p>
             </div>
           </div>
@@ -183,7 +251,7 @@ export default function HomePage() {
             ¿Listo para organizar tu próximo coro?
           </h2>
           <p className="text-sm text-muted-foreground">
-            Crea tu grupo sin registrarte o inicia sesión para sincronizar todos tus dispositivos.
+            Crea tu grupo sin complicaciones y comparte el enlace con tus amigos.
           </p>
           <div className="pt-2">
             <Button

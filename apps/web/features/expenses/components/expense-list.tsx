@@ -16,6 +16,7 @@ import {
   X,
   Users,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ import {
   INCOME_CATEGORY_INFO,
 } from "@/lib/types/domain";
 import { EditExpenseDialog } from "./edit-expense-dialog";
+import { ExpenseDetailDialog } from "./expense-detail-dialog";
 import { EditTransferDialog } from "@/features/transfers/components/edit-transfer-dialog";
 import { EditIncomeDialog } from "@/features/incomes/components/edit-income-dialog";
 
@@ -86,6 +88,10 @@ export function ExpenseList({
   // Edit states
   const [editingExpense, setEditingExpense] = React.useState<ExpenseWithSplits | null>(null);
   const [editExpenseOpen, setEditExpenseOpen] = React.useState(false);
+
+  // Detail state (Screen 13)
+  const [detailExpense, setDetailExpense] = React.useState<ExpenseWithSplits | null>(null);
+  const [detailExpenseOpen, setDetailExpenseOpen] = React.useState(false);
 
   const [editingTransfer, setEditingTransfer] = React.useState<TransferWithParticipants | null>(null);
   const [editTransferOpen, setEditTransferOpen] = React.useState(false);
@@ -863,32 +869,47 @@ export function ExpenseList({
                       )}
                     </div>
 
-                    {!isClosed && !isReadOnly && (
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                          onClick={() => {
-                            setEditingExpense(exp);
-                            setEditExpenseOpen(true);
-                          }}
-                          title="Editar gasto"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                          onClick={() => handleDelete(exp.id, exp.description)}
-                          disabled={deletingId === exp.id}
-                          title="Eliminar gasto"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        onClick={() => {
+                          setDetailExpense(exp);
+                          setDetailExpenseOpen(true);
+                        }}
+                        title="Ver detalle del gasto"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+
+                      {!isClosed && !isReadOnly && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => {
+                              setEditingExpense(exp);
+                              setEditExpenseOpen(true);
+                            }}
+                            title="Editar gasto"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                            onClick={() => handleDelete(exp.id, exp.description)}
+                            disabled={deletingId === exp.id}
+                            title="Eliminar gasto"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -896,6 +917,20 @@ export function ExpenseList({
           </div>
         )}
       </CardContent>
+
+      {/* Expense Detail Dialog (Screen 13) */}
+      <ExpenseDetailDialog
+        expense={detailExpense}
+        participants={participants}
+        open={detailExpenseOpen}
+        onOpenChange={setDetailExpenseOpen}
+        onEdit={(exp) => {
+          setEditingExpense(exp);
+          setEditExpenseOpen(true);
+        }}
+        onDelete={(id, desc) => handleDelete(id, desc)}
+        isReadOnly={isClosed || isReadOnly}
+      />
 
       {/* Edit Expense Dialog */}
       <EditExpenseDialog

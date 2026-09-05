@@ -19,19 +19,19 @@ export default function TabLayout() {
           height: 60,
           paddingBottom: 8,
           paddingTop: 6,
-        },
+        } as any,
         tabBarLabelStyle: {
           fontWeight: "700",
           fontSize: 11,
-        },
+        } as any,
         headerStyle: {
           backgroundColor: theme.card,
-        },
+        } as any,
         headerTitleStyle: {
           fontWeight: "900",
           fontSize: 18,
           color: theme.text,
-        },
+        } as any,
       }}
     >
       <Tabs.Screen

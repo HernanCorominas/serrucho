@@ -25,7 +25,7 @@ import { CreateSerruchoDialog } from "@/features/serruchos/components/create-ser
 import { QuickSplitCalculator } from "@/features/calculator/components/quick-split-calculator";
 import { BrandLogo } from "@/components/brand-logo";
 import { BRAND_CONFIG } from "@/lib/brand-config";
-import { hapticImpact, hapticLight } from "@/lib/utils/haptics";
+import { hapticLight } from "@/lib/utils/haptics";
 
 export default function HomePage() {
   const router = useRouter();

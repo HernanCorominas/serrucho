@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRepository } from "@/lib/store";
 import { SerruchoService } from "@/features/serruchos/service";
 import { ParticipantService } from "@/features/participants/service";
 import { ExpenseService } from "@/features/expenses/service";
-import { toCents } from "@/lib/finance/math";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     const ownerId = "owner-hernan-rd";
 

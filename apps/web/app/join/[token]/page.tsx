@@ -4,7 +4,6 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Users,
   UserCheck,
   Lock,
   ArrowRight,
@@ -20,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { Serrucho, Participant } from "@/lib/types/domain";
-import { hapticSuccess, hapticImpact, hapticLight } from "@/lib/utils/haptics";
+import { hapticSuccess, hapticImpact } from "@/lib/utils/haptics";
 
 export default function JoinSerruchoPage() {
   const params = useParams();

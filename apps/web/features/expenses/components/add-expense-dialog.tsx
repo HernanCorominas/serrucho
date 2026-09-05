@@ -798,7 +798,8 @@ export function AddExpenseDialog({
               Cancelar
             </Button>
             <Button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={
                 loading ||
                 (splitMethod === "PERCENTAGE" && !isPctValid) ||

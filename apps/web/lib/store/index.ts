@@ -12,11 +12,16 @@ export function getRepository(): ISerruchoRepository {
     return globalForRepo.__SERRUCHO_REPO_INSTANCE__;
   }
 
+  const useMemoryStore =
+    process.env.USE_MEMORY_STORE === "true" ||
+    process.env.NEXT_PUBLIC_USE_MEMORY === "true" ||
+    process.env.NODE_ENV === "test";
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   let instance: ISerruchoRepository;
-  if (supabaseUrl && serviceKey && supabaseUrl.startsWith("http")) {
+  if (!useMemoryStore && supabaseUrl && serviceKey && supabaseUrl.startsWith("http")) {
     const supabase = createSupabaseClient(supabaseUrl, serviceKey, {
       auth: {
         persistSession: false,

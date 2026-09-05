@@ -197,7 +197,7 @@ export function AddParticipantDialog({
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading} className="bg-primary text-white font-bold">
+          <Button type="button" onClick={handleSubmit} disabled={loading} className="bg-primary text-white font-bold">
             {loading ? "Guardando..." : "Agregar Participante"}
           </Button>
         </DialogFooter>

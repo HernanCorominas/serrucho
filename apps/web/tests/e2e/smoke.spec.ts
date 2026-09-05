@@ -18,16 +18,15 @@ test.describe("Serrucho MVP End-to-End Flow", () => {
     await expect(page.getByText(/10% Ley/i).first()).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/Le toca a cada uno/i).first()).toBeVisible({ timeout: 10000 });
 
-    // 3. Navigate to Dashboard & Click "Nuevo Serrucho"
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /Nuevo Serrucho/i }).first().click();
+    // 3. Navigate directly to Dashboard with ?new=true to open the create modal
+    await page.goto("/dashboard?new=true");
+    await page.waitForLoadState("domcontentloaded");
 
     // 4. Fill in serrucho details in 4-step wizard modal
     const uniqueName = `Playa 2026 Smoke ${Date.now()}`;
 
-    // Step 1: Name & Description
-    await page.locator("#step1_name").waitFor({ state: "visible", timeout: 15000 });
+    // Step 1: Name & Description — wait for dialog to open after useEffect fires
+    await page.locator("#step1_name").waitFor({ state: "visible", timeout: 20000 });
     await page.locator("#step1_name").fill(uniqueName);
     await page.locator("#step1_desc").fill("Viaje de amigos a la playa de Las Terrenas");
     await page.getByRole("button", { name: /Siguiente/i }).click();

@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
 import { generateReadOnlyToken } from "@/lib/security/tokens";
 import {
   isReadOnlyToken,
@@ -83,7 +82,7 @@ describe("Milestone 23: Read-Only Access (Acceso de solo lectura)", () => {
         currency: "DOP",
       });
 
-      const req = new NextRequest(`http://localhost:3000/api/serruchos/${serrucho.id}/expenses`, {
+      const req = new Request(`http://localhost:3000/api/serruchos/${serrucho.id}/expenses`, {
         method: "POST",
       });
 
@@ -96,7 +95,7 @@ describe("Milestone 23: Read-Only Access (Acceso de solo lectura)", () => {
         currency: "DOP",
       });
 
-      const req = new NextRequest(`http://localhost:3000/api/serruchos/${serrucho.id}/expenses`, {
+      const req = new Request(`http://localhost:3000/api/serruchos/${serrucho.id}/expenses`, {
         method: "POST",
         headers: {
           "x-read-only-token": serrucho.read_only_token!,
@@ -114,7 +113,7 @@ describe("Milestone 23: Read-Only Access (Acceso de solo lectura)", () => {
         currency: "DOP",
       });
 
-      const req = new NextRequest(
+      const req = new Request(
         `http://localhost:3000/api/serruchos/${serrucho.id}/expenses?ro=${serrucho.read_only_token}`,
         { method: "POST" }
       );
@@ -130,7 +129,7 @@ describe("Milestone 23: Read-Only Access (Acceso de solo lectura)", () => {
         currency: "DOP",
       });
 
-      const req1 = new NextRequest(
+      const req1 = new Request(
         `http://localhost:3000/api/serruchos/${serrucho.id}/expenses?readonly=true`,
         { method: "POST" }
       );
@@ -138,7 +137,7 @@ describe("Milestone 23: Read-Only Access (Acceso de solo lectura)", () => {
         ReadOnlyPermissionError
       );
 
-      const req2 = new NextRequest(
+      const req2 = new Request(
         `http://localhost:3000/api/serruchos/${serrucho.id}/expenses?readonly=1`,
         { method: "POST" }
       );

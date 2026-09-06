@@ -1,8 +1,8 @@
-import React from "react";
 import {
   View,
   StyleSheet,
   ViewStyle,
+  StyleProp,
   useColorScheme,
   Pressable,
 } from "react-native";
@@ -10,7 +10,7 @@ import { colors } from "../../theme/colors";
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   variant?: "default" | "active" | "muted";
 }

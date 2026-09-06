@@ -2,6 +2,8 @@ import { getRepository } from "@/lib/store";
 import { Serrucho } from "@/lib/types/domain";
 import { serruchoSchema, SerruchoInput } from "@/lib/validations/schemas";
 
+import { ActivityService } from "@/features/activity/service";
+
 export class SerruchoService {
   static async listByOwner(ownerId: string): Promise<Serrucho[]> {
     const repo = getRepository();
@@ -52,6 +54,7 @@ export class SerruchoService {
             preferred_channel: "EMAIL",
             access_status: "INVITED",
             last_seen_at: null,
+            user_id: null,
           });
         }
       }
@@ -68,11 +71,43 @@ export class SerruchoService {
       throw new Error("No se puede modificar un serrucho que ya está cerrado");
     }
 
-    return repo.updateSerrucho(id, {
-      ...(input.name ? { name: input.name } : {}),
+    let cleanName: string | undefined;
+    if (input.name !== undefined) {
+      cleanName = input.name.trim();
+      if (!cleanName) {
+        throw new Error("El nombre no puede estar vacío");
+      }
+      if (cleanName.length > 100) {
+        throw new Error("El nombre no puede exceder 100 caracteres");
+      }
+    }
+
+    if (input.currency !== undefined && input.currency !== existing.currency) {
+      const expenses = await repo.getExpenses(id);
+      if (expenses.length > 0) {
+        throw new Error("No se puede cambiar la moneda base de un serrucho con gastos existentes");
+      }
+    }
+
+    const updated = await repo.updateSerrucho(id, {
+      ...(cleanName ? { name: cleanName } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
+      ...(input.currency !== undefined ? { currency: input.currency } : {}),
       ...(input.event_date !== undefined ? { event_date: input.event_date } : {}),
     });
+
+    if (cleanName && cleanName !== existing.name) {
+      await ActivityService.record({
+        serrucho_id: id,
+        actor_name: "Organizador",
+        action_type: "SERRUCHO_UPDATED",
+        entity_type: "SERRUCHO",
+        entity_id: id,
+        summary: `Se actualizó el nombre del serrucho a "${cleanName}"`,
+      });
+    }
+
+    return updated;
   }
 
   static async delete(id: string): Promise<boolean> {

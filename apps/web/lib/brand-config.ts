@@ -12,7 +12,7 @@ export const BRAND_CONFIG = {
   name: "Serrucho",
   legalName: "Serrucho 🇩🇴",
   tagline: "Reparto Inteligente",
-  subtitle: "Divide gastos en coro sin enredos ni cálculos raros",
+  subtitle: "Divide gastos en grupo sin enredos ni estrés",
   domain: "serrucho.do",
   currency: {
     code: "DOP",
@@ -21,15 +21,16 @@ export const BRAND_CONFIG = {
   },
   logo: {
     emoji: "🪚",
-    textGradient: "from-orange-600 via-amber-500 to-orange-500",
-    bgGradient: "from-orange-600 to-amber-500",
-    badgeBorder: "border-orange-500/20",
-    shadow: "shadow-orange-500/25",
+    textGradient: "from-teal-600 via-emerald-600 to-cyan-600",
+    bgGradient: "from-teal-600 to-emerald-600",
+    badgeBorder: "border-teal-500/20",
+    shadow: "shadow-teal-500/25",
   },
   colors: {
-    primary: "#ea580c", // Orange 600
-    primaryLight: "#fff7ed",
-    accent: "#f59e0b", // Amber 500
+    primary: "#00a896", // Kittysplit signature teal
+    primaryDark: "#028090",
+    primaryLight: "#e6f6f4",
+    accent: "#f26419", // Kittysplit warm coral accent
     success: "#10b981", // Emerald 500
     destructive: "#ef4444", // Red 500
   },

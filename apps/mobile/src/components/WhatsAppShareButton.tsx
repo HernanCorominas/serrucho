@@ -1,5 +1,5 @@
 import React from "react";
-import { Linking, Alert } from "react-native";
+import { Linking, Alert, ViewStyle } from "react-native";
 import { Button } from "./ui/Button";
 import { triggerHaptic } from "../utils/haptics";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ interface WhatsAppShareButtonProps {
   message: string;
   title?: string;
   size?: "sm" | "md" | "lg";
+  style?: ViewStyle;
 }
 
 export const WhatsAppShareButton: React.FC<WhatsAppShareButtonProps> = ({
@@ -17,6 +18,7 @@ export const WhatsAppShareButton: React.FC<WhatsAppShareButtonProps> = ({
   message,
   title = "Cobrar por WhatsApp",
   size = "sm",
+  style,
 }) => {
   const handleOpenWhatsApp = async () => {
     triggerHaptic("medium");
@@ -50,6 +52,7 @@ export const WhatsAppShareButton: React.FC<WhatsAppShareButtonProps> = ({
       onPress={handleOpenWhatsApp}
       variant="secondary"
       size={size}
+      style={style}
       icon={<Ionicons name="logo-whatsapp" size={16} color="#ffffff" />}
     />
   );

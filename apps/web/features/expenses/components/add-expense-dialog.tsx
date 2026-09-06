@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Receipt, AlertCircle, UtensilsCrossed, RefreshCw, Search } from "lucide-react";
+import { Receipt, AlertCircle, RefreshCw, Search } from "lucide-react";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +11,8 @@ import { useToast } from "@/components/ui/toast";
 import { Participant, ExpenseCategory, CATEGORY_INFO } from "@/lib/types/domain";
 import { hapticSuccess, hapticLight } from "@/lib/utils/haptics";
 import { getExchangeRates, convertToDOPCents, SupportedCurrency, ExchangeRates } from "@/lib/finance/currency";
-import { ItemizedExpenseDialog } from "./itemized-expense-dialog";
 import { ReceiptGallery } from "@/features/receipts/components/receipt-gallery";
+
 
 interface AddExpenseDialogProps {
   serruchoId: string;
@@ -42,9 +42,6 @@ export function AddExpenseDialog({
   const [currency, setCurrency] = React.useState<SupportedCurrency>("DOP");
   const [exchangeRates, setExchangeRates] = React.useState<ExchangeRates | null>(null);
   const [customRate, setCustomRate] = React.useState<string>("");
-
-  // Itemized modal
-  const [itemizedOpen, setItemizedOpen] = React.useState(false);
 
   // Selected participants for split
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -166,25 +163,6 @@ export function AddExpenseDialog({
     return Array.from(selectedIds).reduce((sum, id) => sum + (shares[id] || 1), 0);
   }, [splitMethod, selectedIds, shares]);
 
-  const handleApplyItemized = (params: {
-    totalAmount: number;
-    description: string;
-    splitPercentages: Record<string, number>;
-  }) => {
-    setAmount(params.totalAmount.toFixed(2));
-    setDescription(params.description);
-    setCategory("RESTAURANT");
-    setSplitMethod("PERCENTAGE");
-    setPercentages(params.splitPercentages);
-    setSelectedIds(new Set(Object.keys(params.splitPercentages)));
-    setCurrency("DOP");
-    toast({
-      type: "success",
-      title: "Desglose por platos aplicado",
-      message: `Total: RD$ ${params.totalAmount.toLocaleString("es-DO")}`,
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -300,26 +278,9 @@ export function AddExpenseDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-primary" />
-                <DialogTitle>Registrar Gasto</DialogTitle>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  hapticLight();
-                  setItemizedOpen(true);
-                }}
-                className="text-xs font-bold gap-1 text-orange-600 border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/30"
-              >
-                <UtensilsCrossed className="h-3.5 w-3.5" />
-                <span className="hidden xs:inline">Desglose por Platos</span>
-                <span className="xs:hidden">Por Platos</span>
-              </Button>
+            <div className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-primary" />
+              <DialogTitle>Registrar Gasto</DialogTitle>
             </div>
             <DialogDescription>
               Anota cuánto se gastó, quién lo pagó y cómo se dividirá entre el grupo.
@@ -511,17 +472,6 @@ export function AddExpenseDialog({
                     }`}
                   >
                     Montos Fijos (RD$)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSplitMethod("PERCENTAGE")}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      splitMethod === "PERCENTAGE"
-                        ? "bg-card text-foreground shadow-sm font-bold"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    Porcentaje (%)
                   </button>
                 </div>
               </div>
@@ -812,14 +762,6 @@ export function AddExpenseDialog({
           </DialogFooter>
         </form>
       </Dialog>
-
-      {/* Itemized Modal */}
-      <ItemizedExpenseDialog
-        open={itemizedOpen}
-        onOpenChange={setItemizedOpen}
-        participants={participants}
-        onApplyItemizedSplit={handleApplyItemized}
-      />
     </>
   );
 }

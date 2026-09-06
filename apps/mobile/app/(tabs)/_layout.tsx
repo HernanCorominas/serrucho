@@ -25,55 +25,38 @@ export default function TabLayout() {
           fontSize: 11,
         } as any,
         headerStyle: {
-          backgroundColor: theme.card,
+          backgroundColor: colors.primary,
         } as any,
+        headerTintColor: "#ffffff",
         headerTitleStyle: {
           fontWeight: "900",
           fontSize: 18,
-          color: theme.text,
+          color: "#ffffff",
         } as any,
+        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Serruchos",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="pie-chart" size={size} color={color} />
           ),
           headerTitle: "Mis Serruchos 🪚",
         }}
       />
       <Tabs.Screen
-        name="calculator"
-        options={{
-          title: "Calculadora",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calculator" size={size} color={color} />
-          ),
-          headerTitle: "Calculadora de Cuenta 🧮",
-        }}
-      />
-      <Tabs.Screen
-        name="awards"
-        options={{
-          title: "Premios",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trophy" size={size} color={color} />
-          ),
-          headerTitle: "Premios del Coro 🏆",
-        }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{
           title: "Ajustes",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="settings-sharp" size={size} color={color} />
           ),
           headerTitle: "Ajustes ⚙️",
         }}
       />
     </Tabs>
+
   );
 }

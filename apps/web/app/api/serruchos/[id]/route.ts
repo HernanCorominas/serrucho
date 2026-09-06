@@ -51,6 +51,21 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await assertWritePermission(id, req);
+    const body = await req.json();
+    const updated = await SerruchoService.update(id, body);
+    return NextResponse.json(updated);
+  } catch (err: any) {
+    return handleApiError(err);
+  }
+}
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -52,7 +52,7 @@ export default function RootLayout({
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <meta name="apple-mobile-web-app-title" content="Serrucho" />
       </head>
-      <body className="flex min-h-screen flex-col bg-background font-sans text-foreground antialiased selection:bg-orange-100 selection:text-orange-900 transition-colors duration-200">
+      <body className="flex min-h-screen flex-col bg-background font-sans text-foreground antialiased selection:bg-teal-100 selection:text-teal-900 dark:selection:bg-teal-950/60 dark:selection:text-teal-300 transition-colors duration-200">
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>

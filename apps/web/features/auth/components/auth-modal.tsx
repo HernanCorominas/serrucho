@@ -269,7 +269,7 @@ export function AuthModal({
         <form onSubmit={handleAuthSubmit}>
           <DialogHeader>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-primary font-bold text-xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-primary font-bold text-xl">
                 🪚
               </div>
               <div>
@@ -313,7 +313,7 @@ export function AuthModal({
             </div>
 
             {/* Value proposition highlight */}
-            <div className="rounded-xl p-3 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-200 dark:border-orange-900/40 text-xs text-foreground flex items-center gap-2.5">
+            <div className="rounded-xl p-3 bg-gradient-to-r from-teal-500/10 via-emerald-500/10 to-teal-500/10 border border-teal-200 dark:border-teal-900/40 text-xs text-foreground flex items-center gap-2.5">
               <Sparkles className="h-4 w-4 text-primary shrink-0" />
               <span>
                 {mode === "signup"

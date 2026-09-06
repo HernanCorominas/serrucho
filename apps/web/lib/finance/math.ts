@@ -562,216 +562,49 @@ export function generateGroupWhatsAppSummary(params: {
 }
 
 /**
- * Calculates fun, engaging gamification awards for the group ("Premios del Coro").
- */
-export function calculateCoroAwards(params: {
-  participants: { id: string; name: string; total_paid_cents: number; total_owed_cents: number; net_balance_cents: number }[];
-  expenses: { id: string; description: string; amount_cents: number; paid_by_participant_id: string; category?: string }[];
-}): import("@/lib/types/domain").CoroAward[] {
-  const awards: import("@/lib/types/domain").CoroAward[] = [];
-  if (!params.participants.length || !params.expenses.length) return awards;
-
-  const partMap = new Map(params.participants.map((p) => [p.id, p]));
-
-  // 1. El Financiero del Viaje (Quien más pagó)
-  const topPayer = [...params.participants].sort((a, b) => b.total_paid_cents - a.total_paid_cents)[0];
-  if (topPayer && topPayer.total_paid_cents > 0) {
-    awards.push({
-      id: "top-payer",
-      title: "El Financiero del Viaje",
-      emoji: "👑",
-      subtitle: "Aportó más capital de su bolsillo para el grupo",
-      winner_name: topPayer.name,
-      metric: formatDOP(topPayer.total_paid_cents),
-      color: "from-amber-500/20 to-orange-500/10 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200",
-    });
-  }
-
-  // 2. El Barman del Coro (Quien pagó más en Bebidas & Alcohol)
-  const drinkExpenses = params.expenses.filter((e) => e.category === "DRINKS_ALCOHOL");
-  if (drinkExpenses.length > 0) {
-    const drinkPaidBy = new Map<string, number>();
-    drinkExpenses.forEach((e) => {
-      drinkPaidBy.set(e.paid_by_participant_id, (drinkPaidBy.get(e.paid_by_participant_id) || 0) + e.amount_cents);
-    });
-    let topDrinkPayerId = "";
-    let maxDrink = 0;
-    drinkPaidBy.forEach((amount, pid) => {
-      if (amount > maxDrink) {
-        maxDrink = amount;
-        topDrinkPayerId = pid;
-      }
-    });
-    if (topDrinkPayerId && maxDrink > 0) {
-      awards.push({
-        id: "barman",
-        title: "El Barman Oficial",
-        emoji: "🍻",
-        subtitle: "Financió las bebidas y los brindis del coro",
-        winner_name: partMap.get(topDrinkPayerId)?.name || "Participante",
-        metric: formatDOP(maxDrink),
-        color: "from-rose-500/20 to-pink-500/10 border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200",
-      });
-    }
-  }
-
-  // 3. El Abastecedor (Quien pagó más en Supermercado / Comida)
-  const foodExpenses = params.expenses.filter((e) => e.category === "FOOD_GROCERIES" || e.category === "LODGING");
-  if (foodExpenses.length > 0) {
-    const foodPaidBy = new Map<string, number>();
-    foodExpenses.forEach((e) => {
-      foodPaidBy.set(e.paid_by_participant_id, (foodPaidBy.get(e.paid_by_participant_id) || 0) + e.amount_cents);
-    });
-    let topFoodPayerId = "";
-    let maxFood = 0;
-    foodPaidBy.forEach((amount, pid) => {
-      if (amount > maxFood) {
-        maxFood = amount;
-        topFoodPayerId = pid;
-      }
-    });
-    if (topFoodPayerId && maxFood > 0) {
-      awards.push({
-        id: "supplier",
-        title: "El Abastecedor Mayor",
-        emoji: "🛒",
-        subtitle: "Garantizó la villa y los víveres para todos",
-        winner_name: partMap.get(topFoodPayerId)?.name || "Participante",
-        metric: formatDOP(maxFood),
-        color: "from-emerald-500/20 to-teal-500/10 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200",
-      });
-    }
-  }
-
-  // 4. El Mayor Deudor (Quien debe el mayor monto)
-  const debtors = params.participants.filter((p) => p.net_balance_cents < 0);
-  if (debtors.length > 0) {
-    const topDebtor = [...debtors].sort((a, b) => a.net_balance_cents - b.net_balance_cents)[0];
-    if (topDebtor) {
-      awards.push({
-        id: "top-debtor",
-        title: "El Deudor VIP",
-        emoji: "💨",
-        subtitle: "Tiene el mayor saldo pendiente por transferir",
-        winner_name: topDebtor.name,
-        metric: formatDOP(Math.abs(topDebtor.net_balance_cents)),
-        color: "from-blue-500/20 to-indigo-500/10 border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-200",
-      });
-    }
-  }
-
-  // 5. El Gasto Chipi-Chipi (El gasto individual más pequeño)
-  if (params.expenses.length > 1) {
-    const smallestExpense = [...params.expenses].sort((a, b) => a.amount_cents - b.amount_cents)[0];
-    if (smallestExpense) {
-      awards.push({
-        id: "smallest-expense",
-        title: "El Gasto Chipi-Chipi",
-        emoji: "🔍",
-        subtitle: `"${smallestExpense.description}" fue el menor gasto anotado`,
-        winner_name: partMap.get(smallestExpense.paid_by_participant_id)?.name || "Participante",
-        metric: formatDOP(smallestExpense.amount_cents),
-        color: "from-slate-500/20 to-zinc-500/10 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200",
-      });
-    }
-  }
-
-  return awards;
-}
-
-/**
- * Calculates itemized bill breakdown (e.g. restaurant dish by dish)
- * and prorates ITBIS (18%), Ley (10%) and voluntary tip to each person's exact consumption.
- */
-export function calculateItemizedSplits(params: {
-  lines: import("@/lib/types/domain").ItemizedExpenseLine[];
-  participantIds: string[];
-  itbisPercent?: number; // default 18
-  servicePercent?: number; // default 10
-  customTipCents?: number;
-}): import("@/lib/types/domain").ItemizedSplitResult {
-  const { lines, participantIds } = params;
-  const itbisPercent = params.itbisPercent ?? 18;
-  const servicePercent = params.servicePercent ?? 10;
-  const customTipCents = params.customTipCents ?? 0;
-
-  // Initialize subtotals for each participant
-  const subtotalMap = new Map<string, number>();
-  participantIds.forEach((id) => subtotalMap.set(id, 0));
-
-  let totalSubtotalCents = 0;
-
-  lines.forEach((line) => {
-    if (line.amountCents <= 0 || !line.assignedParticipantIds.length) return;
-    totalSubtotalCents += line.amountCents;
-
-    const splits = splitEqually(line.amountCents, line.assignedParticipantIds);
-    splits.forEach((s) => {
-      subtotalMap.set(s.participantId, (subtotalMap.get(s.participantId) || 0) + s.owedCents);
-    });
-  });
-
-  const itbisCents = Math.round(totalSubtotalCents * (itbisPercent / 100));
-  const serviceCents = Math.round(totalSubtotalCents * (servicePercent / 100));
-  const totalExtraCents = itbisCents + serviceCents + customTipCents;
-  const totalFinalCents = totalSubtotalCents + totalExtraCents;
-
-  const participantTotals = participantIds.map((id) => {
-    const subtotal = subtotalMap.get(id) || 0;
-    const ratio = totalSubtotalCents > 0 ? subtotal / totalSubtotalCents : 0;
-    const taxesAndTip = Math.round(totalExtraCents * ratio);
-    const totalOwed = subtotal + taxesAndTip;
-    const basisPoints = totalFinalCents > 0 ? Math.round((totalOwed / totalFinalCents) * 10000) : 0;
-
-    return {
-      participantId: id,
-      subtotalCents: subtotal,
-      taxesAndTipCents: taxesAndTip,
-      totalOwedCents: totalOwed,
-      basisPoints,
-    };
-  });
-
-  // Adjust any rounding drift on basisPoints to sum exactly 10,000 if totalFinalCents > 0
-  if (totalFinalCents > 0 && participantTotals.some((p) => p.totalOwedCents > 0)) {
-    const sumBp = participantTotals.reduce((sum, p) => sum + p.basisPoints, 0);
-    const diff = 10000 - sumBp;
-    if (diff !== 0) {
-      // Add/subtract diff from participant with largest owed
-      const highest = [...participantTotals].sort((a, b) => b.totalOwedCents - a.totalOwedCents)[0];
-      if (highest) {
-        highest.basisPoints += diff;
-      }
-    }
-  }
-
-  return {
-    totalSubtotalCents,
-    itbisCents,
-    serviceCents,
-    tipCents: customTipCents,
-    totalFinalCents,
-    participantTotals,
-  };
-}
-
-/**
  * Calculates complete ParticipantFinancials list with paid, owed, and net balance.
  */
+
 export function calculateParticipantBalances(
   participants: import("@/lib/types/domain").Participant[],
-  expenses: import("@/lib/types/domain").ExpenseWithSplits[]
+  expenses: import("@/lib/types/domain").ExpenseWithSplits[],
+  transfers: {
+    senderParticipantId?: string;
+    sender_participant_id?: string;
+    receiverParticipantId?: string;
+    receiver_participant_id?: string;
+    amountCents?: number;
+    amount_cents?: number;
+  }[] = [],
+  incomes: any[] = []
 ): import("@/lib/types/domain").ParticipantFinancials[] {
+  const normalizedTransfers = transfers.map((t) => ({
+    senderParticipantId: t.senderParticipantId || t.sender_participant_id || "",
+    receiverParticipantId: t.receiverParticipantId || t.receiver_participant_id || "",
+    amountCents: t.amountCents ?? t.amount_cents ?? 0,
+  }));
+
+  const normalizedIncomes = incomes.map((inc) => ({
+    receivedByParticipantId: inc.receivedByParticipantId || inc.received_by_participant_id || "",
+    amountCents: inc.amountCents ?? inc.amount_cents ?? 0,
+    splits: (inc.splits || []).map((s: any) => ({
+      participantId: s.participantId || s.participant_id || "",
+      creditCents: s.creditCents ?? s.credit_cents ?? 0,
+    })),
+  }));
+
   const map = calculateNetBalances(
     participants.map((p) => p.id),
     expenses.map((e) => ({
       paidByParticipantId: e.paid_by_participant_id,
       amountCents: e.amount_cents,
-      splits: e.splits.map((s) => ({
+      splits: (e.splits || []).map((s) => ({
         participantId: s.participant_id,
         owedCents: s.owed_cents,
       })),
-    }))
+    })),
+    normalizedTransfers,
+    normalizedIncomes
   );
 
   return participants.map((p) => {

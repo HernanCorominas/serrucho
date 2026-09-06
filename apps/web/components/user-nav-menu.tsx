@@ -6,7 +6,6 @@ import {
   LogIn,
   LogOut,
   LayoutDashboard,
-  Calculator,
   UserCheck,
   ChevronDown,
   Sparkles,
@@ -108,7 +107,7 @@ export function UserNavMenu() {
           aria-expanded={menuOpen}
           aria-haspopup="true"
         >
-          <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white font-black text-xs shadow-xs">
+          <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white font-black text-xs shadow-xs">
             {initial}
           </div>
           <div className="text-left hidden md:block">
@@ -152,17 +151,8 @@ export function UserNavMenu() {
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-foreground hover:bg-muted rounded-xl transition-colors"
               >
-                <LayoutDashboard className="h-4 w-4 text-orange-500" />
+                <LayoutDashboard className="h-4 w-4 text-primary" />
                 <span>Mis Serruchos</span>
-              </Link>
-
-              <Link
-                href="/calculadora"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-foreground hover:bg-muted rounded-xl transition-colors"
-              >
-                <Calculator className="h-4 w-4 text-amber-500" />
-                <span>Calculadora de Cuenta</span>
               </Link>
             </div>
 

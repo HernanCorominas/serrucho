@@ -90,7 +90,7 @@ export function NotificationBell({ pendingCount = 0, serruchoName }: Notificatio
         {permission === "denied" ? (
           <BellOff className="h-4 w-4" />
         ) : permission === "granted" ? (
-          <BellRing className={`h-4 w-4 ${pendingCount > 0 ? "text-orange-500" : ""}`} />
+          <BellRing className={`h-4 w-4 ${pendingCount > 0 ? "text-teal-600 dark:text-teal-400" : ""}`} />
         ) : (
           <Bell className="h-4 w-4" />
         )}

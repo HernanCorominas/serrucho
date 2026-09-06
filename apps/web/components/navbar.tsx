@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { PlusCircle, LayoutDashboard, Calculator } from "lucide-react";
+import { PlusCircle, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
@@ -16,13 +16,6 @@ export function Navbar() {
         <BrandLogo size="md" showTagline={true} href="/" />
 
         <div className="flex items-center gap-1.5 sm:gap-2.5">
-          <Link href="/calculadora" aria-label="Calculadora de Cuenta">
-            <Button variant="ghost" size="sm" className="hidden sm:inline-flex gap-1.5 font-bold text-xs sm:text-sm text-foreground/80 hover:text-foreground rounded-xl">
-              <Calculator className="h-4 w-4 text-primary" />
-              <span>Calculadora</span>
-            </Button>
-          </Link>
-
           <Link href="/dashboard" aria-label="Mis Serruchos">
             <Button variant="ghost" size="sm" className="gap-1.5 font-bold text-xs sm:text-sm text-foreground/80 hover:text-foreground rounded-xl">
               <LayoutDashboard className="h-4 w-4 text-muted-foreground" />

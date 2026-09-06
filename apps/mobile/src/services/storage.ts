@@ -30,6 +30,7 @@ export const mobileStorage = {
       participants: Participant[];
       expenses: ExpenseWithSplits[];
       balances: ParticipantFinancials[];
+      transfers?: import("@serrucho/core").Transfer[];
     }
   ): Promise<void> {
     try {
@@ -65,6 +66,41 @@ export const mobileStorage = {
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
+    }
+  },
+
+  async getMyIdentity(serruchoId: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(`@serrucho:my_id:${serruchoId}`);
+    } catch {
+      return null;
+    }
+  },
+
+  async setMyIdentity(serruchoId: string, participantId: string | null): Promise<void> {
+    try {
+      if (participantId) {
+        await AsyncStorage.setItem(`@serrucho:my_id:${serruchoId}`, participantId);
+      } else {
+        await AsyncStorage.removeItem(`@serrucho:my_id:${serruchoId}`);
+      }
+    } catch (e) {
+      console.warn("Error saving identity to AsyncStorage", e);
+    }
+  },
+
+  async deleteSerrucho(id: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(`${DETAIL_KEY_PREFIX}${id}`);
+      await AsyncStorage.removeItem(`@serrucho:my_id:${id}`);
+      const list = await this.getSerruchos();
+      const updatedList = list.filter((s) => s.id !== id);
+      await this.saveSerruchos(updatedList);
+      const recents = await this.getRecents();
+      const updatedRecents = recents.filter((r) => r.id !== id);
+      await AsyncStorage.setItem(RECENTS_KEY, JSON.stringify(updatedRecents));
+    } catch (e) {
+      console.warn("Error deleting serrucho from AsyncStorage", e);
     }
   },
 };

@@ -54,7 +54,7 @@ function SerruchoCard({ s }: { s: Serrucho }) {
       >
         {/* Top accent bar */}
         {isOpen && (
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-t-lg" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-t-lg" />
         )}
 
         <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
@@ -277,7 +277,7 @@ function DashboardContent() {
 
         {/* Multi-Device Sync Banner for Guests */}
         {!user && showSyncBanner && (
-          <div className="rounded-2xl p-4 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-200 dark:border-orange-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="rounded-2xl p-4 bg-gradient-to-r from-teal-500/10 via-emerald-500/10 to-teal-500/10 border border-teal-200 dark:border-teal-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📱</span>
               <div>
@@ -356,7 +356,7 @@ function DashboardContent() {
         ) : serruchos.length === 0 ? (
           <Card className="text-center py-16 border-dashed bg-muted/20">
             <CardContent className="space-y-3">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/10 text-primary mx-auto flex items-center justify-center font-bold text-3xl">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-teal-500/20 to-emerald-500/10 text-primary mx-auto flex items-center justify-center font-bold text-3xl">
                 🪚
               </div>
               <h3 className="font-bold text-lg text-foreground">No tienes ningún serrucho activo</h3>

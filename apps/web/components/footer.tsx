@@ -21,10 +21,7 @@ export function Footer() {
             <Link href="/dashboard" className="hover:text-primary transition-colors">
               Mis Serruchos
             </Link>
-            <Link href="/calculadora" className="hover:text-primary transition-colors">
-              Calculadora de Cuenta
-            </Link>
-            <Link href="/dashboard?new=true" className="hover:text-primary transition-colors">
+            <Link href="/" className="hover:text-primary transition-colors">
               Crear Serrucho
             </Link>
           </div>
@@ -33,7 +30,7 @@ export function Footer() {
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-muted-foreground text-center sm:text-left">
           <div className="flex items-center gap-1.5 justify-center">
             <span>Hecho con</span>
-            <Heart className="h-3.5 w-3.5 text-orange-500 fill-orange-500 inline" />
+            <Heart className="h-3.5 w-3.5 text-teal-600 fill-teal-600 inline" />
             <span>en República Dominicana 🇩🇴</span>
           </div>
 

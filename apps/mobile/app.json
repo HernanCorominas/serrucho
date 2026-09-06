@@ -3,12 +3,14 @@
     "name": "Serrucho",
     "slug": "serrucho",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "serrucho",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#f97316"
     },
     "ios": {
@@ -20,20 +22,20 @@
     },
     "android": {
       "package": "do.serrucho.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f97316"
+      },
       "permissions": [
         "CAMERA"
       ]
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": ""
-      }
     }
   }
 }

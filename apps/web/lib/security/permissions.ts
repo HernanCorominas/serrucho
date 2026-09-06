@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getRepository } from "@/lib/store";
 
 export class ReadOnlyPermissionError extends Error {
@@ -31,7 +30,7 @@ export async function isReadOnlyToken(
  */
 export async function assertWritePermission(
   serruchoId: string,
-  req: NextRequest
+  req: Request | { headers: Headers | { get(name: string): string | null }; url: string }
 ): Promise<void> {
   // Check headers
   const headerToken =
@@ -65,9 +64,9 @@ export async function assertWritePermission(
 /**
  * Handles API errors, returning a 403 Forbidden for ReadOnlyPermissionError.
  */
-export function handleApiError(err: any): NextResponse {
+export function handleApiError(err: any): Response {
   if (err instanceof ReadOnlyPermissionError || err.name === "ReadOnlyPermissionError") {
-    return NextResponse.json({ error: err.message }, { status: 403 });
+    return Response.json({ error: err.message }, { status: 403 });
   }
-  return NextResponse.json({ error: err.message || "Error interno del servidor" }, { status: 400 });
+  return Response.json({ error: err.message || "Error interno del servidor" }, { status: 400 });
 }

@@ -58,7 +58,7 @@ export default function CreateSerruchoModal() {
     };
 
     // Build participants list: creator + any initial participants
-    const myName = creatorName.trim() || "Tú (Organizador)";
+    const myName = creatorName.trim() || "Organizador";
     const participantList: Participant[] = [
       {
         id: `p-${Date.now()}-1`,

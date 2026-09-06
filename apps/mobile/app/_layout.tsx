@@ -11,17 +11,19 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: theme.card,
+            backgroundColor: colors.primary,
           } as any,
-          headerTintColor: theme.text,
+          headerTintColor: "#ffffff",
           headerTitleStyle: {
             fontWeight: "900",
             fontSize: 18,
+            color: "#ffffff",
           } as any,
+          headerShadowVisible: false,
           contentStyle: {
             backgroundColor: theme.background,
           } as any,
@@ -46,20 +48,6 @@ export default function RootLayout() {
           name="serrucho/add-expense"
           options={{
             title: "Agregar Gasto 💸",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="serrucho/itemized"
-          options={{
-            title: "Desglose por Plato 🍽️",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="serrucho/close"
-          options={{
-            title: "Cerrar Serrucho 🔒",
             presentation: "modal",
           }}
         />

@@ -466,7 +466,7 @@ export function EditExpenseDialog({
           {/* Split Method */}
           <div className="space-y-2">
             <Label className="text-xs font-bold">Forma de División</Label>
-            <div className="grid grid-cols-4 gap-1.5 p-1 rounded-xl bg-muted/60 border border-border">
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-muted/60 border border-border">
               <button
                 type="button"
                 onClick={() => {
@@ -485,15 +485,15 @@ export function EditExpenseDialog({
                 type="button"
                 onClick={() => {
                   hapticLight();
-                  setSplitMethod("PERCENTAGE");
+                  setSplitMethod("SHARES");
                 }}
                 className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  splitMethod === "PERCENTAGE"
+                  splitMethod === "SHARES"
                     ? "bg-card text-foreground shadow-xs border border-border"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Porcentaje
+                Cuotas (Shares)
               </button>
               <button
                 type="button"
@@ -507,21 +507,7 @@ export function EditExpenseDialog({
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Monto Fijo
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  hapticLight();
-                  setSplitMethod("SHARES");
-                }}
-                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  splitMethod === "SHARES"
-                    ? "bg-card text-foreground shadow-xs border border-border"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Cuotas
+                Montos Fijos (RD$)
               </button>
             </div>
           </div>

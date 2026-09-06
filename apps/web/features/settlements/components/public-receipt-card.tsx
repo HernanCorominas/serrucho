@@ -122,7 +122,7 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
       {/* Main Receipt Card */}
       <Card className="border-border shadow-xl overflow-hidden bg-card">
         {/* Decorative Top Bar */}
-        <div className="h-3 bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500" />
+        <div className="h-3 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500" />
 
         <CardContent className="p-6 sm:p-8 space-y-6">
           {/* Header */}
@@ -315,7 +315,7 @@ export function PublicReceiptCard({ receipt }: PublicReceiptCardProps) {
             </div>
           )}
 
-          {/* Itemized Expenses Breakdown */}
+          {/* Detailed Expenses Breakdown */}
           {items.length > 0 && (
             <div className="space-y-3 pt-4 border-t border-border">
               <div className="flex items-center justify-between">

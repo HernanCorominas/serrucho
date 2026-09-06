@@ -41,7 +41,7 @@ export function CollectionProgressRing({
   const pendingCount = participants.filter((p) => p.net_balance_cents < 0).length;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-gradient-to-br from-orange-500/8 to-card border border-orange-200/50 dark:border-orange-900/30">
+    <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-gradient-to-br from-teal-500/8 to-card border border-teal-200/50 dark:border-teal-900/30">
       {/* Donut Ring */}
       <div className="relative flex-shrink-0">
         <svg width="130" height="130" viewBox="0 0 130 130" className="-rotate-90">
@@ -70,8 +70,8 @@ export function CollectionProgressRing({
           />
           <defs>
             <linearGradient id="collectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ea580c" />
-              <stop offset="100%" stopColor="#f59e0b" />
+              <stop offset="0%" stopColor="#00a896" />
+              <stop offset="100%" stopColor="#10b981" />
             </linearGradient>
           </defs>
         </svg>
@@ -108,7 +108,7 @@ export function CollectionProgressRing({
         {/* Linear progress bar */}
         <div className="w-full h-2 bg-muted/50 rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500"
+            className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-500"
             style={{
               width: `${animated ? pct * 100 : 0}%`,
               transition: "width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",

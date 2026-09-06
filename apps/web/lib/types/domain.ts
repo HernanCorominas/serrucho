@@ -1,6 +1,7 @@
 export type SerruchoStatus = "OPEN" | "CLOSED";
-export type SplitMethod = "EQUAL" | "PERCENTAGE" | "EXACT" | "SHARES" | "ITEMIZED";
+export type SplitMethod = "EQUAL" | "PERCENTAGE" | "EXACT" | "SHARES";
 export type PreferredChannel = "EMAIL" | "WHATSAPP";
+
 export type NotificationChannel = "EMAIL" | "WHATSAPP";
 export type NotificationStatus = "PENDING" | "SENT" | "FAILED" | "SKIPPED";
 
@@ -101,6 +102,10 @@ export interface Serrucho {
   updated_at: string;
 }
 
+/** Kittysplit Parity Alias for Serrucho */
+export type Kitty = Serrucho;
+export type KittyStatus = SerruchoStatus;
+
 export type ParticipantAccessStatus =
   | "INVITED"
   | "ACCESSED"
@@ -153,6 +158,9 @@ export interface Participant {
   updated_at: string;
 }
 
+/** Kittysplit Parity Alias for Participant */
+export type KittyPerson = Participant;
+
 export interface ReceiptAttachment {
   id: string;
   url: string;
@@ -195,6 +203,9 @@ export interface Expense {
   created_at: string;
   updated_at: string;
 }
+
+/** Kittysplit Parity Alias for Expense */
+export type KittyEntry = Expense;
 
 export interface ExpenseParticipant {
   expense_id: string;
@@ -262,6 +273,9 @@ export interface Transfer {
   created_at: string;
   updated_at: string;
 }
+
+/** Kittysplit Parity Alias for Transfer */
+export type KittyTransfer = Transfer;
 
 export interface TransferWithParticipants extends Transfer {
   sender_name: string;
@@ -380,39 +394,8 @@ export interface PublicSettlementReceipt {
   items: SettlementItem[];
 }
 
-export interface CoroAward {
-  id: string;
-  title: string;
-  emoji: string;
-  subtitle: string;
-  winner_name: string;
-  metric: string;
-  color: string;
-}
-
-export interface ItemizedExpenseLine {
-  id: string;
-  name: string;
-  amountCents: number;
-  assignedParticipantIds: string[];
-}
-
-export interface ItemizedSplitResult {
-  totalSubtotalCents: number;
-  itbisCents: number;
-  serviceCents: number;
-  tipCents: number;
-  totalFinalCents: number;
-  participantTotals: {
-    participantId: string;
-    subtotalCents: number;
-    taxesAndTipCents: number;
-    totalOwedCents: number;
-    basisPoints: number;
-  }[];
-}
-
 export type ActivityActionType =
+
   | "EXPENSE_CREATED"
   | "EXPENSE_UPDATED"
   | "EXPENSE_DELETED"

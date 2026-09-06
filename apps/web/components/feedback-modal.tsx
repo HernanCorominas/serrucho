@@ -69,7 +69,7 @@ export function FeedbackWidget() {
         <Button
           onClick={() => setOpen(true)}
           size="sm"
-          className="rounded-full shadow-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-extrabold gap-2 px-4 py-2 text-xs border border-white/20 transition-transform hover:scale-105"
+          className="rounded-full shadow-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold gap-2 px-4 py-2 text-xs border border-white/20 transition-transform hover:scale-105"
         >
           <MessageSquarePlus className="h-4 w-4" />
           <span className="hidden sm:inline">¿Feedback / Sugerencias?</span>

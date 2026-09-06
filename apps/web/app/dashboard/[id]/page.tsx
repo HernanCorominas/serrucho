@@ -35,9 +35,9 @@ import { SerruchoSettingsDialog } from "@/features/serruchos/components/serrucho
 import { ExportSerruchoDialog } from "@/features/export/components/export-dialog";
 import { SuperSerruchoModal } from "@/features/monetization/components/super-serrucho-modal";
 import { BalanceOverview } from "@/features/settlements/components/balance-overview";
-import { CloseSerruchoWizard } from "@/features/settlements/components/close-serrucho-wizard";
-import { ClosedSettlementView } from "@/features/settlements/components/closed-settlement-view";
 import { ActivityFeed } from "@/features/activity/components/activity-feed";
+
+
 import {
   Serrucho,
   Participant,
@@ -76,11 +76,11 @@ export default function SerruchoWorkspacePage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const [closeWizardOpen, setCloseWizardOpen] = React.useState(false);
   const [superModalOpen, setSuperModalOpen] = React.useState(false);
   const [isSuper, setIsSuper] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("balance");
+  const [activeTab, setActiveTab] = React.useState("expenses");
   const [myParticipantId, setMyParticipantId] = React.useState<string | null>(null);
+
 
 
   React.useEffect(() => {
@@ -368,19 +368,9 @@ export default function SerruchoWorkspacePage() {
                 <TrendingUp className="h-3.5 w-3.5 text-cyan-600" />
                 <span>Reembolso</span>
               </Button>
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setCloseWizardOpen(true)}
-                className="border-red-300 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 font-bold text-xs gap-1.5 rounded-xl h-9"
-                disabled={participants.length === 0}
-              >
-                <Lock className="h-3.5 w-3.5" />
-                <span>Liquidar</span>
-              </Button>
             </>
           ) : isClosed ? (
+
 
             <Badge variant="outline" className="text-xs font-bold py-1.5 px-3">
               Cuentas Inmutables
@@ -413,7 +403,7 @@ export default function SerruchoWorkspacePage() {
 
 
       {/* Promo Banner for Web Guests */}
-      <div className="rounded-2xl p-4 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-200 dark:border-orange-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+      <div className="rounded-2xl p-4 bg-gradient-to-r from-teal-500/10 via-emerald-500/10 to-teal-500/10 border border-teal-200 dark:border-teal-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
           <span className="text-2xl">📱</span>
           <div>
@@ -476,49 +466,26 @@ export default function SerruchoWorkspacePage() {
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full sm:w-auto h-auto p-1 gap-1">
-          <TabsTrigger value="balance" className="gap-1.5">
-            <TrendingUp className="h-4 w-4" />
-            <span>Balances</span>
-          </TabsTrigger>
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto h-auto p-1 gap-1">
           <TabsTrigger value="expenses" className="gap-1.5">
             <Receipt className="h-4 w-4" />
             <span>Gastos ({expenses.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="participants" className="gap-1.5">
-            <Users className="h-4 w-4" />
-            <span>Participantes ({participants.length})</span>
+          <TabsTrigger value="balance" className="gap-1.5">
+            <TrendingUp className="h-4 w-4" />
+            <span>Saldos y Pagos</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-1.5">
+            <Settings className="h-4 w-4" />
+            <span>Ajustes & Integrantes ({participants.length})</span>
           </TabsTrigger>
           <TabsTrigger value="activity" className="gap-1.5">
             <History className="h-4 w-4" />
             <span>Historial</span>
           </TabsTrigger>
-          <TabsTrigger value="closure" className="gap-1.5">
-            <Lock className="h-4 w-4" />
-            <span>{isClosed ? "Liquidación" : "Cierre"}</span>
-          </TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Balance Overview */}
-        <TabsContent value="balance">
-          {settlement && (
-            <BalanceOverview
-              participants={settlement.participants}
-              expenses={expenses}
-              totalExpensesCents={totalCents}
-              serruchoName={serrucho.name}
-              serruchoId={serrucho.id}
-              paymentInstructions={serrucho.payment_instructions}
-              currency={serrucho.currency}
-              myParticipantId={myParticipantId}
-              isReadOnly={isReadOnly}
-              onAddExpenseClick={() => setAddExpOpen(true)}
-              onSettled={loadData}
-            />
-          )}
-        </TabsContent>
-
-        {/* Tab 2: Expenses List */}
+        {/* Tab 1: Expenses List */}
         <TabsContent value="expenses">
           <ExpenseList
             serruchoId={serrucho.id}
@@ -540,8 +507,60 @@ export default function SerruchoWorkspacePage() {
           />
         </TabsContent>
 
-        {/* Tab 3: Participants List */}
-        <TabsContent value="participants">
+        {/* Tab 2: Balance Overview */}
+        <TabsContent value="balance">
+          {settlement && (
+            <BalanceOverview
+              participants={settlement.participants}
+              expenses={expenses}
+              totalExpensesCents={totalCents}
+              serruchoName={serrucho.name}
+              serruchoId={serrucho.id}
+              paymentInstructions={serrucho.payment_instructions}
+              currency={serrucho.currency}
+              myParticipantId={myParticipantId}
+              isReadOnly={isReadOnly}
+              onAddExpenseClick={() => setAddExpOpen(true)}
+              onSettled={loadData}
+            />
+          )}
+        </TabsContent>
+
+        {/* Tab 3: Settings & Participants */}
+        <TabsContent value="settings" className="space-y-6">
+          <Card className="p-4 sm:p-5 border-border bg-card/80 backdrop-blur-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-base text-foreground">{serrucho.name}</h3>
+                  <Badge variant="outline" className="text-xs font-bold">
+                    Moneda: {serrucho.currency}
+                  </Badge>
+                </div>
+                {serrucho.description && (
+                  <p className="text-xs text-muted-foreground">{serrucho.description}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground pt-1">
+                  Creado el {new Date(serrucho.created_at).toLocaleDateString("es-DO", { dateStyle: "long" })}
+                </p>
+              </div>
+
+              {!isReadOnly && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSettingsOpen(true)}
+                    className="text-xs font-bold gap-1.5 h-9"
+                  >
+                    <Settings className="h-3.5 w-3.5 text-primary" />
+                    <span>Editar Nombre y Moneda</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
           <ParticipantList
             serruchoId={serrucho.id}
             isClosed={isClosed}
@@ -556,54 +575,9 @@ export default function SerruchoWorkspacePage() {
         <TabsContent value="activity">
           <ActivityFeed serruchoId={serrucho.id} />
         </TabsContent>
-
-        {/* Tab 5: Closure & Snapshots */}
-        <TabsContent value="closure">
-          {isClosed ? (
-            <ClosedSettlementView
-              serruchoId={serrucho.id}
-              serruchoName={serrucho.name}
-              paymentInstructions={serrucho.payment_instructions}
-              paymentDeadline={serrucho.payment_deadline}
-              closedAt={serrucho.closed_at}
-              isReadOnly={isReadOnly}
-              snapshots={snapshots}
-              expenses={expenses}
-              logs={logs}
-              onSnapshotUpdated={loadData}
-            />
-          ) : (
-            <Card className="border-amber-200/80 bg-gradient-to-br from-amber-50/40 to-card dark:from-amber-950/20">
-              <CardContent className="p-6 sm:p-8 text-center space-y-4">
-                <div className="h-14 w-14 rounded-2xl bg-amber-500/10 text-amber-600 mx-auto flex items-center justify-center font-bold">
-                  <Lock className="h-7 w-7" />
-                </div>
-                <h3 className="text-xl font-extrabold text-foreground">
-                  Listo para cerrar y enviar estados de cuenta
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-                  Al pulsar "Cerrar serrucho", se generarán estados de cuenta individuales con enlaces seguros e inmutables para cada participante con sus datos de pago.
-                </p>
-                {!isReadOnly && (
-                  <div className="pt-2">
-                    <Button
-                      size="lg"
-                      onClick={() => setCloseWizardOpen(true)}
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2 px-6 shadow-md"
-                    >
-                      <Lock className="h-4 w-4" />
-                      <span>Iniciar Cierre del Serrucho</span>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
       </Tabs>
 
-      {/* Add Participant Dialog */}
+      {/* Dialogs */}
       <AddParticipantDialog
         serruchoId={serrucho.id}
         open={addPartOpen}
@@ -611,7 +585,6 @@ export default function SerruchoWorkspacePage() {
         onParticipantAdded={loadData}
       />
 
-      {/* Add Expense Dialog */}
       <AddExpenseDialog
         serruchoId={serrucho.id}
         participants={participants}
@@ -620,7 +593,6 @@ export default function SerruchoWorkspacePage() {
         onExpenseAdded={loadData}
       />
 
-      {/* Add Transfer Dialog */}
       <AddTransferDialog
         serruchoId={serrucho.id}
         participants={participants}
@@ -629,7 +601,6 @@ export default function SerruchoWorkspacePage() {
         onTransferAdded={loadData}
       />
 
-      {/* Add Income Dialog */}
       <AddIncomeDialog
         serruchoId={serrucho.id}
         participants={participants}
@@ -638,7 +609,6 @@ export default function SerruchoWorkspacePage() {
         onIncomeAdded={loadData}
       />
 
-      {/* Share Serrucho Dialog */}
       <ShareSerruchoDialog
         open={shareOpen}
         onOpenChange={setShareOpen}
@@ -647,7 +617,6 @@ export default function SerruchoWorkspacePage() {
         readOnlyToken={serrucho.read_only_token}
       />
 
-      {/* Export Serrucho Dialog */}
       <ExportSerruchoDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
@@ -655,7 +624,6 @@ export default function SerruchoWorkspacePage() {
         serruchoName={serrucho.name}
       />
 
-      {/* Delete Serrucho Dialog */}
       <DeleteSerruchoDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -663,7 +631,6 @@ export default function SerruchoWorkspacePage() {
         serruchoName={serrucho.name}
       />
 
-      {/* Serrucho Settings Dialog (Screen 16 / RF-006) */}
       <SerruchoSettingsDialog
         serrucho={serrucho}
         open={settingsOpen}
@@ -671,7 +638,6 @@ export default function SerruchoWorkspacePage() {
         onUpdated={loadData}
       />
 
-      {/* Super Serrucho Modal */}
       <SuperSerruchoModal
         open={superModalOpen}
         onOpenChange={setSuperModalOpen}
@@ -682,27 +648,6 @@ export default function SerruchoWorkspacePage() {
       />
 
 
-
-
-
-      {/* Close Serrucho Wizard Dialog */}
-      {settlement && (
-        <CloseSerruchoWizard
-          serruchoId={serrucho.id}
-          serruchoName={serrucho.name}
-          participants={settlement.participants}
-          totalExpensesCents={totalCents}
-          open={closeWizardOpen}
-          onOpenChange={setCloseWizardOpen}
-          onClosed={async (result) => {
-            await loadData();
-            if (result?.snapshots) {
-              setSnapshots(result.snapshots);
-            }
-            setActiveTab("closure");
-          }}
-        />
-      )}
 
       {/* ─── MOBILE STICKY FLOATING ACTION DOCK (sm:hidden) ─────────────────── */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-30 p-2.5 bg-background/90 backdrop-blur-md border-t border-border/80 pb-[calc(env(safe-area-inset-bottom,8px)+8px)] flex items-center justify-between gap-1.5 shadow-lg no-print">

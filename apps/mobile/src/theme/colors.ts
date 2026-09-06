@@ -1,17 +1,17 @@
 export const colors = {
-  primary: "#ea580c", // Serrucho Orange
-  primaryLight: "#fff7ed",
-  primaryDark: "#c2410c",
+  primary: "#00a896", // Kittysplit signature teal
+  primaryLight: "#e6f6f4",
+  primaryDark: "#028090",
   
-  secondary: "#0d9488", // Serrucho Teal
+  secondary: "#028090", // Deep Teal
   secondaryLight: "#f0fdfa",
   
-  accent: "#f59e0b", // Amber / Coro
+  accent: "#f26419", // Kittysplit warm coral accent
   
-  success: "#059669",
+  success: "#10b981", // Green positive balance
   successLight: "#ecfdf5",
   
-  danger: "#dc2626",
+  danger: "#ef4444", // Red debtor balance
   dangerLight: "#fef2f2",
   
   light: {

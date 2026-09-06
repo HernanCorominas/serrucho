@@ -3,21 +3,24 @@ import { z } from "zod";
 export const serruchoSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(2, "El nombre del serrucho debe tener al menos 2 caracteres")
     .max(100, "El nombre no puede exceder 100 caracteres"),
   description: z.string().max(500, "La descripción no puede exceder 500 caracteres").optional().nullable(),
   currency: z.enum(["DOP", "USD", "EUR"]).default("DOP"),
   event_date: z.string().optional().nullable(),
-  creator_name: z.string().max(100).optional().nullable(),
+  creator_name: z.string().trim().max(100).optional().nullable(),
   creator_email: z.string().optional().nullable(),
   initial_participants: z.array(z.string()).optional(),
 });
 
-export type SerruchoInput = z.infer<typeof serruchoSchema>;
+export type SerruchoInput = z.input<typeof serruchoSchema>;
+export type SerruchoOutput = z.infer<typeof serruchoSchema>;
 
 export const participantSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(2, "El nombre debe tener al menos 2 caracteres")
     .max(100, "El nombre no puede exceder 100 caracteres"),
   email: z
@@ -48,7 +51,7 @@ export const expenseParticipantSplitSchema = z.object({
   shares: z.number().positive("Las cuotas / shares deben ser mayores a 0").optional(),
 });
 
-export const splitMethodSchema = z.enum(["EQUAL", "PERCENTAGE", "EXACT", "SHARES", "ITEMIZED"]);
+export const splitMethodSchema = z.enum(["EQUAL", "PERCENTAGE", "EXACT", "SHARES"]);
 export type SplitMethodInput = z.infer<typeof splitMethodSchema>;
 
 export const expenseCategorySchema = z.enum([
@@ -79,7 +82,8 @@ export const expenseSchema = z
   .object({
     description: z
       .string()
-      .min(2, "El concepto del gasto debe tener al menos 2 caracteres")
+      .trim()
+      .min(1, "El concepto del gasto no puede estar vacío")
       .max(200, "El concepto no puede exceder 200 caracteres"),
     amount: z
       .number({ invalid_type_error: "Ingresa un monto válido" })

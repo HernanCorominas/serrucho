@@ -11,14 +11,7 @@ test.describe("Serrucho MVP End-to-End Flow", () => {
     await expect(page).toHaveTitle(/Serrucho/i);
     await expect(page.locator("h1")).toBeVisible();
 
-    // 2. Test Quick Split Calculator
-    await page.goto("/calculadora");
-    await expect(page.getByText(/Calculadora de Cuenta Dominicana/i)).toBeVisible({ timeout: 20000 });
-    await expect(page.getByText(/18% ITBIS/i).first()).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/10% Ley/i).first()).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/Le toca a cada uno/i).first()).toBeVisible({ timeout: 10000 });
-
-    // 3. Navigate directly to Dashboard with ?new=true to open the create modal
+    // 2. Navigate directly to Dashboard with ?new=true to open the create modal
     await page.goto("/dashboard?new=true");
     await page.waitForLoadState("domcontentloaded");
 

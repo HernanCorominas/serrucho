@@ -31,4 +31,7 @@ function patchDir(nodeModulesDir) {
 // Patch in root node_modules and apps/mobile/node_modules if present
 patchDir(path.resolve(__dirname, "../node_modules"));
 patchDir(path.resolve(__dirname, "../apps/mobile/node_modules"));
+try {
+  require("./generate-mobile-assets");
+} catch (e) {}
 console.log("[patch-metro] All Metro packages patched with preserved main entry and universal exports.");

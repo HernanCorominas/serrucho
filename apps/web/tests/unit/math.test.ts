@@ -10,9 +10,8 @@ import {
   calculateCategoryTotals,
   generateWhatsAppDirectLink,
   generateGroupWhatsAppSummary,
-  calculateCoroAwards,
-  calculateItemizedSplits,
 } from "@/lib/finance/math";
+
 import { convertToDOPCents } from "@/lib/finance/currency";
 
 describe("Financial Math Module", () => {
@@ -285,74 +284,8 @@ describe("Financial Math Module", () => {
     });
   });
 
-  describe("calculateCoroAwards", () => {
-    it("assigns appropriate badges to participants based on financial contributions", () => {
-      const participants = [
-        { id: "carlos", name: "Carlos Gómez", total_paid_cents: 2400000, total_owed_cents: 887500, net_balance_cents: 1512500 },
-        { id: "juan", name: "Juan Pérez", total_paid_cents: 0, total_owed_cents: 887500, net_balance_cents: -887500 },
-        { id: "pedro", name: "Pedro Rosario", total_paid_cents: 850000, total_owed_cents: 887500, net_balance_cents: -37500 },
-        { id: "maria", name: "María Santos", total_paid_cents: 300000, total_owed_cents: 887500, net_balance_cents: -587500 },
-      ];
-
-      const expenses = [
-        { id: "e1", description: "Villa Las Terrenas", amount_cents: 2400000, paid_by_participant_id: "carlos", category: "LODGING" },
-        { id: "e2", description: "Supermercado Nacional", amount_cents: 850000, paid_by_participant_id: "pedro", category: "FOOD_GROCERIES" },
-        { id: "e3", description: "Bebidas y Ron", amount_cents: 300000, paid_by_participant_id: "maria", category: "DRINKS_ALCOHOL" },
-      ];
-
-      const awards = calculateCoroAwards({ participants, expenses });
-
-      expect(awards.length).toBeGreaterThanOrEqual(3);
-
-      const topPayer = awards.find((a) => a.id === "top-payer");
-      expect(topPayer?.winner_name).toBe("Carlos Gómez");
-
-      const barman = awards.find((a) => a.id === "barman");
-      expect(barman?.winner_name).toBe("María Santos");
-
-      const supplier = awards.find((a) => a.id === "supplier");
-      expect(supplier?.winner_name).toBe("Carlos Gómez"); // 24,000 > 8,500
-
-      const topDebtor = awards.find((a) => a.id === "top-debtor");
-      expect(topDebtor?.winner_name).toBe("Juan Pérez");
-    });
-  });
-
-  describe("calculateItemizedSplits", () => {
-    it("prorates ITBIS, service and tips accurately across individual items", () => {
-      const lines = [
-        { id: "1", name: "Mofongo de Chicharrón", amountCents: 60000, assignedParticipantIds: ["juan"] },
-        { id: "2", name: "3 Cervezas Presidente", amountCents: 60000, assignedParticipantIds: ["juan", "pedro"] },
-        { id: "3", name: "Ensalada César", amountCents: 40000, assignedParticipantIds: ["maria"] },
-      ];
-
-      const result = calculateItemizedSplits({
-        lines,
-        participantIds: ["juan", "pedro", "maria"],
-        itbisPercent: 18,
-        servicePercent: 10,
-        customTipCents: 0,
-      });
-
-      expect(result.totalSubtotalCents).toBe(160000); // 600 + 600 + 400 = 1,600
-      expect(result.itbisCents).toBe(28800); // 18% of 1,600 = 288
-      expect(result.serviceCents).toBe(16000); // 10% of 1,600 = 160
-      expect(result.totalFinalCents).toBe(204800); // 1,600 + 288 + 160 = 2,048
-
-      const juan = result.participantTotals.find((p) => p.participantId === "juan");
-      const pedro = result.participantTotals.find((p) => p.participantId === "pedro");
-      const maria = result.participantTotals.find((p) => p.participantId === "maria");
-
-      expect(juan?.subtotalCents).toBe(90000); // 600 + 300
-      expect(pedro?.subtotalCents).toBe(30000); // 300
-      expect(maria?.subtotalCents).toBe(40000); // 400
-
-      const sumBasisPoints = result.participantTotals.reduce((sum, p) => sum + p.basisPoints, 0);
-      expect(sumBasisPoints).toBe(10000);
-    });
-  });
-
   describe("convertToDOPCents", () => {
+
     it("converts USD and EUR to DOP cents with exchange rates", () => {
       const dop = convertToDOPCents(100, "DOP");
       expect(dop).toBe(10000);

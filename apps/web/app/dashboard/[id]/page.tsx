@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
-  Lock,
   Users,
   Receipt,
   TrendingUp,
@@ -18,7 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -44,8 +43,6 @@ import {
   ExpenseWithSplits,
   TransferWithParticipants,
   IncomeWithSplits,
-  SettlementSnapshot,
-  NotificationLog,
 } from "@/lib/types/domain";
 import { LiveSettlementData } from "@/features/settlements/service";
 import { useRecentSerruchos } from "@/lib/hooks/use-recent-serruchos";
@@ -63,8 +60,6 @@ export default function SerruchoWorkspacePage() {
   const [transfers, setTransfers] = React.useState<TransferWithParticipants[]>([]);
   const [incomes, setIncomes] = React.useState<IncomeWithSplits[]>([]);
   const [settlement, setSettlement] = React.useState<LiveSettlementData | null>(null);
-  const [snapshots, setSnapshots] = React.useState<SettlementSnapshot[]>([]);
-  const [logs, setLogs] = React.useState<NotificationLog[]>([]);
   const [isReadOnly, setIsReadOnly] = React.useState(false);
 
   // Dialogs
@@ -152,8 +147,6 @@ export default function SerruchoWorkspacePage() {
       const detailData = await detailRes.json();
       setSerrucho(detailData.serrucho);
       setParticipants(detailData.participants);
-      setSnapshots(detailData.snapshots || []);
-      setLogs(detailData.logs || []);
 
       if (entRes.ok) {
         const entData = await entRes.json();

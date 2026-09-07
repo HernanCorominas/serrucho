@@ -1,23 +1,16 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
-  ArrowRight,
   Zap,
   Lock,
   PieChart,
   MessageCircle,
-  LayoutDashboard,
   PlusCircle,
   Link as LinkIcon,
   LogIn,
-  Users,
-  CheckCircle2,
-  ShieldCheck,
-  Smartphone,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,7 +20,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
 import { BrandLogo } from "@/components/brand-logo";
-import { BRAND_CONFIG } from "@/lib/brand-config";
 import { hapticSuccess, hapticImpact, hapticLight } from "@/lib/utils/haptics";
 
 export default function HomePage() {

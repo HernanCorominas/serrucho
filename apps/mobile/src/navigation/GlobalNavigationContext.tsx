@@ -33,12 +33,22 @@ export const GlobalNavigationProvider: React.FC<{ children: React.ReactNode }> =
     try {
       const stored = await mobileStorage.getRecents();
       if (stored && stored.length > 0) {
-        setRecents(stored);
+        setRecents((prev) => {
+          const isSame =
+            prev.length === stored.length &&
+            prev.every((item, idx) => item.id === stored[idx]?.id && item.name === stored[idx]?.name);
+          return isSame ? prev : stored;
+        });
       } else {
         // Fallback: populate from known serruchos list
         const all = await mobileStorage.getSerruchos();
         const formatted = all.slice(0, 8).map((s) => ({ id: s.id, name: s.name }));
-        setRecents(formatted);
+        setRecents((prev) => {
+          const isSame =
+            prev.length === formatted.length &&
+            prev.every((item, idx) => item.id === formatted[idx]?.id && item.name === formatted[idx]?.name);
+          return isSame ? prev : formatted;
+        });
       }
     } catch {
       setRecents([]);
@@ -51,28 +61,26 @@ export const GlobalNavigationProvider: React.FC<{ children: React.ReactNode }> =
 
   const openDrawer = useCallback(() => {
     triggerHaptic("light");
-    refreshRecents();
     setIsDrawerOpen(true);
-  }, [refreshRecents]);
+  }, []);
 
   const closeDrawer = useCallback(() => {
     setIsDrawerOpen(false);
   }, []);
 
   const toggleDrawer = useCallback(() => {
-    if (isDrawerOpen) {
-      closeDrawer();
-    } else {
-      openDrawer();
-    }
-  }, [isDrawerOpen, openDrawer, closeDrawer]);
+    setIsDrawerOpen((prev) => {
+      triggerHaptic("light");
+      return !prev;
+    });
+  }, []);
 
   const setActiveSerruchoId = useCallback((id: string | null) => {
-    setActiveSerruchoIdState(id);
+    setActiveSerruchoIdState((prev) => (prev === id ? prev : id));
   }, []);
 
   const setActiveSerruchoName = useCallback((name: string | null) => {
-    setActiveSerruchoNameState(name);
+    setActiveSerruchoNameState((prev) => (prev === name ? prev : name));
   }, []);
 
   const registerRecent = useCallback(
@@ -83,22 +91,37 @@ export const GlobalNavigationProvider: React.FC<{ children: React.ReactNode }> =
     [refreshRecents]
   );
 
+  const contextValue = React.useMemo<GlobalNavigationContextType>(
+    () => ({
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      toggleDrawer,
+      activeSerruchoId,
+      setActiveSerruchoId,
+      activeSerruchoName,
+      setActiveSerruchoName,
+      recents,
+      refreshRecents,
+      registerRecent,
+    }),
+    [
+      isDrawerOpen,
+      openDrawer,
+      closeDrawer,
+      toggleDrawer,
+      activeSerruchoId,
+      setActiveSerruchoId,
+      activeSerruchoName,
+      setActiveSerruchoName,
+      recents,
+      refreshRecents,
+      registerRecent,
+    ]
+  );
+
   return (
-    <GlobalNavigationContext.Provider
-      value={{
-        isDrawerOpen,
-        openDrawer,
-        closeDrawer,
-        toggleDrawer,
-        activeSerruchoId,
-        setActiveSerruchoId,
-        activeSerruchoName,
-        setActiveSerruchoName,
-        recents,
-        refreshRecents,
-        registerRecent,
-      }}
-    >
+    <GlobalNavigationContext.Provider value={contextValue}>
       {children}
     </GlobalNavigationContext.Provider>
   );

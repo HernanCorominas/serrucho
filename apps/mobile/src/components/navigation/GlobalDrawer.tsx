@@ -51,6 +51,8 @@ export const GlobalDrawer: React.FC = () => {
     }
   };
 
+  const prevOpenRef = useRef(isDrawerOpen);
+
   useEffect(() => {
     if (isDrawerOpen) {
       setRendered(true);
@@ -61,7 +63,7 @@ export const GlobalDrawer: React.FC = () => {
         duration: 250,
         useNativeDriver: true,
       }).start();
-    } else {
+    } else if (prevOpenRef.current && !isDrawerOpen) {
       Animated.timing(animProgress, {
         toValue: 0,
         duration: 200,
@@ -70,7 +72,8 @@ export const GlobalDrawer: React.FC = () => {
         setRendered(false);
       });
     }
-  }, [isDrawerOpen, animProgress, refreshRecents]);
+    prevOpenRef.current = isDrawerOpen;
+  }, [isDrawerOpen]);
 
   // Android Back Handler: close drawer first
   useEffect(() => {

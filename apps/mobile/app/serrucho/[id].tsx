@@ -275,7 +275,7 @@ export default function SerruchoDetailScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, setActiveSerruchoName, registerRecent]);
+  }, [id]);
 
   useEffect(() => {
     loadData();

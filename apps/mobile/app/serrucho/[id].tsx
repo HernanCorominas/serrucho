@@ -23,6 +23,7 @@ import {
   type ExpenseWithSplits,
   type ParticipantFinancials,
   type SimplifiedTransfer,
+  type Transfer,
   type ActivityEvent,
   type SerruchoTier,
 } from "@serrucho/core";
@@ -69,7 +70,7 @@ export default function SerruchoDetailScreen() {
   const [expenses, setExpenses] = useState<ExpenseWithSplits[]>([]);
   const [balances, setBalances] = useState<ParticipantFinancials[]>([]);
   const [debts, setDebts] = useState<SimplifiedTransfer[]>([]);
-  const [transfers, setTransfers] = useState<any[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [tier, setTier] = useState<SerruchoTier>("FREE");
 
@@ -291,7 +292,7 @@ export default function SerruchoDetailScreen() {
     updatedSerrucho: Serrucho,
     updatedParticipants: Participant[],
     updatedExpenses: ExpenseWithSplits[],
-    updatedTransfers: any[] = transfers,
+    updatedTransfers: Transfer[] = transfers,
     updatedActivities: ActivityEvent[] = activities,
     updatedTier: SerruchoTier = tier
   ) => {
@@ -595,13 +596,14 @@ export default function SerruchoDetailScreen() {
   // Settlements / Payments
   const handleRecordPayment = async (debt: SimplifiedTransfer) => {
     if (isClosed || isReadOnly || !serrucho) return;
-    const newTransfer = {
+    const newTransfer: Transfer = {
       id: `t_${Date.now()}`,
       serrucho_id: serrucho.id,
       sender_participant_id: debt.from_participant_id,
       receiver_participant_id: debt.to_participant_id,
       amount_cents: debt.amount_cents,
       transfer_date: new Date().toISOString(),
+      notes: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

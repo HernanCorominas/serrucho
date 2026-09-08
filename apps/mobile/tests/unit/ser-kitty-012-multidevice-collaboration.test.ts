@@ -347,7 +347,7 @@ describe("SER-KITTY-012 — Mobile Multi-Device Collaboration & Sync Engine", ()
         description: "Peaje RD$",
         amount_cents: 10000,
         split_method: "EQUAL",
-        category: "TRANSPORT",
+        category: "TRANSPORTATION",
         expense_date: now.split("T")[0],
         created_at: now,
         updated_at: now,

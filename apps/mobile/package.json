@@ -8,7 +8,8 @@
     "android": "npx expo start --android --go",
     "ios": "npx expo start --ios --go",
     "web": "npx expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",

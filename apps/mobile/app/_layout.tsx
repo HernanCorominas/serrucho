@@ -1,35 +1,32 @@
 import React from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { semanticTokens } from "@serrucho/ui";
-import { colors } from "../src/theme/colors";
+import { useAppTheme } from "../src/theme/colors";
 import { GlobalNavigationProvider } from "../src/navigation/GlobalNavigationContext";
 import { GlobalDrawer } from "../src/components/navigation/GlobalDrawer";
 
 export default function RootLayout() {
-  const isDark = useColorScheme() === "dark";
-  const theme = isDark ? colors.dark : colors.light;
+  const { isDark, tokens } = useAppTheme();
 
   return (
     <SafeAreaProvider>
       <GlobalNavigationProvider>
-        <StatusBar style="light" />
+        <StatusBar style={isDark ? "light" : "dark"} />
         <Stack
           screenOptions={{
             headerStyle: {
-              backgroundColor: semanticTokens.colors.surface.base,
+              backgroundColor: tokens.colors.surface.base,
             } as any,
-            headerTintColor: semanticTokens.colors.text.primary,
+            headerTintColor: tokens.colors.text.primary,
             headerTitleStyle: {
               fontWeight: "700",
               fontSize: 18,
-              color: semanticTokens.colors.text.primary,
+              color: tokens.colors.text.primary,
             } as any,
             headerShadowVisible: false,
             contentStyle: {
-              backgroundColor: semanticTokens.colors.background.base,
+              backgroundColor: tokens.colors.background.base,
             } as any,
           }}
         >
@@ -41,14 +38,20 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="s/[id]"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
             name="serrucho/create"
             options={{
               title: "Nuevo Serrucho 🪚",
               presentation: "modal",
               headerStyle: {
-                backgroundColor: semanticTokens.colors.surface.base,
+                backgroundColor: tokens.colors.surface.base,
               } as any,
-              headerTintColor: semanticTokens.colors.text.primary,
+              headerTintColor: tokens.colors.text.primary,
             }}
           />
           <Stack.Screen
@@ -57,9 +60,9 @@ export default function RootLayout() {
               title: "Agregar Gasto 💸",
               presentation: "modal",
               headerStyle: {
-                backgroundColor: semanticTokens.colors.surface.base,
+                backgroundColor: tokens.colors.surface.base,
               } as any,
-              headerTintColor: semanticTokens.colors.text.primary,
+              headerTintColor: tokens.colors.text.primary,
             }}
           />
           <Stack.Screen

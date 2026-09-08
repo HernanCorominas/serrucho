@@ -28,6 +28,8 @@ import {
   type SerruchoTier,
 } from "@serrucho/core";
 import { semanticTokens } from "@serrucho/ui";
+import { useAppTheme } from "../../src/theme/colors";
+import { triggerHaptic } from "../../src/utils/haptics";
 import {
   DSText,
   DSDivider,
@@ -49,7 +51,13 @@ import {
   type ActiveKittyTab,
 } from "../../src/components/navigation/ActiveKittyBottomTabs";
 import { useGlobalNavigation } from "../../src/navigation/GlobalNavigationContext";
-import { mobileStorage, type MobileSerruchoDetailData } from "../../src/services/storage";
+import {
+  mobileStorage,
+  type MobileSerruchoDetailData,
+  type BilateralSettlement,
+} from "../../src/services/storage";
+import { BilateralSettlementModal } from "../../src/components/settlement/BilateralSettlementModal";
+import { PaymentSettledAnimation } from "../../src/components/ui/PaymentSettledAnimation";
 
 export default function SerruchoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -65,6 +73,7 @@ export default function SerruchoDetailScreen() {
   const [activeTab, setActiveTab] = useState<ActiveKittyTab>("expenses");
 
   // Core Data
+  const { tokens } = useAppTheme();
   const [serrucho, setSerrucho] = useState<Serrucho | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [expenses, setExpenses] = useState<ExpenseWithSplits[]>([]);
@@ -73,6 +82,20 @@ export default function SerruchoDetailScreen() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [tier, setTier] = useState<SerruchoTier>("FREE");
+  const [bilateralSettlements, setBilateralSettlements] = useState<BilateralSettlement[]>([]);
+
+  // Payment Celebration Animation State
+  const [settledAnimationData, setSettledAnimationData] = useState<{
+    visible: boolean;
+    debtorName: string;
+    creditorName: string;
+    amountCents: number;
+  }>({
+    visible: false,
+    debtorName: "",
+    creditorName: "",
+    amountCents: 0,
+  });
 
   // Identity & Permissions
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
@@ -116,6 +139,7 @@ export default function SerruchoDetailScreen() {
         setTransfers(stored.transfers || []);
         setActivities(stored.activities || []);
         setTier(stored.tier || "FREE");
+        setBilateralSettlements(stored.bilateral_settlements || []);
         setActiveSerruchoName(stored.serrucho.name);
         await registerRecent(stored.serrucho.id, stored.serrucho.name);
 
@@ -280,7 +304,30 @@ export default function SerruchoDetailScreen() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+
+    // Reactive subscription for instant UI updates (add expense, settlement, etc.)
+    if (id) {
+      const unsubscribe = mobileStorage.subscribeToDetail(id, (updated) => {
+        if (updated) {
+          setSerrucho(updated.serrucho);
+          setParticipants(updated.participants || []);
+          setExpenses(updated.expenses || []);
+          setTransfers(updated.transfers || []);
+          setActivities(updated.activities || []);
+          setTier(updated.tier || "FREE");
+          setBilateralSettlements(updated.bilateral_settlements || []);
+          const calculated = calculateParticipantBalances(
+            updated.participants || [],
+            updated.expenses || [],
+            updated.transfers || []
+          );
+          setBalances(calculated);
+          setDebts(simplifyDebts(updated.participants || [], calculated));
+        }
+      });
+      return unsubscribe;
+    }
+  }, [id, loadData]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -294,7 +341,8 @@ export default function SerruchoDetailScreen() {
     updatedExpenses: ExpenseWithSplits[],
     updatedTransfers: Transfer[] = transfers,
     updatedActivities: ActivityEvent[] = activities,
-    updatedTier: SerruchoTier = tier
+    updatedTier: SerruchoTier = tier,
+    updatedBilateralSettlements: BilateralSettlement[] = bilateralSettlements
   ) => {
     if (!id) return;
     const calculated = calculateParticipantBalances(updatedParticipants, updatedExpenses, updatedTransfers);
@@ -306,6 +354,7 @@ export default function SerruchoDetailScreen() {
     setTransfers(updatedTransfers);
     setActivities(updatedActivities);
     setTier(updatedTier);
+    setBilateralSettlements(updatedBilateralSettlements);
 
     await mobileStorage.saveSerruchoDetail(id, {
       serrucho: updatedSerrucho,
@@ -315,6 +364,7 @@ export default function SerruchoDetailScreen() {
       transfers: updatedTransfers,
       activities: updatedActivities,
       tier: updatedTier,
+      bilateral_settlements: updatedBilateralSettlements,
     });
   };
 
@@ -593,6 +643,190 @@ export default function SerruchoDetailScreen() {
     Alert.alert("¡Super Serrucho Activado!", "Disfruta de todas las ventajas Pro a costo $0.");
   };
 
+  // Active bilateral settlement for the currently selected debt (if any)
+  const activeSettlement = selectedDebt
+    ? bilateralSettlements.find(
+        (s) =>
+          s.debtor_participant_id === selectedDebt.from_participant_id &&
+          s.creditor_participant_id === selectedDebt.to_participant_id &&
+          s.status !== "SETTLED" &&
+          s.status !== "REJECTED"
+      ) || null
+    : null;
+
+  // Bilateral Settlement Handlers
+  const handleInitiateSettlement = async (paymentMethod: "TRANSFER" | "CASH" | "OTHER") => {
+    if (!selectedDebt || !serrucho || isClosed || isReadOnly) return;
+    const newSettlement: BilateralSettlement = {
+      id: `bsett_${Date.now()}`,
+      serrucho_id: serrucho.id,
+      debtor_participant_id: selectedDebt.from_participant_id,
+      debtor_name: selectedDebt.from_name,
+      creditor_participant_id: selectedDebt.to_participant_id,
+      creditor_name: selectedDebt.to_name,
+      amount_cents: selectedDebt.amount_cents,
+      payment_method: paymentMethod,
+      notes: null,
+      status: "PENDING_CONFIRMATION",
+      confirmation_code: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const newActivity: ActivityEvent = {
+      id: `act_${Date.now()}`,
+      serrucho_id: serrucho.id,
+      action_type: "TRANSFER_CREATED",
+      entity_type: "TRANSFER",
+      actor_name: selectedDebt.from_name,
+      summary: `${selectedDebt.from_name} solicitó confirmar pago de ${formatDOP(selectedDebt.amount_cents)} a ${selectedDebt.to_name}`,
+      created_at: new Date().toISOString(),
+    };
+
+    const updatedSettlements = [
+      newSettlement,
+      ...bilateralSettlements.filter(
+        (s) =>
+          !(
+            s.debtor_participant_id === selectedDebt.from_participant_id &&
+            s.creditor_participant_id === selectedDebt.to_participant_id &&
+            (s.status === "PENDING_CONFIRMATION" || s.status === "REJECTED")
+          )
+      ),
+    ];
+    const newActs = [newActivity, ...activities];
+    await persistChanges(serrucho, participants, expenses, transfers, newActs, tier, updatedSettlements);
+    triggerHaptic("medium");
+  };
+
+  const handleCreditorConfirmSettlement = async () => {
+    if (!activeSettlement || !selectedDebt || !serrucho) return;
+    const randomCode = String(Math.floor(1000 + Math.random() * 9000));
+    const updatedSettlement: BilateralSettlement = {
+      ...activeSettlement,
+      status: "CODE_PENDING",
+      confirmation_code: randomCode,
+      updated_at: new Date().toISOString(),
+    };
+    const newActivity: ActivityEvent = {
+      id: `act_${Date.now()}`,
+      serrucho_id: serrucho.id,
+      action_type: "TRANSFER_CREATED",
+      entity_type: "TRANSFER",
+      actor_name: selectedDebt.to_name,
+      summary: `${selectedDebt.to_name} confirmó recibir el pago de ${selectedDebt.from_name}. Código de 4 dígitos generado.`,
+      created_at: new Date().toISOString(),
+    };
+    const updatedSettlements = bilateralSettlements.map((s) =>
+      s.id === updatedSettlement.id ? updatedSettlement : s
+    );
+    const newActs = [newActivity, ...activities];
+    await persistChanges(serrucho, participants, expenses, transfers, newActs, tier, updatedSettlements);
+    triggerHaptic("success");
+  };
+
+  const handleCreditorRejectSettlement = async () => {
+    if (!activeSettlement || !selectedDebt || !serrucho) return;
+    const updatedSettlement: BilateralSettlement = {
+      ...activeSettlement,
+      status: "REJECTED",
+      rejected_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const newActivity: ActivityEvent = {
+      id: `act_${Date.now()}`,
+      serrucho_id: serrucho.id,
+      action_type: "TRANSFER_CREATED",
+      entity_type: "TRANSFER",
+      actor_name: selectedDebt.to_name,
+      summary: `${selectedDebt.to_name} rechazó la solicitud de pago de ${selectedDebt.from_name}`,
+      created_at: new Date().toISOString(),
+    };
+    const updatedSettlements = bilateralSettlements.map((s) =>
+      s.id === updatedSettlement.id ? updatedSettlement : s
+    );
+    const newActs = [newActivity, ...activities];
+    await persistChanges(serrucho, participants, expenses, transfers, newActs, tier, updatedSettlements);
+    triggerHaptic("warning");
+    setSelectedDebt(null);
+  };
+
+  const handleVerifySettlementCode = async (code: string): Promise<boolean> => {
+    if (!activeSettlement || !selectedDebt || !serrucho) return false;
+    if (code !== activeSettlement.confirmation_code) {
+      return false;
+    }
+
+    const settledSettlement: BilateralSettlement = {
+      ...activeSettlement,
+      status: "SETTLED",
+      settled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const newTransfer: Transfer = {
+      id: `t_${Date.now()}`,
+      serrucho_id: serrucho.id,
+      sender_participant_id: selectedDebt.from_participant_id,
+      receiver_participant_id: selectedDebt.to_participant_id,
+      amount_cents: selectedDebt.amount_cents,
+      transfer_date: new Date().toISOString(),
+      notes: `Saldado con código de 4 dígitos (${activeSettlement.payment_method})`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const updatedTransfers = [...transfers, newTransfer];
+
+    const newActivity: ActivityEvent = {
+      id: `act_${Date.now()}`,
+      serrucho_id: serrucho.id,
+      action_type: "TRANSFER_CREATED",
+      entity_type: "TRANSFER",
+      actor_name: selectedDebt.from_name,
+      summary: `Deuda saldada: ${selectedDebt.from_name} pagó ${formatDOP(selectedDebt.amount_cents)} a ${selectedDebt.to_name}`,
+      created_at: new Date().toISOString(),
+    };
+
+    const updatedSettlements = bilateralSettlements.map((s) =>
+      s.id === settledSettlement.id ? settledSettlement : s
+    );
+    const newActs = [newActivity, ...activities];
+
+    await persistChanges(
+      serrucho,
+      participants,
+      expenses,
+      updatedTransfers,
+      newActs,
+      tier,
+      updatedSettlements
+    );
+
+    setSelectedDebt(null);
+    setSettledAnimationData({
+      visible: true,
+      debtorName: selectedDebt.from_name,
+      creditorName: selectedDebt.to_name,
+      amountCents: selectedDebt.amount_cents,
+    });
+    return true;
+  };
+
+  const handleAddExpenseClick = () => {
+    if (!myParticipantId) {
+      Alert.alert(
+        "Identidad Requerida",
+        "Debes seleccionar quién eres en este Serrucho antes de registrar un gasto.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Seleccionar Quién Soy", onPress: () => setShowIdentityModal(true) },
+        ]
+      );
+      return;
+    }
+    router.push({ pathname: "/serrucho/add-expense", params: { serruchoId: id } });
+  };
+
   // Settlements / Payments
   const handleRecordPayment = async (debt: SimplifiedTransfer) => {
     if (isClosed || isReadOnly || !serrucho) return;
@@ -696,11 +930,27 @@ export default function SerruchoDetailScreen() {
         </View>
       )}
 
+      {/* Guest Mode / Unclaimed Identity Banner */}
+      {!myParticipantId && (
+        <TouchableOpacity
+          onPress={() => setShowIdentityModal(true)}
+          style={[styles.guestBanner, { backgroundColor: tokens.colors.surface.hover, borderColor: tokens.colors.accent.primary }]}
+          accessibilityLabel="Seleccionar mi participante"
+          accessibilityRole="button"
+        >
+          <Ionicons name="person-circle-outline" size={20} color={tokens.colors.accent.primary} />
+          <DSText variant="caption" style={{ flex: 1, marginLeft: 8 }}>
+            Modo invitado: <DSText variant="caption" weight="bold" color="accent">Selecciona quién eres</DSText> para poder agregar gastos o saldar deudas.
+          </DSText>
+          <Ionicons name="chevron-forward" size={16} color={tokens.colors.accent.primary} />
+        </TouchableOpacity>
+      )}
+
       {/* Main Content Area */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={semanticTokens.colors.accent.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.colors.accent.primary} />}
       >
         {/* ==================== TAB 1: GASTOS ==================== */}
         {activeTab === "expenses" && (
@@ -722,7 +972,7 @@ export default function SerruchoDetailScreen() {
                     Tu identidad en este grupo:
                   </DSText>
                   <DSText variant="body" weight="semibold">
-                    {participants.find((p) => p.id === myParticipantId)?.name || "Seleccionar..."}
+                    {participants.find((p) => p.id === myParticipantId)?.name || "Seleccionar quién soy..."}
                   </DSText>
                 </View>
               </View>
@@ -762,7 +1012,7 @@ export default function SerruchoDetailScreen() {
                 <DSButton
                   title="+ Agregar Gasto"
                   variant="primary"
-                  onPress={() => router.push({ pathname: "/serrucho/add-expense", params: { serruchoId: id } })}
+                  onPress={handleAddExpenseClick}
                   accessibilityLabel="Agregar nuevo gasto"
                   style={{ flex: 1 }}
                 />
@@ -773,7 +1023,7 @@ export default function SerruchoDetailScreen() {
             <DSSection title="Historial de Gastos">
               {expenses.length === 0 ? (
                 <DSEmptyState
-                  illustration={<Ionicons name="receipt-outline" size={40} color={semanticTokens.colors.text.secondary} />}
+                  illustration={<Ionicons name="receipt-outline" size={40} color={tokens.colors.text.secondary} />}
                   title="Aún no hay gastos"
                   description="Comienza agregando el primer gasto para calcular divisiones automáticamente."
                   action={
@@ -781,7 +1031,7 @@ export default function SerruchoDetailScreen() {
                       <DSButton
                         title="+ Agregar Primer Gasto"
                         variant="primary"
-                        onPress={() => router.push({ pathname: "/serrucho/add-expense", params: { serruchoId: id } })}
+                        onPress={handleAddExpenseClick}
                       />
                     ) : undefined
                   }
@@ -835,24 +1085,47 @@ export default function SerruchoDetailScreen() {
                 />
               ) : debts.length === 0 ? (
                 <DSEmptyState
-                  illustration={<Ionicons name="checkmark-circle-outline" size={40} color={semanticTokens.colors.success.base} />}
+                  illustration={<Ionicons name="checkmark-circle-outline" size={40} color={tokens.colors.success.base} />}
                   title="¡Están al día!"
                   description="No hay deudas pendientes en este Serrucho."
                 />
               ) : (
-                debts.map((debt, index) => (
-                  <DSDebtRow
-                    key={`${debt.from_participant_id}_${debt.to_participant_id}_${index}`}
-                    debtorName={debt.from_name}
-                    creditorName={debt.to_name}
-                    amountFormatted={formatDOP(debt.amount_cents)}
-                    onSettle={!isClosed && !isReadOnly ? () => setSelectedDebt(debt) : undefined}
-                    onWhatsApp={() => {
-                      const msg = `¡Dímelo ${debt.from_name}! Te recuerdo el pago de ${formatDOP(debt.amount_cents)} para ${debt.to_name} en nuestro Serrucho.`;
-                      Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`);
-                    }}
-                  />
-                ))
+                debts.map((debt, index) => {
+                  const activeDebtSettlement = bilateralSettlements.find(
+                    (s) =>
+                      s.debtor_participant_id === debt.from_participant_id &&
+                      s.creditor_participant_id === debt.to_participant_id &&
+                      s.status !== "SETTLED" &&
+                      s.status !== "REJECTED"
+                  );
+                  return (
+                    <View key={`${debt.from_participant_id}_${debt.to_participant_id}_${index}`}>
+                      <DSDebtRow
+                        debtorName={debt.from_name}
+                        creditorName={debt.to_name}
+                        amountFormatted={formatDOP(debt.amount_cents)}
+                        onSettle={!isClosed && !isReadOnly ? () => setSelectedDebt(debt) : undefined}
+                        onWhatsApp={() => {
+                          const msg = `¡Dímelo ${debt.from_name}! Te recuerdo el pago de ${formatDOP(debt.amount_cents)} para ${debt.to_name} en nuestro Serrucho.`;
+                          Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`);
+                        }}
+                      />
+                      {activeDebtSettlement ? (
+                        <View style={{ paddingHorizontal: 16, paddingBottom: 8, marginTop: -4 }}>
+                          <DSBadge
+                            label={
+                              activeDebtSettlement.status === "PENDING_CONFIRMATION"
+                                ? "⏳ Confirmación pendiente"
+                                : "🔑 Código de 4 dígitos generado"
+                            }
+                            variant={activeDebtSettlement.status === "CODE_PENDING" ? "accent" : "neutral"}
+                            size="sm"
+                          />
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })
               )}
             </DSSection>
           </View>
@@ -1355,38 +1628,36 @@ export default function SerruchoDetailScreen() {
         </View>
       </Modal>
 
-      {/* Settle Up Modal */}
-      {selectedDebt && (
-        <Modal visible={selectedDebt !== null} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <DSSurface variant="elevated" style={styles.modalContainer}>
-              <DSText variant="title" weight="bold" style={{ marginBottom: 4 }}>
-                Saldar Deuda 💰
-              </DSText>
-              <DSText variant="body" color="secondary" style={{ marginBottom: 12 }}>
-                {selectedDebt.from_name} le debe {formatDOP(selectedDebt.amount_cents)} a {selectedDebt.to_name}.
-              </DSText>
-              <DSText variant="caption" color="muted" style={{ marginBottom: 16 }}>
-                Puedes transferir vía Banco Popular, BHD, Banreservas o Qik, y luego marcar este pago como completado.
-              </DSText>
-              <View style={styles.modalButtonsRow}>
-                <DSButton
-                  title="Cancelar"
-                  variant="secondary"
-                  onPress={() => setSelectedDebt(null)}
-                  style={{ flex: 1, marginRight: 8 }}
-                />
-                <DSButton
-                  title="Registrar Pago"
-                  variant="primary"
-                  onPress={() => handleRecordPayment(selectedDebt)}
-                  style={{ flex: 1, marginLeft: 8 }}
-                />
-              </View>
-            </DSSurface>
-          </View>
-        </Modal>
-      )}
+      {/* Bilateral Settlement Modal */}
+      <BilateralSettlementModal
+        visible={selectedDebt !== null}
+        debt={selectedDebt}
+        myParticipantId={myParticipantId}
+        serrucho={serrucho}
+        activeSettlement={activeSettlement}
+        onDismiss={() => setSelectedDebt(null)}
+        onInitiate={handleInitiateSettlement}
+        onCreditorConfirm={handleCreditorConfirmSettlement}
+        onCreditorReject={handleCreditorRejectSettlement}
+        onVerifyCode={handleVerifySettlementCode}
+        onOpenIdentityModal={() => setShowIdentityModal(true)}
+      />
+
+      {/* Payment Settled Celebration Animation */}
+      <PaymentSettledAnimation
+        visible={settledAnimationData.visible}
+        debtorName={settledAnimationData.debtorName}
+        creditorName={settledAnimationData.creditorName}
+        amountCents={settledAnimationData.amountCents}
+        onFinish={() =>
+          setSettledAnimationData({
+            visible: false,
+            debtorName: "",
+            creditorName: "",
+            amountCents: 0,
+          })
+        }
+      />
     </View>
   );
 }
@@ -1416,6 +1687,13 @@ const styles = StyleSheet.create({
   closedBannerText: {
     color: semanticTokens.colors.text.secondary,
     textAlign: "center",
+  },
+  guestBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
   },
   identityBar: {
     flexDirection: "row",

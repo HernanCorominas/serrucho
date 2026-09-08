@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { semanticTokens } from "@serrucho/ui";
+import { useAppTheme } from "../../src/theme/colors";
 import { mobileStorage } from "../../src/services/storage";
 import { triggerHaptic } from "../../src/utils/haptics";
 import { useGlobalNavigation } from "../../src/navigation/GlobalNavigationContext";
@@ -21,26 +21,41 @@ import {
   DSSurface,
   DSEmptyState,
 } from "../../src/components/ds";
+import { OnboardingModal } from "../../src/components/onboarding/OnboardingModal";
+import { AppOpenSplash } from "../../src/components/ui/AppOpenSplash";
 import type { Serrucho } from "@serrucho/core";
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { openDrawer } = useGlobalNavigation();
+  const { tokens } = useAppTheme();
 
   const [serruchos, setSerruchos] = useState<Serrucho[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"OPEN" | "CLOSED">("OPEN");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isSplashReady, setIsSplashReady] = useState(false);
 
   const loadData = useCallback(async () => {
-    // Load saved serruchos from storage
-    const cached = await mobileStorage.getSerruchos();
-    const cleanList = (cached || []).filter(
-      (s) => s.id !== "las-terrenas-2025" && s.id !== "cena-cumple-carlos" && s.id !== "serrucho-demo-1"
-    );
-    setSerruchos(cleanList);
-    if (cleanList.length !== (cached || []).length) {
-      await mobileStorage.saveSerruchos(cleanList);
+    try {
+      // Check onboarding
+      const completed = await mobileStorage.hasCompletedOnboarding();
+      if (!completed) {
+        setShowOnboarding(true);
+      }
+
+      // Load saved serruchos from storage
+      const cached = await mobileStorage.getSerruchos();
+      const cleanList = (cached || []).filter(
+        (s) => s.id !== "las-terrenas-2025" && s.id !== "cena-cumple-carlos" && s.id !== "serrucho-demo-1"
+      );
+      setSerruchos(cleanList);
+      if (cleanList.length !== (cached || []).length) {
+        await mobileStorage.saveSerruchos(cleanList);
+      }
+    } finally {
+      setIsSplashReady(true);
     }
   }, []);
 
@@ -68,7 +83,13 @@ export default function DashboardScreen() {
   const closedCount = serruchos.filter((s) => s.status === "CLOSED").length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: tokens.colors.background.base }]}>
+      <AppOpenSplash isReady={isSplashReady} />
+      <OnboardingModal
+        visible={showOnboarding}
+        onDismiss={() => setShowOnboarding(false)}
+      />
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -76,22 +97,22 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={semanticTokens.colors.accent.primary}
-            colors={[semanticTokens.colors.accent.primary]}
+            tintColor={tokens.colors.accent.primary}
+            colors={[tokens.colors.accent.primary]}
           />
         }
       >
         {/* Top Header Row with Brand Identity & Hamburger */}
         <View style={styles.headerRow}>
           <DSIconButton
-            icon={<Ionicons name="menu" size={24} color={semanticTokens.colors.text.primary} />}
+            icon={<Ionicons name="menu" size={24} color={tokens.colors.text.primary} />}
             onPress={openDrawer}
             accessibilityLabel="Abrir menú principal"
             style={{ marginRight: 8 }}
           />
           <View style={{ flex: 1 }}>
             <View style={styles.brandRow}>
-              <View style={styles.logoBadge}>
+              <View style={[styles.logoBadge, { backgroundColor: tokens.colors.accent.primary }]}>
                 <DSText style={styles.logoEmoji}>🪚</DSText>
               </View>
               <View>
@@ -140,20 +161,20 @@ export default function DashboardScreen() {
 
         {/* Search Bar */}
         {serruchos.length > 0 && (
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={18} color={semanticTokens.colors.text.secondary} style={styles.searchIcon as any} />
+          <View style={[styles.searchContainer, { backgroundColor: tokens.colors.surface.base, borderColor: tokens.colors.divider }]}>
+            <Ionicons name="search" size={18} color={tokens.colors.text.secondary} style={styles.searchIcon as any} />
             <TextInput
               placeholder="Buscar Serrucho..."
-              placeholderTextColor={semanticTokens.colors.text.muted}
+              placeholderTextColor={tokens.colors.text.muted}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: tokens.colors.text.primary }]}
             />
           </View>
         )}
 
         {/* Segmented Tab Bar */}
-        <View style={styles.tabBar}>
+        <View style={[styles.tabBar, { backgroundColor: tokens.colors.surface.base, borderColor: tokens.colors.divider }]}>
           <TouchableOpacity
             onPress={() => {
               triggerHaptic("light");
@@ -161,13 +182,13 @@ export default function DashboardScreen() {
             }}
             style={[
               styles.tabButton,
-              activeTab === "OPEN" && styles.tabButtonActive,
+              activeTab === "OPEN" && { backgroundColor: tokens.colors.accent.primary },
             ]}
           >
             <DSText
               variant="caption"
               weight="bold"
-              style={{ color: activeTab === "OPEN" ? "#FFFFFF" : semanticTokens.colors.text.secondary }}
+              style={{ color: activeTab === "OPEN" ? "#FFFFFF" : tokens.colors.text.secondary }}
             >
               En Curso ({openCount})
             </DSText>
@@ -180,13 +201,13 @@ export default function DashboardScreen() {
             }}
             style={[
               styles.tabButton,
-              activeTab === "CLOSED" && styles.tabButtonActive,
+              activeTab === "CLOSED" && { backgroundColor: tokens.colors.accent.primary },
             ]}
           >
             <DSText
               variant="caption"
               weight="bold"
-              style={{ color: activeTab === "CLOSED" ? "#FFFFFF" : semanticTokens.colors.text.secondary }}
+              style={{ color: activeTab === "CLOSED" ? "#FFFFFF" : tokens.colors.text.secondary }}
             >
               Liquidados ({closedCount})
             </DSText>
@@ -198,7 +219,7 @@ export default function DashboardScreen() {
           <DSSurface variant="elevated" style={styles.emptyContainer}>
             {searchQuery.trim() !== "" ? (
               <DSEmptyState
-                illustration={<Ionicons name="search-outline" size={44} color={semanticTokens.colors.text.secondary} />}
+                illustration={<Ionicons name="search-outline" size={44} color={tokens.colors.text.secondary} />}
                 title="Sin resultados"
                 description={`No encontramos ningún Serrucho que coincida con "${searchQuery}".`}
                 action={
@@ -215,7 +236,7 @@ export default function DashboardScreen() {
               />
             ) : (
               <DSEmptyState
-                illustration={<Ionicons name="albums-outline" size={44} color={semanticTokens.colors.text.secondary} />}
+                illustration={<Ionicons name="albums-outline" size={44} color={tokens.colors.text.secondary} />}
                 title={activeTab === "OPEN" ? "No tienes ningún Serrucho activo" : "No hay Serruchos liquidados"}
                 description={
                   activeTab === "OPEN"
@@ -266,9 +287,9 @@ export default function DashboardScreen() {
                   </DSText>
                 ) : null}
 
-                <View style={styles.cardFooter}>
+                <View style={[styles.cardFooter, { borderTopColor: tokens.colors.divider }]}>
                   <View style={styles.footerInfo}>
-                    <Ionicons name="calendar-outline" size={13} color={semanticTokens.colors.text.secondary} />
+                    <Ionicons name="calendar-outline" size={13} color={tokens.colors.text.secondary} />
                     <DSText variant="caption" color="secondary" style={{ marginLeft: 4 }}>
                       {s.event_date || new Date(s.created_at).toLocaleDateString("es-DO")}
                     </DSText>
@@ -278,7 +299,7 @@ export default function DashboardScreen() {
                     <DSText variant="caption" weight="bold" color="accent" style={{ marginRight: 2 }}>
                       {s.status === "OPEN" ? "Entrar al Serrucho" : "Ver Cuentas"}
                     </DSText>
-                    <Ionicons name="chevron-forward" size={14} color={semanticTokens.colors.accent.primary} />
+                    <Ionicons name="chevron-forward" size={14} color={tokens.colors.accent.primary} />
                   </View>
                 </View>
               </DSSurface>
@@ -293,17 +314,16 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: semanticTokens.colors.background.base,
   },
   content: {
-    padding: semanticTokens.spacing.screen,
+    padding: 16,
     paddingBottom: 48,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: semanticTokens.spacing.md,
+    marginBottom: 12,
   },
   brandRow: {
     flexDirection: "row",
@@ -313,8 +333,7 @@ const styles = StyleSheet.create({
   logoBadge: {
     height: 36,
     width: 36,
-    borderRadius: semanticTokens.radius.sm,
-    backgroundColor: semanticTokens.colors.accent.primary,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -331,11 +350,11 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: semanticTokens.spacing.md,
+    marginBottom: 12,
   },
   statBox: {
     flex: 1,
-    borderRadius: semanticTokens.radius.md,
+    borderRadius: 12,
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -346,43 +365,35 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: semanticTokens.colors.surface.base,
     borderWidth: 1,
-    borderColor: semanticTokens.colors.divider,
-    borderRadius: semanticTokens.radius.md,
+    borderRadius: 12,
     paddingHorizontal: 12,
     height: 44,
-    marginBottom: semanticTokens.spacing.md,
+    marginBottom: 12,
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    color: semanticTokens.colors.text.primary,
     fontSize: 14,
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: semanticTokens.colors.surface.base,
     borderWidth: 1,
-    borderColor: semanticTokens.colors.divider,
-    borderRadius: semanticTokens.radius.md,
+    borderRadius: 12,
     padding: 4,
-    marginBottom: semanticTokens.spacing.md,
+    marginBottom: 12,
   },
   tabButton: {
     flex: 1,
-    borderRadius: semanticTokens.radius.sm,
+    borderRadius: 8,
     paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabButtonActive: {
-    backgroundColor: semanticTokens.colors.accent.primary,
-  },
   serruchoCard: {
-    borderRadius: semanticTokens.radius.md,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 10,
   },
@@ -401,7 +412,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: semanticTokens.colors.divider,
     paddingTop: 8,
     marginTop: 4,
   },
@@ -414,7 +424,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyContainer: {
-    borderRadius: semanticTokens.radius.lg,
+    borderRadius: 16,
     overflow: "hidden",
     marginTop: 8,
   },

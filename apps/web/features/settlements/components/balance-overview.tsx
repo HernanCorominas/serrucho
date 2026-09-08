@@ -149,13 +149,13 @@ export function BalanceOverview({
 
       {/* Top summary metric cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="border-teal-200/60 bg-gradient-to-br from-teal-50/70 to-card dark:from-teal-950/20 dark:border-teal-900/40">
+        <Card className="border-purple-200/60 bg-gradient-to-br from-purple-50/70 to-card dark:from-purple-950/20 dark:border-purple-900/40">
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-teal-900/70 dark:text-teal-300 uppercase tracking-wider">
+              <span className="text-xs font-bold text-purple-900/70 dark:text-purple-300 uppercase tracking-wider">
                 Total del Serrucho
               </span>
-              <div className="p-2 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400">
+              <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
                 <TrendingUp className="h-4 w-4" />
               </div>
             </div>

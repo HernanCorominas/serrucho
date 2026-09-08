@@ -1,25 +1,25 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
-  useColorScheme,
   Alert,
+  TextInput,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { colors } from "../../src/theme/colors";
-import { Button } from "../../src/components/ui/Button";
-import { Card } from "../../src/components/ui/Card";
-import { Input } from "../../src/components/ui/Input";
+import { semanticTokens } from "@serrucho/ui";
 import { mobileStorage } from "../../src/services/storage";
 import { triggerHaptic } from "../../src/utils/haptics";
+import {
+  DSText,
+  DSButton,
+  DSSurface,
+} from "../../src/components/ds";
 import type { Serrucho, Participant, ParticipantFinancials } from "@serrucho/core";
 
 export default function CreateSerruchoModal() {
   const router = useRouter();
-  const isDark = useColorScheme() === "dark";
-  const theme = isDark ? colors.dark : colors.light;
 
   const [name, setName] = useState("");
   const [creatorName, setCreatorName] = useState("");
@@ -32,7 +32,7 @@ export default function CreateSerruchoModal() {
   const handleCreate = async () => {
     if (!name.trim()) {
       triggerHaptic("error");
-      Alert.alert("Campo requerido", "Por favor ingresa un nombre para el serrucho.");
+      Alert.alert("Campo requerido", "Por favor ingresa un nombre para el Serrucho.");
       return;
     }
 
@@ -107,6 +107,19 @@ export default function CreateSerruchoModal() {
       participants: participantList,
       expenses: [],
       balances: initialBalances,
+      transfers: [],
+      activities: [
+        {
+          id: `act_${Date.now()}`,
+          serrucho_id: serruchoId,
+          action_type: "SERRUCHO_CREATED",
+          entity_type: "SERRUCHO",
+          actor_name: myName,
+          summary: `Se creó el Serrucho "${newSerrucho.name}"`,
+          created_at: now,
+        },
+      ],
+      tier: "FREE",
     });
     await mobileStorage.addRecent({ id: serruchoId, name: newSerrucho.name });
 
@@ -117,94 +130,137 @@ export default function CreateSerruchoModal() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Card>
-        <Text style={[styles.title, { color: theme.text }]}>
+      <DSSurface variant="elevated" style={styles.card}>
+        <DSText variant="title" weight="bold" color="primary" style={styles.title}>
           Información del Serrucho 🪚
-        </Text>
-        <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-          Crea tu grupo para empezar a anotar los gastos del coro o viaje.
-        </Text>
+        </DSText>
+        <DSText variant="caption" color="secondary" style={styles.subtitle}>
+          Crea tu grupo para empezar a anotar los gastos del coro, viaje o salida.
+        </DSText>
 
-        <Input
-          label="Nombre del Serrucho *"
-          placeholder="Ej. Fin de Semana en Las Terrenas 🌴"
-          value={name}
-          onChangeText={setName}
-          autoFocus
-        />
+        <View style={styles.inputGroup}>
+          <DSText variant="caption" color="secondary" weight="semibold" style={styles.inputLabel}>
+            Nombre del Serrucho *
+          </DSText>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej. Fin de Semana en Las Terrenas 🌴"
+            placeholderTextColor={semanticTokens.colors.text.muted}
+            value={name}
+            onChangeText={setName}
+            autoFocus
+          />
+        </View>
 
-        <Input
-          label="Tu Nombre / Apodo (Opcional)"
-          placeholder="Ej. Braulio"
-          value={creatorName}
-          onChangeText={setCreatorName}
-        />
+        <View style={styles.inputGroup}>
+          <DSText variant="caption" color="secondary" weight="semibold" style={styles.inputLabel}>
+            Tu Nombre / Apodo (Opcional)
+          </DSText>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej. Braulio"
+            placeholderTextColor={semanticTokens.colors.text.muted}
+            value={creatorName}
+            onChangeText={setCreatorName}
+          />
+        </View>
 
-        <Input
-          label="Amigos del coro (Opcional, separados por coma)"
-          placeholder="Ej. Carlos, Laura, Marcos, Paola"
-          value={initialParticipantsText}
-          onChangeText={setInitialParticipantsText}
-        />
+        <View style={styles.inputGroup}>
+          <DSText variant="caption" color="secondary" weight="semibold" style={styles.inputLabel}>
+            Amigos del coro (Opcional, separados por coma)
+          </DSText>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej. Carlos, Laura, Marcos, Paola"
+            placeholderTextColor={semanticTokens.colors.text.muted}
+            value={initialParticipantsText}
+            onChangeText={setInitialParticipantsText}
+          />
+        </View>
 
         <View style={styles.currencyRow}>
-          <Text style={[styles.currencyLabel, { color: theme.text }]}>
-            Moneda:
-          </Text>
+          <DSText variant="caption" color="secondary" weight="semibold" style={styles.inputLabel}>
+            Moneda principal:
+          </DSText>
           <View style={styles.currencyButtons}>
-            {(["DOP", "USD", "EUR"] as const).map((curr) => (
-              <Button
-                key={curr}
-                title={curr === "DOP" ? "🇩🇴 RD$" : curr === "USD" ? "🇺🇸 USD$" : "🇪🇺 EUR€"}
-                variant={currency === curr ? "primary" : "outline"}
-                size="sm"
-                onPress={() => {
-                  triggerHaptic("selection");
-                  setCurrency(curr);
-                }}
-                style={styles.currencyBtn}
-              />
-            ))}
+            {(["DOP", "USD", "EUR"] as const).map((curr) => {
+              const isSelected = currency === curr;
+              return (
+                <TouchableOpacity
+                  key={curr}
+                  style={[
+                    styles.currencyBtn,
+                    isSelected ? styles.currencyBtnActive : styles.currencyBtnInactive,
+                  ]}
+                  onPress={() => {
+                    triggerHaptic("selection");
+                    setCurrency(curr);
+                  }}
+                >
+                  <DSText
+                    variant="caption"
+                    weight="bold"
+                    style={{ color: isSelected ? "#FFFFFF" : semanticTokens.colors.text.secondary }}
+                  >
+                    {curr === "DOP" ? "🇩🇴 RD$" : curr === "USD" ? "🇺🇸 USD$" : "🇪🇺 EUR€"}
+                  </DSText>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        <Input
-          label="Descripción o Notas (Opcional)"
-          placeholder="Ej. Alquiler de villa, comida, gasolina y bebidas"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={2}
-          style={{ height: 60 }}
-        />
+        <View style={styles.inputGroup}>
+          <DSText variant="caption" color="secondary" weight="semibold" style={styles.inputLabel}>
+            Descripción o Notas (Opcional)
+          </DSText>
+          <TextInput
+            style={[styles.input, { height: 64, textAlignVertical: "top", paddingTop: 10 }]}
+            placeholder="Ej. Villa, comida, gasolina y bebidas"
+            placeholderTextColor={semanticTokens.colors.text.muted}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={2}
+          />
+        </View>
 
-        <Input
-          label="Fecha del Evento"
-          placeholder="AAAA-MM-DD"
-          value={eventDate}
-          onChangeText={setEventDate}
-        />
+        <View style={styles.inputGroup}>
+          <DSText variant="caption" color="secondary" weight="semibold" style={styles.inputLabel}>
+            Fecha del Evento
+          </DSText>
+          <TextInput
+            style={styles.input}
+            placeholder="AAAA-MM-DD"
+            placeholderTextColor={semanticTokens.colors.text.muted}
+            value={eventDate}
+            onChangeText={setEventDate}
+          />
+        </View>
 
         <View style={styles.actions}>
-          <Button
-            title="Crear Serrucho ➔"
+          <DSButton
+            title={loading ? "Creando..." : "Crear Serrucho ➔"}
+            variant="primary"
             onPress={handleCreate}
-            loading={loading}
-            size="lg"
+            disabled={loading}
+            fullWidth
+            accessibilityLabel="Crear Serrucho"
           />
-          <Button
+          <DSButton
             title="Cancelar"
             variant="ghost"
             onPress={() => router.back()}
-            size="md"
+            fullWidth
             style={{ marginTop: 8 }}
+            accessibilityLabel="Cancelar creación"
           />
         </View>
-      </Card>
+      </DSSurface>
     </ScrollView>
   );
 }
@@ -212,35 +268,61 @@ export default function CreateSerruchoModal() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticTokens.colors.background.base,
   },
   content: {
-    padding: 16,
+    padding: semanticTokens.spacing.screen,
     paddingBottom: 40,
   },
+  card: {
+    borderRadius: semanticTokens.radius.lg,
+    padding: 16,
+  },
   title: {
-    fontSize: 18,
-    fontWeight: "900",
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 13,
-    lineHeight: 18,
     marginBottom: 16,
   },
-  currencyRow: {
-    marginBottom: 14,
+  inputGroup: {
+    marginBottom: 12,
   },
-  currencyLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 6,
+  inputLabel: {
+    marginBottom: 4,
+  },
+  input: {
+    height: 44,
+    backgroundColor: semanticTokens.colors.surface.base,
+    borderWidth: 1,
+    borderColor: semanticTokens.colors.divider,
+    borderRadius: semanticTokens.radius.md,
+    paddingHorizontal: 12,
+    color: semanticTokens.colors.text.primary,
+    fontSize: 14,
+  },
+  currencyRow: {
+    marginBottom: 12,
   },
   currencyButtons: {
     flexDirection: "row",
     gap: 8,
+    marginTop: 4,
   },
   currencyBtn: {
     flex: 1,
+    height: 38,
+    borderRadius: semanticTokens.radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  currencyBtnActive: {
+    backgroundColor: semanticTokens.colors.accent.primary,
+    borderColor: semanticTokens.colors.accent.primary,
+  },
+  currencyBtnInactive: {
+    backgroundColor: semanticTokens.colors.surface.base,
+    borderColor: semanticTokens.colors.divider,
   },
   actions: {
     marginTop: 16,

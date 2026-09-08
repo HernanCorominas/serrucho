@@ -21,18 +21,18 @@ export const BRAND_CONFIG = {
   },
   logo: {
     emoji: "🪚",
-    textGradient: "from-teal-600 via-emerald-600 to-cyan-600",
-    bgGradient: "from-teal-600 to-emerald-600",
-    badgeBorder: "border-teal-500/20",
-    shadow: "shadow-teal-500/25",
+    textGradient: "from-purple-600 via-violet-600 to-indigo-600",
+    bgGradient: "from-purple-600 to-violet-600",
+    badgeBorder: "border-purple-500/20",
+    shadow: "shadow-purple-500/25",
   },
   colors: {
-    primary: "#00a896", // Kittysplit signature teal
-    primaryDark: "#028090",
-    primaryLight: "#e6f6f4",
-    accent: "#f26419", // Kittysplit warm coral accent
-    success: "#10b981", // Emerald 500
-    destructive: "#ef4444", // Red 500
+    primary: "#8B5CF6", // Serrucho primary purple
+    primaryDark: "#7C3AED",
+    primaryLight: "#EDE9FE",
+    accent: "#F97316", // Warm coral accent
+    success: "#10B981", // Success green
+    destructive: "#EF4444", // Destructive red
   },
   links: {
     helpWhatsApp: "https://wa.me/18095550100",

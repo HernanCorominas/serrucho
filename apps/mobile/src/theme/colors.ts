@@ -1,36 +1,51 @@
+import { semanticTokens } from "@serrucho/ui";
+
+/**
+ * Mobile Theme & Color Bridge
+ * Re-exports semantic tokens from @serrucho/ui with backward compatibility for existing code.
+ */
 export const colors = {
-  primary: "#00a896", // Kittysplit signature teal
-  primaryLight: "#e6f6f4",
-  primaryDark: "#028090",
-  
-  secondary: "#028090", // Deep Teal
-  secondaryLight: "#f0fdfa",
-  
-  accent: "#f26419", // Kittysplit warm coral accent
-  
-  success: "#10b981", // Green positive balance
-  successLight: "#ecfdf5",
-  
-  danger: "#ef4444", // Red debtor balance
-  dangerLight: "#fef2f2",
-  
+  // Brand / Primary
+  primary: semanticTokens.colors.accent.primary,
+  primaryLight: semanticTokens.colors.accent.primaryLight,
+  primaryDark: semanticTokens.colors.accent.primaryDark,
+
+  // Secondary
+  secondary: semanticTokens.colors.surface.elevated,
+  secondaryLight: semanticTokens.colors.surface.hover,
+
+  // Accents & Highlights
+  accent: semanticTokens.colors.accent.super,
+  super: semanticTokens.colors.accent.super,
+
+  // Feedback states
+  success: semanticTokens.colors.success.base,
+  successLight: semanticTokens.colors.success.light,
+
+  danger: semanticTokens.colors.destructive.base,
+  dangerLight: semanticTokens.colors.destructive.light,
+
+  // Semantic surfaces & backgrounds (Dark Baseline)
   light: {
-    background: "#f8fafc",
-    card: "#ffffff",
-    cardBorder: "#e2e8f0",
-    text: "#0f172a",
-    textMuted: "#64748b",
-    border: "#e2e8f0",
-    inputBg: "#f1f5f9",
+    background: semanticTokens.colors.background.base,
+    card: semanticTokens.colors.surface.elevated,
+    cardBorder: semanticTokens.colors.cardBorder,
+    text: semanticTokens.colors.text.primary,
+    textMuted: semanticTokens.colors.text.secondary,
+    border: semanticTokens.colors.divider,
+    inputBg: semanticTokens.colors.surface.base,
   },
-  
+
   dark: {
-    background: "#090d16",
-    card: "#111827",
-    cardBorder: "#1e293b",
-    text: "#f8fafc",
-    textMuted: "#94a3b8",
-    border: "#1e293b",
-    inputBg: "#1e293b",
-  }
+    background: semanticTokens.colors.background.base,
+    card: semanticTokens.colors.surface.elevated,
+    cardBorder: semanticTokens.colors.cardBorder,
+    text: semanticTokens.colors.text.primary,
+    textMuted: semanticTokens.colors.text.secondary,
+    border: semanticTokens.colors.divider,
+    inputBg: semanticTokens.colors.surface.base,
+  },
+
+  // Direct access to semanticTokens
+  tokens: semanticTokens,
 };

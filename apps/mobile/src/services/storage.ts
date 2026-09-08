@@ -5,6 +5,16 @@ const SERRUCHOS_KEY = "@serrucho:list";
 const DETAIL_KEY_PREFIX = "@serrucho:detail:";
 const RECENTS_KEY = "@serrucho:recents";
 
+export interface MobileSerruchoDetailData {
+  serrucho: Serrucho;
+  participants: Participant[];
+  expenses: ExpenseWithSplits[];
+  balances: ParticipantFinancials[];
+  transfers?: import("@serrucho/core").Transfer[];
+  activities?: import("@serrucho/core").ActivityEvent[];
+  tier?: import("@serrucho/core").SerruchoTier;
+}
+
 export const mobileStorage = {
   async saveSerruchos(list: Serrucho[]): Promise<void> {
     try {
@@ -25,13 +35,7 @@ export const mobileStorage = {
 
   async saveSerruchoDetail(
     id: string,
-    data: {
-      serrucho: Serrucho;
-      participants: Participant[];
-      expenses: ExpenseWithSplits[];
-      balances: ParticipantFinancials[];
-      transfers?: import("@serrucho/core").Transfer[];
-    }
+    data: MobileSerruchoDetailData
   ): Promise<void> {
     try {
       await AsyncStorage.setItem(`${DETAIL_KEY_PREFIX}${id}`, JSON.stringify(data));
@@ -40,7 +44,7 @@ export const mobileStorage = {
     }
   },
 
-  async getSerruchoDetail(id: string) {
+  async getSerruchoDetail(id: string): Promise<MobileSerruchoDetailData | null> {
     try {
       const data = await AsyncStorage.getItem(`${DETAIL_KEY_PREFIX}${id}`);
       return data ? JSON.parse(data) : null;

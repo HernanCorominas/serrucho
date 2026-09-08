@@ -54,7 +54,7 @@ function SerruchoCard({ s }: { s: Serrucho }) {
       >
         {/* Top accent bar */}
         {isOpen && (
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-t-lg" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-t-lg" />
         )}
 
         <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">

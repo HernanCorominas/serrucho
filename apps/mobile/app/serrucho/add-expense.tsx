@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
-  useColorScheme,
   Alert,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { colors } from "../../src/theme/colors";
-import { Button } from "../../src/components/ui/Button";
-import { Card } from "../../src/components/ui/Card";
-import { Input } from "../../src/components/ui/Input";
-import { Badge } from "../../src/components/ui/Badge";
+import { Ionicons } from "@expo/vector-icons";
+import { semanticTokens } from "@serrucho/ui";
+import {
+  DSText,
+  DSSurface,
+  DSButton,
+  DSBadge,
+  DSAvatar,
+  DSIconButton,
+} from "../../src/components/ds";
 import { mobileStorage } from "../../src/services/storage";
 import { triggerHaptic } from "../../src/utils/haptics";
 import {
@@ -33,8 +37,6 @@ import {
 export default function AddExpenseScreen() {
   const { serruchoId, expenseId } = useLocalSearchParams<{ serruchoId: string; expenseId?: string }>();
   const router = useRouter();
-  const isDark = useColorScheme() === "dark";
-  const theme = isDark ? colors.dark : colors.light;
 
   const isEditing = !!expenseId;
   const [description, setDescription] = useState("");
@@ -49,6 +51,7 @@ export default function AddExpenseScreen() {
   const [notes, setNotes] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
 
   const categories: ExpenseCategory[] = [
     "FOOD_GROCERIES",
@@ -61,6 +64,7 @@ export default function AddExpenseScreen() {
 
   useEffect(() => {
     if (!serruchoId) return;
+    setFetching(true);
     mobileStorage.getSerruchoDetail(serruchoId).then((detail) => {
       if (detail && detail.participants.length > 0) {
         setParticipants(detail.participants);
@@ -94,6 +98,7 @@ export default function AddExpenseScreen() {
               setExactAmounts(initialExact);
               setShares(initialShares);
             }
+            setFetching(false);
             return;
           }
         }
@@ -107,6 +112,7 @@ export default function AddExpenseScreen() {
         });
         setShares(initialShares);
       }
+      setFetching(false);
     });
   }, [serruchoId, expenseId]);
 
@@ -274,35 +280,61 @@ export default function AddExpenseScreen() {
     }
   };
 
+  if (fetching) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={semanticTokens.colors.accent.primary} />
+        <DSText variant="body" color="secondary" style={{ marginTop: 12 }}>
+          Cargando detalles...
+        </DSText>
+      </View>
+    );
+  }
+
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Card>
-        <Text style={[styles.title, { color: theme.text }]}>
-          {isEditing ? "Editar Gasto ✏️" : "Registrar Nuevo Gasto 💸"}
-        </Text>
+      <DSSurface variant="elevated" style={styles.formCard}>
+        <View style={styles.headerRow}>
+          <DSText variant="title" weight="bold" color="primary">
+            {isEditing ? "Editar Gasto ✏️" : "Registrar Nuevo Gasto 💸"}
+          </DSText>
+          <DSBadge label="DOP · RD$" variant="accent" size="sm" />
+        </View>
 
-        <Input
-          label="Concepto del Gasto *"
+        {/* Description Input */}
+        <DSText variant="caption" weight="bold" color="secondary" style={styles.inputLabel}>
+          Concepto del Gasto *
+        </DSText>
+        <TextInput
           placeholder="Ej. Supermercado, Gasolina, Uber, etc."
+          placeholderTextColor={semanticTokens.colors.text.muted}
           value={description}
           onChangeText={setDescription}
+          style={styles.textInput}
           autoFocus
         />
 
-        <Input
-          label="Monto en Pesos Dominicanos (RD$) *"
+        {/* Amount Input */}
+        <DSText variant="caption" weight="bold" color="secondary" style={styles.inputLabel}>
+          Monto en Pesos Dominicanos (RD$) *
+        </DSText>
+        <TextInput
           placeholder="0.00"
+          placeholderTextColor={semanticTokens.colors.text.muted}
           value={amount}
           onChangeText={setAmount}
           keyboardType="decimal-pad"
+          style={styles.textInput}
         />
 
         {/* Payer Selection */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>¿Quién pagó? *</Text>
+        <DSText variant="caption" weight="bold" color="secondary" style={styles.inputLabel}>
+          ¿Quién pagó? *
+        </DSText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
           {participants.map((p) => {
             const isPayer = paidById === p.id;
@@ -316,21 +348,33 @@ export default function AddExpenseScreen() {
                 style={[
                   styles.payerChip,
                   {
-                    backgroundColor: isPayer ? colors.primary : theme.inputBg,
-                    borderColor: isPayer ? colors.primary : theme.border,
+                    backgroundColor: isPayer
+                      ? semanticTokens.colors.accent.primary
+                      : semanticTokens.colors.surface.base,
+                    borderColor: isPayer
+                      ? semanticTokens.colors.accent.primary
+                      : semanticTokens.colors.divider,
                   },
                 ]}
+                accessibilityLabel={`Pagado por ${p.name}`}
+                accessibilityRole="button"
               >
-                <Text style={[styles.payerChipText, { color: isPayer ? "#ffffff" : theme.text }]}>
+                <DSText
+                  variant="caption"
+                  weight="bold"
+                  style={{ color: isPayer ? "#FFFFFF" : semanticTokens.colors.text.primary }}
+                >
                   {p.name}
-                </Text>
+                </DSText>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
         {/* Split Method Selector */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Método de Reparto</Text>
+        <DSText variant="caption" weight="bold" color="secondary" style={styles.inputLabel}>
+          Método de Reparto
+        </DSText>
         <View style={styles.methodRow}>
           {(
             [
@@ -350,19 +394,24 @@ export default function AddExpenseScreen() {
                 style={[
                   styles.methodBtn,
                   {
-                    backgroundColor: isSelected ? colors.primary : theme.inputBg,
-                    borderColor: isSelected ? colors.primary : theme.border,
+                    backgroundColor: isSelected
+                      ? semanticTokens.colors.accent.primary
+                      : semanticTokens.colors.surface.base,
+                    borderColor: isSelected
+                      ? semanticTokens.colors.accent.primary
+                      : semanticTokens.colors.divider,
                   },
                 ]}
+                accessibilityLabel={`Método de reparto ${m.label}`}
+                accessibilityRole="button"
               >
-                <Text
-                  style={[
-                    styles.methodBtnText,
-                    { color: isSelected ? "#ffffff" : theme.text, fontWeight: isSelected ? "800" : "600" },
-                  ]}
+                <DSText
+                  variant="caption"
+                  weight="bold"
+                  style={{ color: isSelected ? "#FFFFFF" : semanticTokens.colors.text.primary }}
                 >
                   {m.label}
-                </Text>
+                </DSText>
               </TouchableOpacity>
             );
           })}
@@ -370,13 +419,13 @@ export default function AddExpenseScreen() {
 
         {/* Split Participants Selection */}
         <View style={styles.splitHeader}>
-          <Text style={[styles.sectionLabel, { color: theme.text }]}>
+          <DSText variant="caption" weight="bold" color="secondary">
             Dividir entre ({selectedParticipantIds.size} de {participants.length}) *
-          </Text>
-          <TouchableOpacity onPress={selectAllParticipants}>
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+          </DSText>
+          <TouchableOpacity onPress={selectAllParticipants} accessibilityLabel="Seleccionar todos los participantes">
+            <DSText variant="caption" weight="bold" color="accent">
               Seleccionar Todos
-            </Text>
+            </DSText>
           </TouchableOpacity>
         </View>
 
@@ -390,42 +439,51 @@ export default function AddExpenseScreen() {
                   style={[
                     styles.splitChip,
                     {
-                      backgroundColor: isSelected ? colors.primary + "15" : theme.inputBg,
-                      borderColor: isSelected ? colors.primary : theme.border,
+                      backgroundColor: isSelected
+                        ? semanticTokens.colors.accent.primary + "20"
+                        : semanticTokens.colors.surface.base,
+                      borderColor: isSelected
+                        ? semanticTokens.colors.accent.primary
+                        : semanticTokens.colors.divider,
                     },
                   ]}
+                  accessibilityLabel={`Incluir a ${p.name}`}
+                  accessibilityRole="checkbox"
                 >
-                  <Text
-                    style={[
-                      styles.splitChipText,
-                      { color: isSelected ? colors.primary : theme.textMuted, fontWeight: isSelected ? "800" : "500" },
-                    ]}
+                  <DSText
+                    variant="caption"
+                    weight={isSelected ? "bold" : "medium"}
+                    style={{
+                      color: isSelected
+                        ? semanticTokens.colors.accent.primary
+                        : semanticTokens.colors.text.secondary,
+                    }}
                   >
                     {isSelected ? "✓ " : ""}{p.name}
-                  </Text>
+                  </DSText>
                 </TouchableOpacity>
 
                 {isSelected && splitMethod === "PERCENTAGE" && (
                   <View style={styles.inlineInputContainer}>
                     <TextInput
-                      style={[styles.inlineInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.inputBg }]}
+                      style={styles.inlineInput}
                       placeholder="%"
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={semanticTokens.colors.text.muted}
                       value={percentages[p.id] || ""}
                       onChangeText={(val) => setPercentages({ ...percentages, [p.id]: val })}
                       keyboardType="decimal-pad"
                     />
-                    <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: "700" }}>%</Text>
+                    <DSText variant="caption" weight="bold" color="secondary">%</DSText>
                   </View>
                 )}
 
                 {isSelected && splitMethod === "EXACT" && (
                   <View style={styles.inlineInputContainer}>
-                    <Text style={{ color: theme.textMuted, fontSize: 11, fontWeight: "700" }}>RD$</Text>
+                    <DSText variant="caption" weight="bold" color="secondary">RD$</DSText>
                     <TextInput
-                      style={[styles.inlineInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.inputBg }]}
+                      style={styles.inlineInput}
                       placeholder="0.00"
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={semanticTokens.colors.text.muted}
                       value={exactAmounts[p.id] || ""}
                       onChangeText={(val) => setExactAmounts({ ...exactAmounts, [p.id]: val })}
                       keyboardType="decimal-pad"
@@ -436,14 +494,14 @@ export default function AddExpenseScreen() {
                 {isSelected && splitMethod === "SHARES" && (
                   <View style={styles.inlineInputContainer}>
                     <TextInput
-                      style={[styles.inlineInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.inputBg }]}
+                      style={styles.inlineInput}
                       placeholder="1"
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={semanticTokens.colors.text.muted}
                       value={shares[p.id] || ""}
                       onChangeText={(val) => setShares({ ...shares, [p.id]: val })}
                       keyboardType="decimal-pad"
                     />
-                    <Text style={{ color: theme.textMuted, fontSize: 11, fontWeight: "700" }}>cuotas</Text>
+                    <DSText variant="caption" weight="bold" color="secondary">cuotas</DSText>
                   </View>
                 )}
               </View>
@@ -452,7 +510,9 @@ export default function AddExpenseScreen() {
         </View>
 
         {/* Category Picker */}
-        <Text style={[styles.sectionLabel, { color: theme.text }]}>Categoría</Text>
+        <DSText variant="caption" weight="bold" color="secondary" style={styles.inputLabel}>
+          Categoría
+        </DSText>
         <View style={styles.catGrid}>
           {categories.map((catKey) => {
             const info = CATEGORY_INFO[catKey];
@@ -468,43 +528,64 @@ export default function AddExpenseScreen() {
                 style={[
                   styles.catBtn,
                   {
-                    backgroundColor: isSelected ? colors.primary : theme.inputBg,
-                    borderColor: isSelected ? colors.primary : theme.border,
+                    backgroundColor: isSelected
+                      ? semanticTokens.colors.accent.primary
+                      : semanticTokens.colors.surface.base,
+                    borderColor: isSelected
+                      ? semanticTokens.colors.accent.primary
+                      : semanticTokens.colors.divider,
                   },
                 ]}
+                accessibilityLabel={`Categoría ${info.label}`}
+                accessibilityRole="button"
               >
-                <Text style={[styles.catBtnText, { color: isSelected ? "#ffffff" : theme.text }]}>
+                <DSText
+                  variant="caption"
+                  weight="semibold"
+                  style={{
+                    color: isSelected ? "#FFFFFF" : semanticTokens.colors.text.primary,
+                    fontSize: 12,
+                  }}
+                >
                   {info.emoji} {info.label.split("/")[0]}
-                </Text>
+                </DSText>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <Input
-          label="Nota u observación (Opcional)"
+        {/* Notes Input */}
+        <DSText variant="caption" weight="bold" color="secondary" style={styles.inputLabel}>
+          Nota u observación (Opcional)
+        </DSText>
+        <TextInput
           placeholder="Ej. Factura #401, propina incluida"
+          placeholderTextColor={semanticTokens.colors.text.muted}
           value={notes}
           onChangeText={setNotes}
+          style={styles.textInput}
         />
 
+        {/* Action Buttons */}
         <View style={styles.actions}>
-          <Button
+          <DSButton
             title={loading ? "Guardando..." : isEditing ? "Guardar Cambios ✓" : "Guardar Gasto"}
             onPress={handleAdd}
             loading={loading}
-            size="lg"
+            disabled={loading}
             variant="primary"
+            accessibilityLabel="Guardar gasto"
           />
-          <Button
+          <DSButton
             title="Cancelar"
             variant="ghost"
             onPress={() => router.back()}
-            size="md"
+            disabled={loading}
             style={{ marginTop: 8 }}
+            accessibilityLabel="Cancelar y volver"
           />
         </View>
-      </Card>
+      </DSSurface>
     </ScrollView>
   );
 }
@@ -512,90 +593,75 @@ export default function AddExpenseScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticTokens.colors.background.base,
   },
   content: {
     padding: 16,
-    paddingBottom: 50,
+    paddingBottom: 60,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "900",
-    marginBottom: 14,
+  formCard: {
+    padding: 16,
+    borderRadius: 16,
   },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: "700",
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  inputLabel: {
     marginTop: 12,
     marginBottom: 6,
   },
+  textInput: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: semanticTokens.colors.divider,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: semanticTokens.colors.text.primary,
+    backgroundColor: semanticTokens.colors.surface.base,
+    fontSize: 15,
+  },
   horizontalScroll: {
     flexDirection: "row",
-    marginBottom: 10,
+    marginBottom: 6,
   },
   payerChip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
     marginRight: 8,
+    minHeight: 44,
+    justifyContent: "center",
   },
-  payerChipText: {
-    fontSize: 13,
-    fontWeight: "700",
+  methodRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  methodBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
   },
   splitHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
-    marginBottom: 6,
+    marginTop: 12,
+    marginBottom: 8,
   },
   splitGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
     marginBottom: 12,
-  },
-  splitChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  splitChipText: {
-    fontSize: 12,
-  },
-  catGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 14,
-  },
-  catBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  catBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  methodRow: {
-    flexDirection: "row",
-    gap: 6,
-    marginBottom: 10,
-  },
-  methodBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  methodBtnText: {
-    fontSize: 11,
   },
   participantSplitRow: {
     flexDirection: "row",
@@ -604,22 +670,47 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 4,
   },
+  splitChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   inlineInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   inlineInput: {
-    width: 75,
-    height: 36,
+    width: 80,
+    height: 40,
     borderRadius: 8,
     borderWidth: 1,
+    borderColor: semanticTokens.colors.divider,
+    backgroundColor: semanticTokens.colors.surface.base,
+    color: semanticTokens.colors.text.primary,
     paddingHorizontal: 8,
     fontSize: 13,
     fontWeight: "700",
     textAlign: "right",
   },
+  catGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 14,
+  },
+  catBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   actions: {
-    marginTop: 14,
+    marginTop: 20,
   },
 });

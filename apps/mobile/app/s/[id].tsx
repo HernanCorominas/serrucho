@@ -10,7 +10,12 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "../../src/theme/colors";
-import { mobileStorage, type MobileSerruchoDetailData } from "../../src/services/storage";
+import {
+  mobileStorage,
+  decodeGroupPayload,
+  type MobileSerruchoDetailData,
+} from "../../src/services/storage";
+import { mobileSyncEngine } from "../../src/services/sync";
 import { triggerHaptic } from "../../src/utils/haptics";
 import {
   DSText,
@@ -22,7 +27,7 @@ import {
 import type { Participant } from "@serrucho/core";
 
 export default function JoinSerruchoScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, d } = useLocalSearchParams<{ id: string; d?: string }>();
   const router = useRouter();
   const { tokens } = useAppTheme();
 
@@ -45,16 +50,28 @@ export default function JoinSerruchoScreen() {
         return;
       }
 
-      const stored = await mobileStorage.getSerruchoDetail(id);
-      if (stored) {
-        setDetail(stored);
+      // 1. Try local storage
+      let groupDetail = await mobileStorage.getSerruchoDetail(id);
+
+      // 2. If not in local storage, unpack portable payload if provided
+      if (!groupDetail && d) {
+        const decoded = decodeGroupPayload(d);
+        if (decoded && decoded.serrucho.id === id) {
+          groupDetail = decoded;
+          // Pre-save to local storage so subsequent screens can access it
+          await mobileStorage.saveSerruchoDetail(id, decoded);
+        }
+      }
+
+      if (groupDetail) {
+        setDetail(groupDetail);
       }
     } catch (e) {
       console.warn("Failed to load invitation", e);
     } finally {
       setLoading(false);
     }
-  }, [id, router]);
+  }, [id, d, router]);
 
   useEffect(() => {
     loadInvitation();
@@ -89,6 +106,18 @@ export default function JoinSerruchoScreen() {
         };
         await mobileStorage.saveSerruchoDetail(id, updatedDetail);
         finalParticipantId = newPart.id;
+
+        // Broadcast participant addition to other devices
+        const user = await mobileStorage.getGlobalUser();
+        await mobileSyncEngine.broadcastMutation({
+          id: `mut_part_${Date.now()}`,
+          serrucho_id: id,
+          action_type: "PARTICIPANT_ADDED",
+          actor_user_id: user.id,
+          actor_participant_id: newPart.id,
+          payload: newPart,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       if (!finalParticipantId) return;
@@ -97,6 +126,24 @@ export default function JoinSerruchoScreen() {
       await mobileStorage.addRecent({
         id: detail.serrucho.id,
         name: detail.serrucho.name,
+      });
+
+      // Ensure Serrucho is in the local list of Serruchos
+      const existingList = await mobileStorage.getSerruchos();
+      if (!existingList.some((s) => s.id === id)) {
+        await mobileStorage.saveSerruchos([detail.serrucho, ...existingList]);
+      }
+
+      // Broadcast participant claiming mutation to other devices
+      const user = await mobileStorage.getGlobalUser();
+      await mobileSyncEngine.broadcastMutation({
+        id: `mut_claim_${Date.now()}`,
+        serrucho_id: id,
+        action_type: "PARTICIPANT_CLAIMED",
+        actor_user_id: user.id,
+        actor_participant_id: finalParticipantId,
+        payload: { participant_id: finalParticipantId, user_id: user.id },
+        timestamp: new Date().toISOString(),
       });
 
       triggerHaptic("success");

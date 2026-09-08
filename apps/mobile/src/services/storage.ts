@@ -277,3 +277,55 @@ export const mobileStorage = {
     }
   },
 };
+
+// --- Portable Multi-Device Invitation Sharing Helpers ---
+export function encodeGroupPayload(data: MobileSerruchoDetailData): string {
+  try {
+    const compact = {
+      v: 1,
+      s: data.serrucho,
+      p: data.participants,
+      e: data.expenses || [],
+      t: data.transfers || [],
+      b: data.bilateral_settlements || [],
+    };
+    const jsonStr = JSON.stringify(compact);
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(jsonStr, "utf-8").toString("base64");
+    }
+    return btoa(encodeURIComponent(jsonStr));
+  } catch (e) {
+    console.warn("Error encoding group payload", e);
+    return "";
+  }
+}
+
+export function decodeGroupPayload(payloadStr: string): MobileSerruchoDetailData | null {
+  try {
+    if (!payloadStr) return null;
+    let jsonStr = "";
+    if (typeof Buffer !== "undefined") {
+      jsonStr = Buffer.from(payloadStr, "base64").toString("utf-8");
+    } else {
+      jsonStr = decodeURIComponent(atob(payloadStr));
+    }
+    const parsed = JSON.parse(jsonStr);
+    if (!parsed || !parsed.s || !Array.isArray(parsed.p)) {
+      return null;
+    }
+    return {
+      serrucho: parsed.s,
+      participants: parsed.p,
+      expenses: parsed.e || [],
+      balances: [],
+      transfers: parsed.t || [],
+      activities: [],
+      tier: "FREE",
+      bilateral_settlements: parsed.b || [],
+    };
+  } catch (e) {
+    console.warn("Error decoding group payload", e);
+    return null;
+  }
+}
+

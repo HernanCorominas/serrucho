@@ -16,10 +16,10 @@ import {
   DSSurface,
   DSButton,
   DSBadge,
-  DSAvatar,
   DSIconButton,
 } from "../../src/components/ds";
 import { mobileStorage } from "../../src/services/storage";
+import { mobileSyncEngine } from "../../src/services/sync";
 import { triggerHaptic } from "../../src/utils/haptics";
 import {
   CATEGORY_INFO,
@@ -266,6 +266,18 @@ export default function AddExpenseScreen() {
             ...detail,
             expenses: updatedExpenses,
             balances: newBalances,
+          });
+
+          // Broadcast mutation to sync engine for multi-device synchronization
+          const user = await mobileStorage.getGlobalUser();
+          await mobileSyncEngine.broadcastMutation({
+            id: `mut_exp_${Date.now()}`,
+            serrucho_id: serruchoId,
+            action_type: isEditing ? "EXPENSE_UPDATED" : "EXPENSE_CREATED",
+            actor_user_id: user.id,
+            actor_participant_id: payer.id,
+            payload: savedExpense,
+            timestamp: new Date().toISOString(),
           });
         }
       }

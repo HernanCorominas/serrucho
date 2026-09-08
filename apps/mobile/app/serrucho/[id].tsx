@@ -53,9 +53,11 @@ import {
 import { useGlobalNavigation } from "../../src/navigation/GlobalNavigationContext";
 import {
   mobileStorage,
+  encodeGroupPayload,
   type MobileSerruchoDetailData,
   type BilateralSettlement,
 } from "../../src/services/storage";
+import { mobileSyncEngine } from "../../src/services/sync";
 import { BilateralSettlementModal } from "../../src/components/settlement/BilateralSettlementModal";
 import { PaymentSettledAnimation } from "../../src/components/ui/PaymentSettledAnimation";
 
@@ -307,7 +309,7 @@ export default function SerruchoDetailScreen() {
 
     // Reactive subscription for instant UI updates (add expense, settlement, etc.)
     if (id) {
-      const unsubscribe = mobileStorage.subscribeToDetail(id, (updated) => {
+      const unsubLocal = mobileStorage.subscribeToDetail(id, (updated) => {
         if (updated) {
           setSerrucho(updated.serrucho);
           setParticipants(updated.participants || []);
@@ -325,9 +327,37 @@ export default function SerruchoDetailScreen() {
           setDebts(simplifyDebts(updated.participants || [], calculated));
         }
       });
-      return unsubscribe;
+
+      // Multi-device sync subscription (remote updates from other devices)
+      const unsubRemote = mobileSyncEngine.subscribeToSerrucho(
+        id,
+        myParticipantId || "guest",
+        (reconciled) => {
+          if (reconciled) {
+            setSerrucho(reconciled.serrucho);
+            setParticipants(reconciled.participants || []);
+            setExpenses(reconciled.expenses || []);
+            setTransfers(reconciled.transfers || []);
+            setActivities(reconciled.activities || []);
+            setTier(reconciled.tier || "FREE");
+            setBilateralSettlements(reconciled.bilateral_settlements || []);
+            const calculated = calculateParticipantBalances(
+              reconciled.participants || [],
+              reconciled.expenses || [],
+              reconciled.transfers || []
+            );
+            setBalances(calculated);
+            setDebts(simplifyDebts(reconciled.participants || [], calculated));
+          }
+        }
+      );
+
+      return () => {
+        unsubLocal();
+        unsubRemote();
+      };
     }
-  }, [id, loadData]);
+  }, [id, loadData, myParticipantId]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -356,7 +386,7 @@ export default function SerruchoDetailScreen() {
     setTier(updatedTier);
     setBilateralSettlements(updatedBilateralSettlements);
 
-    await mobileStorage.saveSerruchoDetail(id, {
+    const updatedDetail: MobileSerruchoDetailData = {
       serrucho: updatedSerrucho,
       participants: updatedParticipants,
       expenses: updatedExpenses,
@@ -365,7 +395,10 @@ export default function SerruchoDetailScreen() {
       activities: updatedActivities,
       tier: updatedTier,
       bilateral_settlements: updatedBilateralSettlements,
-    });
+    };
+
+    await mobileStorage.saveSerruchoDetail(id, updatedDetail);
+    await mobileSyncEngine.broadcastFullSync(id, updatedDetail, myParticipantId || "guest");
   };
 
   const isClosed = serrucho?.status === "CLOSED";
@@ -531,7 +564,18 @@ export default function SerruchoDetailScreen() {
   // WhatsApp & Link Sharing
   const handleShareWhatsApp = async () => {
     if (!serrucho) return;
-    const url = `https://serrucho.app/s/${serrucho.id}`;
+    const currentDetail: MobileSerruchoDetailData = {
+      serrucho,
+      participants,
+      expenses,
+      balances,
+      transfers,
+      activities,
+      tier,
+      bilateral_settlements: bilateralSettlements,
+    };
+    const payload = encodeGroupPayload(currentDetail);
+    const url = `https://serrucho.app/s/${serrucho.id}${payload ? `?d=${encodeURIComponent(payload)}` : ""}`;
     const message = `¡Hola! Te invito a unirte a nuestro serrucho *${serrucho.name}* para dividir los gastos fácilmente sin costo. Entra aquí: ${url}`;
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
     try {
@@ -548,7 +592,18 @@ export default function SerruchoDetailScreen() {
 
   const handleShareLink = async () => {
     if (!serrucho) return;
-    const url = `https://serrucho.app/s/${serrucho.id}`;
+    const currentDetail: MobileSerruchoDetailData = {
+      serrucho,
+      participants,
+      expenses,
+      balances,
+      transfers,
+      activities,
+      tier,
+      bilateral_settlements: bilateralSettlements,
+    };
+    const payload = encodeGroupPayload(currentDetail);
+    const url = `https://serrucho.app/s/${serrucho.id}${payload ? `?d=${encodeURIComponent(payload)}` : ""}`;
     const message = `Únete a mi Serrucho "${serrucho.name}": ${url}`;
     try {
       await Share.share({ message, url });

@@ -141,7 +141,7 @@ export default function DashboardScreen() {
         {/* Search Bar */}
         {serruchos.length > 0 && (
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={18} color={semanticTokens.colors.text.secondary} style={styles.searchIcon} />
+            <Ionicons name="search" size={18} color={semanticTokens.colors.text.secondary} style={styles.searchIcon as any} />
             <TextInput
               placeholder="Buscar Serrucho..."
               placeholderTextColor={semanticTokens.colors.text.muted}
